@@ -12,6 +12,7 @@
 # ---------------------------------------------------------------------------
 
 FROM composer:2.10.3 AS composer
+FROM node:24.21.0-trixie-slim AS node-glibc
 
 # ---------------------------------------------------------------------------
 # base: PHP-FPM with the extensions BUFFALO needs, running as a non-root user.
@@ -112,6 +113,21 @@ ENV XDEBUG_MODE=off
 USER buffalo
 
 CMD ["php-fpm"]
+
+# ---------------------------------------------------------------------------
+# ci: dev image plus Node.js, so scripts/ci.sh can run PHP and frontend checks
+# in one container (`make ci`). Node comes from the Debian (glibc) image.
+# ---------------------------------------------------------------------------
+FROM dev AS ci
+
+USER root
+COPY --from=node-glibc /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-glibc /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN set -eux; \
+    ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm; \
+    ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx; \
+    node --version; npm --version
+USER buffalo
 
 # ---------------------------------------------------------------------------
 # vendor: production Composer dependencies and generated Wayfinder routes.

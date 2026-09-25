@@ -5,6 +5,9 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { initializeEcho } from '@/lib/echo';
+
+initializeEcho();
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 

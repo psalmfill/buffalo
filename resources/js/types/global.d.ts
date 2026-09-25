@@ -1,6 +1,8 @@
 import type { Auth } from '@/types/auth';
 
 declare module 'react' {
+    // Augmentation must repeat React's type parameter even though it is unused.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface InputHTMLAttributes<T> {
         passwordrules?: string;
     }

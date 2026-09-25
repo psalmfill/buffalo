@@ -15,7 +15,7 @@ NODE    := $(COMPOSE) run --rm --no-deps vite
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell artisan test lint fix fresh logs tiles wayfinder
+.PHONY: help setup up down shell artisan test lint fix fresh logs tiles wayfinder ci
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -71,3 +71,17 @@ tiles: ## Download the Nigeria map extract: make tiles url=<protomaps build URL>
 
 wayfinder: ## Regenerate Wayfinder TypeScript routes (run after changing routes)
 	$(PHP_ND) php artisan wayfinder:generate --with-form
+
+ci: ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
+	docker build -f docker/php/Dockerfile --target ci \
+		--build-arg UID=$(DOCKER_UID) --build-arg GID=$(DOCKER_GID) -t buffalo-app:ci .
+	$(COMPOSE) up -d --wait postgres valkey
+	docker run --rm --network buffalo_default \
+		-v "$(CURDIR)":/src:ro \
+		-e DB_HOST=postgres -e REDIS_HOST=valkey \
+		buffalo-app:ci bash -c '\
+			mkdir -p /tmp/ci && \
+			tar -C /src --exclude=./node_modules --exclude=./vendor --exclude=./.env \
+				--exclude=./public/build --exclude=./public/hot --exclude=./.git -cf - . \
+				| tar -C /tmp/ci -xf - && \
+			cd /tmp/ci && scripts/ci.sh'
