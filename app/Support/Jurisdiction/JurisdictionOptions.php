@@ -2,6 +2,7 @@
 
 namespace App\Support\Jurisdiction;
 
+use App\Enums\Permission;
 use App\Models\Lga;
 use App\Models\State;
 use App\Models\User;
@@ -34,6 +35,30 @@ final class JurisdictionOptions
             RestrictionType::Lga => $query->whereKey(Lga::query()->whereKey($restriction->lgaId)->value('state_id'))->get(),
             RestrictionType::Nothing => new Collection,
         };
+    }
+
+    /**
+     * States a user administrator may ASSIGN to accounts (user management),
+     * as opposed to select for intelligence records. Only users holding
+     * users.manage get options: they manage accounts everywhere.
+     *
+     * @return Collection<int, State>
+     */
+    public function assignableStates(User $actor): Collection
+    {
+        return $actor->checkPermissionTo(Permission::UsersManage->value) && ! $actor->isAccessBlocked()
+            ? State::query()->active()->orderBy('name')->get()
+            : new Collection;
+    }
+
+    /**
+     * @return Collection<int, Lga>
+     */
+    public function assignableLgas(User $actor): Collection
+    {
+        return $actor->checkPermissionTo(Permission::UsersManage->value) && ! $actor->isAccessBlocked()
+            ? Lga::query()->active()->with('state:id,ulid')->orderBy('name')->get()
+            : new Collection;
     }
 
     /**

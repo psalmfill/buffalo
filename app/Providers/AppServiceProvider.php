@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Console\Commands\DisabledCleanActivitylogCommand;
 use App\Models\User;
+use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
 use App\Support\Jurisdiction\ContextMode;
@@ -64,6 +65,9 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         Gate::before(fn (User $user): ?bool => $user->isAccessBlocked() ? false : null);
+
+        Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
+        Gate::define('viewLoginHistory', fn (User $user): bool => AuditAccess::canViewLoginHistory($user));
     }
 
     /**

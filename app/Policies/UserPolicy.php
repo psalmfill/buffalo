@@ -12,8 +12,8 @@ use App\Support\Users\SuperAdmins;
  *
  * - users.view: view users within the actor's jurisdiction (a state
  *   director sees users of their state; super admins see all users).
- * - users.manage (super admin only): create, update, deactivate,
- *   reactivate, reset two-factor.
+ * - users.manage (super admin only): create, update, change role,
+ *   deactivate, reactivate, unlock, reset two-factor, issue setup links.
  *
  * Every ability on a target user also checks jurisdiction (defence in
  * depth, even where the scope has already filtered). Blocked actors are
@@ -74,6 +74,20 @@ final class UserPolicy
     public function resetTwoFactor(User $actor, User $target): bool
     {
         return $this->manages($actor, $target);
+    }
+
+    public function unlock(User $actor, User $target): bool
+    {
+        return $this->manages($actor, $target);
+    }
+
+    /**
+     * New setup link: for accounts that never completed setup, or to make a
+     * user choose a new password. Active accounts only.
+     */
+    public function issueSetupLink(User $actor, User $target): bool
+    {
+        return $this->manages($actor, $target) && $target->is_active;
     }
 
     private function manages(User $actor, User $target): bool

@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import NotificationController from '@/actions/App/Http/Controllers/NotificationController';
 import Heading from '@/components/heading';
 import NotificationSeverityDot from '@/components/notification-severity-dot';
+import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { formatDateTime, timeAgo } from '@/lib/time';
 import { cn } from '@/lib/utils';
@@ -131,53 +132,9 @@ export default function NotificationsIndex({
                     ))}
                 </ul>
 
-                <Pagination links={notifications} />
+                <Pagination page={notifications} />
             </div>
         </>
-    );
-}
-
-function Pagination({ links }: { links: Paginated<unknown> }) {
-    if (links.last_page <= 1) {
-        return null;
-    }
-
-    return (
-        <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-                Page {links.current_page} of {links.last_page}
-            </span>
-            <div className="flex gap-2">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!links.prev_page_url}
-                    asChild={!!links.prev_page_url}
-                >
-                    {links.prev_page_url ? (
-                        <Link href={links.prev_page_url} preserveScroll>
-                            Previous
-                        </Link>
-                    ) : (
-                        <span>Previous</span>
-                    )}
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!links.next_page_url}
-                    asChild={!!links.next_page_url}
-                >
-                    {links.next_page_url ? (
-                        <Link href={links.next_page_url} preserveScroll>
-                            Next
-                        </Link>
-                    ) : (
-                        <span>Next</span>
-                    )}
-                </Button>
-            </div>
-        </div>
     );
 }
 

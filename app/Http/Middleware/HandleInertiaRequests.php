@@ -41,6 +41,13 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                // Only for showing links; every route is authorised on the
+                // server. Role-aware navigation arrives in Phase 1E.
+                'can' => fn (): array => [
+                    'viewUsers' => $request->user()?->can('viewAny', User::class) ?? false,
+                    'viewAudit' => $request->user()?->can('viewAudit') ?? false,
+                    'viewLoginHistory' => $request->user()?->can('viewLoginHistory') ?? false,
+                ],
             ],
             'notifications' => [
                 // Unread count for the bell; kept live over Echo afterwards.

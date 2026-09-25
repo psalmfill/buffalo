@@ -13,6 +13,11 @@ export type User = {
 
 export type Auth = {
     user: User;
+    can: {
+        viewUsers: boolean;
+        viewAudit: boolean;
+        viewLoginHistory: boolean;
+    };
 };
 
 export type TwoFactorSetupData = {

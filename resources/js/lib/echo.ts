@@ -1,16 +1,11 @@
 import { configureEcho } from '@laravel/echo-react';
+import { xsrfToken } from '@/lib/http';
 
 type ChannelAuthorizationParams = { socketId: string; channelName: string };
 type ChannelAuthorizationCallback = (
     error: Error | null,
     authData: { auth: string; channel_data?: string } | null,
 ) => void;
-
-function xsrfToken(): string {
-    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
-
-    return match ? decodeURIComponent(match[1]) : '';
-}
 
 /**
  * Authorises private channels (e.g. `users.{ulid}`) with the current
