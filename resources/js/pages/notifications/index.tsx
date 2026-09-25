@@ -8,6 +8,7 @@ import { formatDateTime, timeAgo } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types/pagination';
 import type { AppNotification } from '@/types/notifications';
+import EmptyState from '@/components/empty-state';
 
 type Filter = 'all' | 'unread' | 'read';
 
@@ -89,8 +90,11 @@ export default function NotificationsIndex({
 
                 <ul className="divide-y rounded-lg border">
                     {notifications.data.length === 0 && (
-                        <li className="p-6 text-center text-sm text-muted-foreground">
-                            No notifications
+                        <li>
+                            <EmptyState
+                                title="No notifications"
+                                description="You are all caught up."
+                            />
                         </li>
                     )}
                     {notifications.data.map((notification) => (

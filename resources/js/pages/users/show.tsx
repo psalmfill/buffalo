@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent, ReactNode } from 'react';
 import { useState } from 'react';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
+import EmptyState from '@/components/empty-state';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import Pagination from '@/components/pagination';
@@ -323,11 +324,11 @@ function PostingsTab({ postings }: { postings: Posting[] }) {
                 <tbody className="divide-y">
                     {postings.length === 0 && (
                         <tr>
-                            <td
-                                colSpan={4}
-                                className="px-3 py-6 text-center text-muted-foreground"
-                            >
-                                No postings
+                            <td colSpan={4} className="p-0">
+                                <EmptyState
+                                    title="No postings"
+                                    description="No role or jurisdiction has been recorded for this user."
+                                />
                             </td>
                         </tr>
                     )}

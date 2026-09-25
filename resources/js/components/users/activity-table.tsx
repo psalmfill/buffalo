@@ -1,5 +1,6 @@
 import { formatDateTime } from '@/lib/time';
 import type { ActivityEntry } from '@/types/users';
+import EmptyState from '@/components/empty-state';
 
 function formatValue(value: unknown): string {
     if (value === null || value === undefined) {
@@ -32,11 +33,11 @@ export default function ActivityTable({
                 <tbody className="divide-y align-top">
                     {entries.length === 0 && (
                         <tr>
-                            <td
-                                colSpan={5}
-                                className="px-3 py-6 text-center text-muted-foreground"
-                            >
-                                No entries
+                            <td colSpan={5} className="p-0">
+                                <EmptyState
+                                    title="No audit entries"
+                                    description="Nothing has been recorded for this selection."
+                                />
                             </td>
                         </tr>
                     )}

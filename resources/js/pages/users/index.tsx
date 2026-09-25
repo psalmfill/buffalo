@@ -14,6 +14,7 @@ import UserStatusBadges, {
 import { formatDateTime } from '@/lib/time';
 import type { Paginated } from '@/types/pagination';
 import type { NamedOption, RoleOption, UserRow } from '@/types/users';
+import EmptyState from '@/components/empty-state';
 
 type Filters = {
     search: string;
@@ -198,9 +199,12 @@ export default function UsersIndex({
                                 <tr>
                                     <td
                                         colSpan={columns.length}
-                                        className="px-3 py-6 text-center text-muted-foreground"
+                                        className="p-0"
                                     >
-                                        No users found
+                                        <EmptyState
+                                            title="No users found"
+                                            description="No users match these filters."
+                                        />
                                     </td>
                                 </tr>
                             )}

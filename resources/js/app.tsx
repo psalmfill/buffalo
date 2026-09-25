@@ -16,6 +16,10 @@ void createInertiaApp({
     title: (title) => (title ? `${title} — ${appName}` : appName),
     layout: (name) => {
         switch (true) {
+            case name.startsWith('errors/'):
+                // Error pages draw their own full-page layout: they are
+                // shown to guests and signed-in users alike.
+                return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

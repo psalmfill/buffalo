@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { LoginEntry } from '@/types/users';
+import EmptyState from '@/components/empty-state';
 
 const failureEvents = ['login_failed', 'two_factor_failed', 'locked'];
 
@@ -47,11 +48,11 @@ export default function LoginHistoryTable({
                 <tbody className="divide-y">
                     {entries.length === 0 && (
                         <tr>
-                            <td
-                                colSpan={showUser ? 6 : 5}
-                                className="px-3 py-6 text-center text-muted-foreground"
-                            >
-                                No entries
+                            <td colSpan={showUser ? 6 : 5} className="p-0">
+                                <EmptyState
+                                    title="No sign-in events"
+                                    description="Nothing has been recorded for this selection."
+                                />
                             </td>
                         </tr>
                     )}
