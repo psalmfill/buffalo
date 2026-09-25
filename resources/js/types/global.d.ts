@@ -15,6 +15,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             session: { lifetime: number };
+            notifications: { unreadCount: number };
             [key: string]: unknown;
         };
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,6 +41,12 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+            ],
+            'notifications' => [
+                // Unread count for the bell; kept live over Echo afterwards.
+                'unreadCount' => fn (): int => $request->user() instanceof User
+                    ? $request->user()->unreadNotifications()->count()
+                    : 0,
             ],
             'session' => [
                 // Idle timeout in minutes, for the frontend idle warning.
