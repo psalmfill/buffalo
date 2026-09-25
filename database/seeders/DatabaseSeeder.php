@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\Artisan;
 use RuntimeException;
 
 /**
- * Seeds reference data only. No user accounts are seeded: the first super
- * admin is created with an Artisan command (Phase 1B).
+ * Seeds roles, permissions and reference data. No user accounts are ever
+ * seeded: the first super admin is created with
+ * `php artisan buffalo:create-super-admin`.
  *
  * Model events are left on: HasUlidRouteKey generates ULIDs in `creating`.
  */
@@ -17,6 +18,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(RolesAndPermissionsSeeder::class);
         $this->call(ZonesAndStatesSeeder::class);
 
         if (is_file(database_path('data/'.ReadHierarchyFiles::LGAS_FILE))) {
