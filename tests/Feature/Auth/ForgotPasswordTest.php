@@ -6,7 +6,7 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Notification;
 
 test('forgot password gives the same answer for active, inactive and unknown addresses', function () {
-    config(['mail.default' => 'smtp']);
+    config(['buffalo.mail_enabled' => true]);
     Notification::fake();
     $active = User::factory()->directorGeneral()->create();
     $inactive = User::factory()->directorGeneral()->inactive()->create();
@@ -25,7 +25,7 @@ test('forgot password gives the same answer for active, inactive and unknown add
 });
 
 test('a throttled request gets the same answer', function () {
-    config(['mail.default' => 'smtp']);
+    config(['buffalo.mail_enabled' => true]);
     Notification::fake();
     $user = User::factory()->directorGeneral()->create();
 
@@ -38,7 +38,7 @@ test('a throttled request gets the same answer', function () {
 });
 
 test('no reset email is sent when mail is not configured', function () {
-    config(['mail.default' => 'log']);
+    config(['buffalo.mail_enabled' => false]);
     Notification::fake();
     $user = User::factory()->directorGeneral()->create();
 

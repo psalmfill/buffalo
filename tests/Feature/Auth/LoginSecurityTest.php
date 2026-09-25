@@ -163,7 +163,8 @@ test('a lock notifies every active super admin', function () {
     expect($notifications)->toHaveCount(2)
         ->and($notifications->pluck('notifiable_id')->sort()->values()->all())->toBe($admins->pluck('id')->sort()->values()->all())
         ->and($notifications->first()->data['type'])->toBe('account_locked')
-        ->and($notifications->first()->data['user_ulid'])->toBe($user->ulid)
+        ->and($notifications->first()->data['url'])->toBe('/users/'.$user->ulid)
+        ->and($notifications->first()->data['severity'])->toBe('warning')
         ->and($notifications->pluck('notifiable_id'))->not->toContain($inactiveAdmin->id);
 });
 

@@ -129,7 +129,7 @@ test('regenerating recovery codes requires password confirmation', function () {
 });
 
 test('ResetTwoFactor clears 2FA, ends sessions and forces re-enrolment', function () {
-    config(['mail.default' => 'smtp']);
+    config(['buffalo.mail_enabled' => true]);
     Notification::fake();
     $user = User::factory()->directorGeneral()->create();
 
@@ -157,14 +157,14 @@ test('ResetTwoFactor clears 2FA, ends sessions and forces re-enrolment', functio
     Notification::assertSentTo($user, TwoFactorResetNotification::class);
 });
 
-test('ResetTwoFactor sends no email when mail is not configured', function () {
-    config(['mail.default' => 'log']);
+test('ResetTwoFactor notifies in-app only when mail is not enabled', function () {
+    config(['buffalo.mail_enabled' => false]);
     Notification::fake();
     $user = User::factory()->directorGeneral()->create();
 
     app(ResetTwoFactor::class)($user);
 
-    Notification::assertNothingSent();
+    Notification::assertSentTo($user, TwoFactorResetNotification::class, fn ($n, array $channels) => $channels === ['database', 'broadcast']);
 });
 
 test('completing account setup leads straight to two-factor enrolment without a password prompt', function () {

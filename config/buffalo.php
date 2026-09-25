@@ -2,6 +2,10 @@
 
 return [
 
+    // Send email at all? Off for deployments without a mail server: setup
+    // links are then handed over manually and notifications stay in-app.
+    'mail_enabled' => (bool) env('BUFFALO_MAIL_ENABLED', false),
+
     /*
     |--------------------------------------------------------------------------
     | Authentication and sessions (Phase 1C)

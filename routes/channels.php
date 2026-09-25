@@ -1,7 +1,8 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-});
+// Each user's private notification channel, identified by ULID (numeric ids
+// never reach the browser). Only the owner, and only an unblocked account.
+Broadcast::channel('users.{ulid}', fn (User $user, string $ulid): bool => $user->ulid === $ulid && ! $user->isAccessBlocked());

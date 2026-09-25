@@ -7,11 +7,10 @@ use App\Enums\Role;
 use App\Models\User;
 use App\Notifications\AccountLockedNotification;
 use App\Support\Auth\LoginHistoryRecorder;
-use App\Support\Jurisdiction\JurisdictionContext;
+use App\Support\Notifications\NotifyRole;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Counts a failed password or two-factor attempt. After max_attempts
@@ -24,7 +23,7 @@ final class RecordFailedLogin
 {
     public function __construct(
         private readonly LoginHistoryRecorder $history,
-        private readonly JurisdictionContext $context,
+        private readonly NotifyRole $notifyRole,
     ) {}
 
     public function __invoke(User $user): void
@@ -80,16 +79,6 @@ final class RecordFailedLogin
 
     private function notifySuperAdmins(User $user, CarbonInterface $until): void
     {
-        // This runs in a guest login request (jurisdiction context `none`),
-        // so the super admins are loaded through the audited system bypass.
-        $admins = $this->context->runAsSystem(
-            'Notify super admins that an account was locked',
-            fn () => User::query()
-                ->role(Role::SuperAdmin->value)
-                ->where('is_active', true)
-                ->get(),
-        );
-
-        Notification::send($admins, new AccountLockedNotification($user, $until, request()->ip()));
+        $this->notifyRole->send(new AccountLockedNotification($user, $until, request()->ip()), Role::SuperAdmin);
     }
 }

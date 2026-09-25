@@ -1,5 +1,60 @@
 import { configureEcho } from '@laravel/echo-react';
 
+type ChannelAuthorizationParams = { socketId: string; channelName: string };
+type ChannelAuthorizationCallback = (
+    error: Error | null,
+    authData: { auth: string; channel_data?: string } | null,
+) => void;
+
+function xsrfToken(): string {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+/**
+ * Authorises private channels (e.g. `users.{ulid}`) with the current
+ * session's CSRF cookie, read at authorisation time because it changes when
+ * the user signs in.
+ */
+async function authorizeChannel(
+    params: ChannelAuthorizationParams,
+    callback: ChannelAuthorizationCallback,
+): Promise<void> {
+    try {
+        const response = await fetch('/broadcasting/auth', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': xsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                socket_id: params.socketId,
+                channel_name: params.channelName,
+            }),
+        });
+
+        if (!response.ok) {
+            callback(
+                new Error(`Channel authorisation failed (${response.status})`),
+                null,
+            );
+
+            return;
+        }
+
+        callback(null, await response.json());
+    } catch (error) {
+        callback(
+            error instanceof Error ? error : new Error(String(error)),
+            null,
+        );
+    }
+}
+
 /**
  * Laravel Echo client for Reverb.
  *
@@ -23,5 +78,13 @@ export function initializeEcho(): void {
         wssPort: port,
         forceTLS: scheme === 'https',
         enabledTransports: ['ws', 'wss'],
+        channelAuthorization: {
+            endpoint: '/broadcasting/auth',
+            transport: 'ajax',
+            customHandler: (
+                params: ChannelAuthorizationParams,
+                callback: ChannelAuthorizationCallback,
+            ) => void authorizeChannel(params, callback),
+        },
     });
 }

@@ -90,6 +90,7 @@ test('excluded attributes never appear in activity entries', function () {
 });
 
 test('issuing a setup link logs the delivery method but never the link or token', function () {
+    config(['buffalo.mail_enabled' => true]);
     Notification::fake();
     $user = User::factory()->directorGeneral()->withoutTwoFactor()->create();
 

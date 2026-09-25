@@ -138,6 +138,14 @@ class User extends Authenticatable implements JurisdictionScoped
     }
 
     /**
+     * Private broadcast channel for this user's notifications.
+     */
+    public function receivesBroadcastNotificationsOn(): string
+    {
+        return 'users.'.$this->ulid;
+    }
+
+    /**
      * Sign-in bookkeeping is recorded in login_histories, not the audit log.
      *
      * @return list<string>

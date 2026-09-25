@@ -128,12 +128,13 @@ test('the setup password must follow the policy, and a rejected password leaves 
 });
 
 test('email delivery sends the link to the user', function () {
+    config(['buffalo.mail_enabled' => true]);
     Notification::fake();
     $user = User::factory()->directorGeneral()->create();
 
     app(SendAccountSetupLink::class)($user);
 
-    Notification::assertSentTo($user, AccountSetupNotification::class, fn (AccountSetupNotification $n) => str_contains($n->url, '/account/setup/'));
+    Notification::assertSentTo($user, AccountSetupNotification::class, fn (AccountSetupNotification $n) => str_contains($n->setupUrl, '/account/setup/'));
 });
 
 test('CreateUser does not issue or send a link by itself', function () {

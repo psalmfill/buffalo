@@ -2,27 +2,33 @@
 
 namespace App\Notifications;
 
+use App\Enums\NotificationSeverity;
 use App\Models\User;
-use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
-class TwoFactorResetNotification extends Notification
+class TwoFactorResetNotification extends BuffaloNotification
 {
-    /**
-     * @return list<string>
-     */
-    public function via(User $notifiable): array
+    public function type(): string
     {
-        return ['mail'];
+        return 'two_factor_reset';
     }
 
-    public function toMail(User $notifiable): MailMessage
+    public function title(User $notifiable): string
     {
-        return (new MailMessage)
-            ->subject('Your '.config('app.name').' two-factor authentication was reset')
-            ->greeting("Hello {$notifiable->name},")
-            ->line('An administrator has reset two-factor authentication on your account and signed you out everywhere.')
-            ->line('You will be asked to set up two-factor authentication again the next time you sign in.')
-            ->line('If you did not ask for this, contact your administrator immediately.');
+        return 'Two-factor authentication was reset';
+    }
+
+    public function body(User $notifiable): string
+    {
+        return 'An administrator reset two-factor authentication on your account and signed you out everywhere. You will set it up again at your next sign-in. If you did not ask for this, contact your administrator immediately.';
+    }
+
+    public function severity(): NotificationSeverity
+    {
+        return NotificationSeverity::Warning;
+    }
+
+    public function allowsMail(): bool
+    {
+        return true;
     }
 }

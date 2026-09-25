@@ -3,15 +3,14 @@
 namespace App\Support\Auth;
 
 /**
- * Whether outgoing email can actually be delivered. Deployments without a
- * mail server use the `log` (or `array`) mailer; nothing is sent then.
+ * Whether BUFFALO sends email at all (BUFFALO_MAIL_ENABLED). Deployments
+ * without a mail server leave it off: setup links are then handed over
+ * manually and notifications stay in the application.
  */
 final class MailConfiguration
 {
     public static function isConfigured(): bool
     {
-        $mailer = config('mail.default');
-
-        return is_string($mailer) && ! in_array($mailer, ['log', 'array'], true);
+        return (bool) config('buffalo.mail_enabled', false);
     }
 }

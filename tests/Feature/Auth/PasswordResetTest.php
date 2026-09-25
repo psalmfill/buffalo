@@ -9,7 +9,7 @@ beforeEach(function () {
     $this->skipUnlessFortifyHas(Features::resetPasswords());
 
     // Reset emails are only sent when mail is configured (not log/array).
-    config(['mail.default' => 'smtp']);
+    config(['buffalo.mail_enabled' => true]);
 });
 
 test('reset password link screen can be rendered', function () {

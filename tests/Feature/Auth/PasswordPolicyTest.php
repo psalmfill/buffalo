@@ -49,7 +49,7 @@ test('changing the password in settings enforces the policy', function (string $
 })->with('weak passwords');
 
 test('resetting a forgotten password enforces the policy', function (string $password) {
-    config(['mail.default' => 'smtp']);
+    config(['buffalo.mail_enabled' => true]);
     Notification::fake();
     $user = User::factory()->directorGeneral()->create();
     $this->post(route('password.email'), ['email' => $user->email]);
