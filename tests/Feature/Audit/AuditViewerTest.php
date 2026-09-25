@@ -86,3 +86,15 @@ test('there are no routes to edit or delete audit data', function () {
     expect($routes->flatMap(fn ($route) => $route->methods())->unique()->values()->all())
         ->toEqualCanonicalizing(['GET', 'HEAD']);
 });
+
+test('audit entries never expose numeric ids', function () {
+    $admin = User::factory()->superAdmin()->create();
+    User::factory()->lgaChief()->create(['created_by' => $admin->id]);
+
+    $entries = $this->actingAs($admin)->get('/audit')->viewData('page')['props']['entries']['data'];
+
+    $keys = collect($entries)->flatMap(fn (array $entry) => array_keys(array_merge($entry['old'] ?? [], $entry['new'] ?? [], $entry['properties'])));
+
+    expect($keys)->not->toBeEmpty()
+        ->and($keys->filter(fn (string $key) => $key === 'id' || str_ends_with($key, '_id') || str_ends_with($key, '_by'))->all())->toBe([]);
+});
