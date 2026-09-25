@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Enums\Permission;
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
+use Laravel\Horizon\Horizon;
 use Laravel\Horizon\HorizonApplicationServiceProvider;
 
 class HorizonServiceProvider extends HorizonApplicationServiceProvider
@@ -16,15 +19,22 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     }
 
     /**
-     * Register the Horizon gate.
-     *
-     * Phase 0: the dashboard is only reachable when APP_ENV=local.
-     * Phase 1 restricts it to users with the super_admin role.
+     * Horizon's default also lets anyone in when APP_ENV=local. BUFFALO
+     * uses the gate alone, in every environment.
+     */
+    protected function authorization(): void
+    {
+        $this->gate();
+
+        Horizon::auth(fn ($request): bool => Gate::check('viewHorizon', [$request->user()]));
+    }
+
+    /**
+     * Only users with the system.horizon permission (super admins). Blocked
+     * accounts are denied by the global Gate::before hook.
      */
     protected function gate(): void
     {
-        Gate::define('viewHorizon', function ($user = null): bool {
-            return app()->environment('local');
-        });
+        Gate::define('viewHorizon', fn (User $user): bool => $user->checkPermissionTo(Permission::SystemHorizon->value));
     }
 }
