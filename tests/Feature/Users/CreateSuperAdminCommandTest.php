@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Role as SpatieRole;
 use Spatie\Permission\PermissionRegistrar;
 
-function runCreateSuperAdmin(object $test, string $email, string $password = 'correct-horse-battery', ?string $confirmation = null)
+function runCreateSuperAdmin(object $test, string $email, string $password = 'Correct-Horse-Battery-9', ?string $confirmation = null)
 {
     return $test->artisan('buffalo:create-super-admin')
         ->expectsQuestion('Full name', 'Ada Admin')
         ->expectsQuestion('Email address', $email)
-        ->expectsQuestion('Password (at least 12 characters)', $password)
+        ->expectsQuestion('Password', $password)
         ->expectsQuestion('Confirm password', $confirmation ?? $password);
 }
 
@@ -36,7 +36,7 @@ test('it creates a working super admin on a fresh database', function () {
         ->and($admin->password_changed_at)->not->toBeNull()
         ->and($admin->email_verified_at)->not->toBeNull()
         ->and($admin->checkPermissionTo(Permission::UsersManage->value))->toBeTrue()
-        ->and(Auth::attempt(['email' => 'admin@buffalo.test', 'password' => 'correct-horse-battery']))->toBeTrue()
+        ->and(Auth::attempt(['email' => 'admin@buffalo.test', 'password' => 'Correct-Horse-Battery-9']))->toBeTrue()
         ->and(Gate::forUser($admin)->allows('viewHorizon'))->toBeTrue();
 });
 
@@ -57,7 +57,7 @@ test('it refuses an email that already exists, including soft-deleted users', fu
 
 test('it rejects short or mismatched passwords', function () {
     runCreateSuperAdmin($this, 'short@buffalo.test', 'short-pass')->assertFailed();
-    runCreateSuperAdmin($this, 'mismatch@buffalo.test', 'correct-horse-battery', 'different-horse-battery')->assertFailed();
+    runCreateSuperAdmin($this, 'mismatch@buffalo.test', 'Correct-Horse-Battery-9', 'Different-Horse-Battery-9')->assertFailed();
 
     expect(User::query()->count())->toBe(0);
 });

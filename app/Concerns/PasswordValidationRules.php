@@ -2,25 +2,27 @@
 
 namespace App\Concerns;
 
+use App\Models\User;
+use App\Support\Auth\PasswordRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rules\Password;
 
 trait PasswordValidationRules
 {
     /**
-     * Get the validation rules used to validate passwords.
+     * Rules for a new password: see App\Support\Auth\PasswordRules.
      *
-     * @return array<int, Password|ValidationRule|array<mixed>|string>
+     * @return list<string|Password|ValidationRule>
      */
-    protected function passwordRules(): array
+    protected function passwordRules(?User $user = null): array
     {
-        return ['required', 'string', Password::default(), 'confirmed'];
+        return PasswordRules::rules($user);
     }
 
     /**
-     * Get the validation rules used to validate the current password.
+     * Rules for the current password.
      *
-     * @return array<int, Password|ValidationRule|array<mixed>|string>
+     * @return list<string>
      */
     protected function currentPasswordRules(): array
     {

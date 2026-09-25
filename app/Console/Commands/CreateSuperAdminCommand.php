@@ -2,14 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Auth\SetUserPassword;
 use App\Actions\Users\CreateUser;
 use App\Actions\Users\UserJurisdiction;
 use App\Enums\Role;
 use App\Models\User;
+use App\Support\Auth\PasswordRules;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -25,7 +26,7 @@ class CreateSuperAdminCommand extends Command
 
     protected $description = 'Create a super admin account (password is prompted, hidden)';
 
-    public function handle(CreateUser $createUser): int
+    public function handle(CreateUser $createUser, SetUserPassword $setPassword): int
     {
         // Roles and permissions must exist, also on a fresh production database.
         $this->callSilently('db:seed', ['--class' => RolesAndPermissionsSeeder::class, '--force' => true]);
@@ -39,7 +40,9 @@ class CreateSuperAdminCommand extends Command
             return self::FAILURE;
         }
 
-        $password = (string) $this->secret('Password (at least 12 characters)');
+        $this->line('Password requirements: '.implode('; ', PasswordRules::descriptions()).'.');
+
+        $password = (string) $this->secret('Password');
         $confirmation = (string) $this->secret('Confirm password');
 
         $validator = Validator::make(
@@ -47,7 +50,7 @@ class CreateSuperAdminCommand extends Command
             [
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'email', 'max:255'],
-                'password' => ['required', 'confirmed', Password::min(12)],
+                'password' => PasswordRules::rules(),
             ],
         );
 
@@ -71,10 +74,7 @@ class CreateSuperAdminCommand extends Command
             return self::FAILURE;
         }
 
-        $user->forceFill([
-            'password' => $password,
-            'password_changed_at' => now(),
-        ])->save();
+        $setPassword($user, $password);
 
         $this->components->info("Super admin {$user->email} created.");
         $this->components->warn('They must enrol in two-factor authentication at first login.');
