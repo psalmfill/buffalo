@@ -104,6 +104,14 @@ CI (`.github/workflows/ci.yml`) only runs [`scripts/ci.sh`](scripts/ci.sh), whic
 - **No external requests.** Fonts (Inter), Leaflet assets and everything else are bundled by Vite. Do not add CDN links, web fonts or third-party APIs (see `CLAUDE.md`).
 - **Evidence files** go to the `evidence` disk (`/var/lib/buffalo/evidence` in the containers). It is never served directly or symlinked into `public/`.
 
+## Accounts and sign-in
+
+- There is no self-registration. A super admin creates each account (user management UI: Phase 1D; until then the `CreateUser` action) and issues a **one-time setup link** (`IssueAccountSetupLink`, valid 72 hours), either emailed or handed over another way. The user chooses a password and must enrol in **two-factor authentication** (TOTP) before using BUFFALO.
+- Passwords: at least 12 characters with upper and lower case, a number and a symbol; the last 5 cannot be reused.
+- 5 failed attempts (password or 2FA code) lock an account for 15 minutes, doubling for each further lock within 24 hours (maximum 24 hours). Super admins are notified.
+- Sessions: 30-minute idle timeout (with a warning 2 minutes before), 12-hour maximum, one active session per account (`BUFFALO_SINGLE_SESSION`).
+- Every sign-in event is recorded in the append-only `login_histories` table.
+
 ## Reference data
 
 States and geopolitical zones are seeded from `database/data/zones_states.csv`. Senatorial districts, LGAs and wards come from CSV files supplied by the project owner and are loaded with `make artisan cmd="buffalo:import-hierarchy"`; see [`database/data/README.md`](database/data/README.md) for the formats and options. Until those files exist, `make fresh` in a local environment seeds clearly synthetic districts and LGAs for Lagos and Kano, and prints a warning.
