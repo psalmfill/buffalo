@@ -32,7 +32,13 @@ make setup
 6. Starts the stack and waits for it to be healthy.
 7. Runs the migrations.
 
-Then open <http://localhost:8000> and register a user.
+Then create the first super admin (interactive; the password is prompted and hidden):
+
+```sh
+make artisan cmd="buffalo:create-super-admin"
+```
+
+and log in at <http://localhost:8000>. No seeder ever creates accounts: every further user is created by a super admin.
 
 If a host port is already in use (for example 6379 by another project's Redis), change it in `.env` (`APP_PORT`, `FORWARD_DB_PORT`, `FORWARD_VALKEY_PORT`, `FORWARD_MAILPIT_UI_PORT`, `VITE_PORT`) and run `make up`.
 
