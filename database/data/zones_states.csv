@@ -1,0 +1,38 @@
+zone_code,zone_name,state_code,state_name
+NC,North Central,BE,Benue
+NC,North Central,KO,Kogi
+NC,North Central,KW,Kwara
+NC,North Central,NA,Nasarawa
+NC,North Central,NI,Niger
+NC,North Central,PL,Plateau
+NC,North Central,FC,Federal Capital Territory
+NE,North East,AD,Adamawa
+NE,North East,BA,Bauchi
+NE,North East,BO,Borno
+NE,North East,GO,Gombe
+NE,North East,TA,Taraba
+NE,North East,YO,Yobe
+NW,North West,JI,Jigawa
+NW,North West,KD,Kaduna
+NW,North West,KN,Kano
+NW,North West,KT,Katsina
+NW,North West,KE,Kebbi
+NW,North West,SO,Sokoto
+NW,North West,ZA,Zamfara
+SE,South East,AB,Abia
+SE,South East,AN,Anambra
+SE,South East,EB,Ebonyi
+SE,South East,EN,Enugu
+SE,South East,IM,Imo
+SS,South South,AK,Akwa Ibom
+SS,South South,BY,Bayelsa
+SS,South South,CR,Cross River
+SS,South South,DE,Delta
+SS,South South,ED,Edo
+SS,South South,RI,Rivers
+SW,South West,EK,Ekiti
+SW,South West,LA,Lagos
+SW,South West,OG,Ogun
+SW,South West,ON,Ondo
+SW,South West,OS,Osun
+SW,South West,OY,Oyo
