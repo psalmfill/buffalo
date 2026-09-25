@@ -174,7 +174,7 @@ test('the last active super admin cannot be deactivated', function () {
 test('ReactivateUser clears deactivation and locks', function () {
     $user = User::factory()->directorGeneral()->inactive()->locked()->create(['failed_login_count' => 5]);
 
-    app(ReactivateUser::class)($user);
+    app(ReactivateUser::class)($user, 'Returned from leave');
     $user->refresh();
 
     expect($user->is_active)->toBeTrue()
@@ -184,5 +184,5 @@ test('ReactivateUser clears deactivation and locks', function () {
         ->and($user->failed_login_count)->toBe(0)
         ->and($user->isAccessBlocked())->toBeFalse();
 
-    expect(fn () => app(ReactivateUser::class)($user))->toThrow(ValidationException::class, 'already active');
+    expect(fn () => app(ReactivateUser::class)($user, 'Again'))->toThrow(ValidationException::class, 'already active');
 });

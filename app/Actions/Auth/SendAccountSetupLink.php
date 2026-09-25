@@ -2,6 +2,7 @@
 
 namespace App\Actions\Auth;
 
+use App\Enums\SetupLinkDelivery;
 use App\Models\User;
 use App\Notifications\AccountSetupNotification;
 
@@ -15,6 +16,6 @@ final class SendAccountSetupLink
 
     public function __invoke(User $user, ?User $actor = null): void
     {
-        $user->notify(new AccountSetupNotification(($this->issue)($user, $actor)));
+        $user->notify(new AccountSetupNotification(($this->issue)($user, $actor, SetupLinkDelivery::Email)));
     }
 }

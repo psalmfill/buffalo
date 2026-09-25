@@ -1,7 +1,8 @@
 <?php
 
+use App\Support\Audit\AuditExclusions;
+use App\Support\Audit\BuffaloLogActivityAction;
 use Spatie\Activitylog\Actions\CleanActivityLogAction;
-use Spatie\Activitylog\Actions\LogActivityAction;
 use Spatie\Activitylog\Models\Activity;
 
 return [
@@ -46,7 +47,8 @@ return [
      * These attributes will be excluded from logging for all models.
      * Model-specific exclusions via logExcept() are merged with these.
      */
-    'default_except_attributes' => [],
+    // Never logged on any model (see App\Support\Audit\AuditExclusions).
+    'default_except_attributes' => AuditExclusions::NAMES,
 
     /*
      * When enabled, activities are buffered in memory and inserted in a
@@ -67,7 +69,8 @@ return [
      * are logged and cleaned. Your custom classes must extend the originals.
      */
     'actions' => [
-        'log_activity' => LogActivityAction::class,
+        // BUFFALO: scrubs excluded attributes, adds IP and user agent.
+        'log_activity' => BuffaloLogActivityAction::class,
         'clean_log' => CleanActivityLogAction::class,
     ],
 ];

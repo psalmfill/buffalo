@@ -4,6 +4,7 @@ namespace App\Actions\Auth;
 
 use App\Models\User;
 use App\Notifications\TwoFactorResetNotification;
+use App\Support\Audit\AuditLog;
 use App\Support\Auth\MailConfiguration;
 use App\Support\Auth\SessionTerminator;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,8 @@ final class ResetTwoFactor
             ])->save();
 
             $this->sessions->terminateAll($user);
+
+            AuditLog::event('two_factor_reset', "Two-factor authentication reset for {$user->name}", $user, [], $actor);
         });
 
         if (MailConfiguration::isConfigured()) {

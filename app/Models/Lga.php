@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasActiveScope;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Models\Concerns\LogsBuffaloActivity;
 use Database\Factories\LgaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +35,7 @@ class Lga extends Model
     use HasFactory;
 
     use HasUlidRouteKey;
+    use LogsBuffaloActivity;
 
     protected $fillable = [
         'state_id',
@@ -53,6 +55,16 @@ class Lga extends Model
         'centroid',
         'boundary',
     ];
+
+    /**
+     * Geometry is too large and binary for the audit log.
+     *
+     * @return list<string>
+     */
+    protected function auditExcept(): array
+    {
+        return ['centroid', 'boundary'];
+    }
 
     protected function casts(): array
     {

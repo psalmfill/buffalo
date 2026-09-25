@@ -3,6 +3,7 @@
 namespace App\Actions\Users;
 
 use App\Models\User;
+use App\Support\Audit\AuditLog;
 use App\Support\Auth\SessionTerminator;
 use App\Support\Users\SuperAdmins;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,7 @@ final class DeactivateUser
     public function __construct(
         private readonly SuperAdmins $superAdmins,
         private readonly SessionTerminator $sessions,
+        private readonly OfficerPostings $postings,
     ) {}
 
     /**
@@ -57,6 +59,9 @@ final class DeactivateUser
 
             // End every session of the user now.
             $this->sessions->terminateAll($user);
+            $this->postings->closeOpen($user);
+
+            AuditLog::event('deactivated', "User {$user->name} deactivated", $user, ['reason' => $reason], $actor);
 
             return $user;
         });

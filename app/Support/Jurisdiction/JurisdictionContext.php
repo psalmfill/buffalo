@@ -103,6 +103,10 @@ final class JurisdictionContext
             throw new InvalidArgumentException('runAsSystem() requires a reason.');
         }
 
+        if (! config('activitylog.enabled', true)) {
+            throw new RuntimeException('Activity logging is disabled; refusing to bypass jurisdiction scoping without an audit record.');
+        }
+
         [$mode, $previousUser] = [$this->mode, $this->user];
 
         $logged = activity('jurisdiction')

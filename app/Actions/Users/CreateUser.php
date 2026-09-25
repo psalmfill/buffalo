@@ -20,7 +20,10 @@ use Illuminate\Validation\ValidationException;
  */
 final class CreateUser
 {
-    public function __construct(private readonly AssignRole $assignRole) {}
+    public function __construct(
+        private readonly AssignRole $assignRole,
+        private readonly OfficerPostings $postings,
+    ) {}
 
     /**
      * @param  array{name: string, email: string, phone?: string|null, service_number?: string|null, rank?: string|null}  $data
@@ -61,6 +64,7 @@ final class CreateUser
 
             ($this->assignRole)($user, $jurisdiction->role);
             $user->zones()->sync($jurisdiction->zoneIds());
+            $this->postings->open($user->load('roles'), $actor);
 
             return $user->load('roles', 'zones');
         });

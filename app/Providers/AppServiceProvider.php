@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\DisabledCleanActivitylogCommand;
 use App\Models\User;
 use App\Support\Auth\PasswordRules;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Activitylog\Commands\CleanActivitylogCommand;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(JurisdictionContext::class, fn (Application $app): JurisdictionContext => new JurisdictionContext(
             $app->runningInConsole() ? ContextMode::System : ContextMode::None,
         ));
+
+        // Audit records are never deleted: the package's clean command refuses.
+        $this->app->bind(CleanActivitylogCommand::class, DisabledCleanActivitylogCommand::class);
 
         // Cross-jurisdiction access grants arrive in Phase 3.
         $this->app->bind(AccessGrantResolver::class, NullAccessGrantResolver::class);

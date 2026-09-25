@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasActiveScope;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Models\Concerns\LogsBuffaloActivity;
 use Database\Factories\WardFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -30,6 +31,7 @@ class Ward extends Model
     use HasFactory;
 
     use HasUlidRouteKey;
+    use LogsBuffaloActivity;
 
     protected $fillable = [
         'lga_id',

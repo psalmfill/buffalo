@@ -6,6 +6,7 @@ use App\Enums\JurisdictionLevel;
 use App\Enums\Role;
 use App\Models\Concerns\HasJurisdiction;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Models\Concerns\LogsBuffaloActivity;
 use App\Support\Auth\MailConfiguration;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
 use Database\Factories\UserFactory;
@@ -90,7 +91,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements JurisdictionScoped
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasJurisdiction, HasRoles, HasUlidRouteKey, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasFactory, HasJurisdiction, HasRoles, HasUlidRouteKey, LogsBuffaloActivity, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * Super admins manage users, so they may see all users. Everyone else
@@ -134,6 +135,40 @@ class User extends Authenticatable implements JurisdictionScoped
         }
 
         $this->notify(new ResetPassword($token));
+    }
+
+    /**
+     * Sign-in bookkeeping is recorded in login_histories, not the audit log.
+     *
+     * @return list<string>
+     */
+    protected function auditExcept(): array
+    {
+        return ['session_version', 'last_login_at', 'last_login_ip', 'failed_login_count', 'lockout_count', 'last_locked_at'];
+    }
+
+    /**
+     * Human-readable jurisdiction, e.g. "Ikeja LGA, Lagos", "Lagos State",
+     * "National", "National (North Central, South West)", "System".
+     */
+    public function jurisdictionLabel(): string
+    {
+        return match ($this->jurisdiction_level) {
+            JurisdictionLevel::System => 'System',
+            JurisdictionLevel::National => $this->zones->isEmpty()
+                ? 'National'
+                : 'National ('.$this->zones->pluck('name')->sort()->implode(', ').')',
+            JurisdictionLevel::State => ($this->state->name ?? '?').' State',
+            JurisdictionLevel::Lga => ($this->lga->name ?? '?').' LGA, '.($this->state->name ?? '?'),
+        };
+    }
+
+    /**
+     * @return HasMany<OfficerPosting, $this>
+     */
+    public function postings(): HasMany
+    {
+        return $this->hasMany(OfficerPosting::class);
     }
 
     /**

@@ -19,9 +19,8 @@ trait HasJurisdiction
 {
     public static function bootHasJurisdiction(): void
     {
-        // Runtime guard for models added later; statically always true today.
-        // @phpstan-ignore function.alreadyNarrowedType
-        if (! is_subclass_of(static::class, JurisdictionScoped::class)) {
+        // Runtime guard for models added later: fail loudly, never unscoped.
+        if (! in_array(JurisdictionScoped::class, class_implements(static::class) ?: [], true)) {
             throw new LogicException(static::class.' uses HasJurisdiction but does not implement '.JurisdictionScoped::class.'.');
         }
 

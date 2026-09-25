@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasActiveScope;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Models\Concerns\LogsBuffaloActivity;
 use Database\Factories\GeopoliticalZoneFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +29,7 @@ class GeopoliticalZone extends Model
     use HasFactory;
 
     use HasUlidRouteKey;
+    use LogsBuffaloActivity;
 
     protected $fillable = [
         'code',

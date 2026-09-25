@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasActiveScope;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Models\Concerns\LogsBuffaloActivity;
 use Database\Factories\SenatorialDistrictFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,7 @@ class SenatorialDistrict extends Model
     use HasFactory;
 
     use HasUlidRouteKey;
+    use LogsBuffaloActivity;
 
     protected $fillable = [
         'state_id',
