@@ -134,6 +134,20 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - `DynamicFields` and `DynamicFieldsView` (`resources/js/components/dynamic-fields/`) render them.
 - **Form options:** `App\Support\ReferenceData\ReferenceData::options()` returns the active values for forms. It is cached in Valkey and cleared whenever a value changes.
 
+## Local government: LGA profiles and communities
+
+- **`/lgas`** lists the LGAs in your jurisdiction. An LGA chief goes straight to their own. Each LGA page has three tabs:
+  - **Overview:** basic facts, the current LGA chief, completeness, and "Mark as reviewed".
+  - **Profile:** history, economy, terrain, roads, waterways, borders, notes, plus headquarters, area and population.
+  - **Communities:** a list and a map.
+- **Profile completeness** counts six items: history, economic activities, terrain, major roads, borders and at least one community.
+- **Review reminders:** LGA chiefs are reminded weekly (Mondays 07:00) when their profile hasn't been reviewed for `BUFFALO_PROFILE_REVIEW_DAYS` (180) days.
+- **`/communities`** searches communities across your jurisdiction. The search is fuzzy (pg_trgm), and matches other names, accents and misspellings. Each community has a detail page with a map and its change history.
+- **Map picker:** communities are added with it (click, drag, or type the coordinates). A location must be in Nigeria and, once LGA boundaries are imported, inside the LGA; the database enforces the boundary rule too.
+- **Deleting:** only State Directors and above can delete a community, and must give a reason (audited).
+- **CSV import:** at **Communities → Import CSV** (DG, State Directors and Deputies). Download the template, upload a file for one LGA, and review the preview: every row is marked new, possible duplicate or error. New rows are imported, possible duplicates only if you tick them, and errors never. The import is one transaction; files over 200 rows run in the background and notify you when done. The uploaded file is never stored.
+- **Scoping:** everything here is scoped to the user's jurisdiction. The super admin has no access. Out-of-jurisdiction LGAs and communities are 404.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
