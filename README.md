@@ -30,7 +30,7 @@ make setup
 4. Generates the application key.
 5. Generates the Wayfinder route helpers.
 6. Starts the stack and waits for it to be healthy.
-7. Runs the migrations.
+7. Runs the migrations and the seeders: roles and permissions, zones and states, and the hierarchy (the owner-supplied files if present; otherwise, only when `APP_ENV=local`, synthetic LGAs for Lagos and Kano). The seeders never create accounts and are safe to run again.
 
 Then create the first super admin (interactive; the password is prompted and hidden):
 

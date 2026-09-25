@@ -20,7 +20,7 @@ NODE    := $(COMPOSE) run --rm --no-deps vite
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
 
-setup: ## First-time setup: .env, images, dependencies, app key, migrations
+setup: ## First-time setup: .env, images, dependencies, app key, migrations, seeders
 	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example")
 	$(COMPOSE) build
 	$(PHP_ND) composer install --no-interaction
@@ -29,6 +29,7 @@ setup: ## First-time setup: .env, images, dependencies, app key, migrations
 	$(MAKE) wayfinder
 	$(COMPOSE) up -d --wait
 	$(COMPOSE) exec app php artisan migrate --force
+	$(COMPOSE) exec app php artisan db:seed --force
 	@echo ""
 	@echo "BUFFALO is running at http://localhost:8000 (Mailpit: http://localhost:8025)."
 	@echo "Map tiles are not included; see 'make tiles'."
