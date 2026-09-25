@@ -33,7 +33,7 @@ class AccountSetupController extends Controller
 
         return Inertia::render('auth/account-setup', [
             'token' => $token,
-            'name' => $user->name,
+            'userName' => $user->name,
             'email' => $user->email,
             'passwordRules' => PasswordRules::passwordRulesAttribute(),
             'passwordRequirements' => PasswordRules::descriptions(),

@@ -10,7 +10,7 @@ import { Spinner } from '@/components/ui/spinner';
 
 type Props = {
     token: string;
-    name: string;
+    userName: string;
     email: string;
     passwordRules: string;
     passwordRequirements: string[];
@@ -18,7 +18,7 @@ type Props = {
 
 export default function AccountSetup({
     token,
-    name,
+    userName,
     email,
     passwordRules,
     passwordRequirements,
@@ -28,8 +28,8 @@ export default function AccountSetup({
             <Head title="Set up your account" />
 
             <p className="text-center text-sm text-muted-foreground">
-                Welcome, {name}. Choose a password to continue. You will then
-                set up two-factor authentication.
+                Welcome, {userName}. Choose a password to continue. You will
+                then set up two-factor authentication.
             </p>
 
             <Form
