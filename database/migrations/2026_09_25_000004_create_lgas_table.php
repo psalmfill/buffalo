@@ -28,7 +28,11 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['state_id', 'code'], 'lgas_state_id_code_unique');
-            $table->unique(['state_id', 'name'], 'lgas_state_id_name_unique');
+            // Deferrable so the hierarchy import can swap names between two
+            // LGAs inside one transaction; checked immediately otherwise.
+            $table->unique(['state_id', 'name'], 'lgas_state_id_name_unique')
+                ->deferrable()
+                ->initiallyImmediate();
 
             // Target of the composite foreign key on wards.
             $table->unique(['id', 'state_id'], 'lgas_id_state_id_unique');
