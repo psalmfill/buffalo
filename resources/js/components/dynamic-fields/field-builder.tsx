@@ -294,7 +294,7 @@ function FieldEditor({
 
     return (
         <div className="grid gap-4 border-t p-3 md:grid-cols-2">
-            <div className="grid gap-2">
+            <div className="grid content-start gap-2">
                 <Label htmlFor={id('label')}>Label</Label>
                 <Input
                     id={id('label')}
@@ -304,7 +304,7 @@ function FieldEditor({
                 <InputError message={errors[`${path}.label`]} />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid content-start gap-2">
                 <Label htmlFor={id('key')}>Key</Label>
                 <Input
                     id={id('key')}
@@ -323,7 +323,7 @@ function FieldEditor({
                 <InputError message={errors[`${path}.key`]} />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid content-start gap-2">
                 <Label htmlFor={id('type')}>Type</Label>
                 <NativeSelect
                     id={id('type')}
@@ -342,7 +342,7 @@ function FieldEditor({
                 <InputError message={errors[`${path}.type`]} />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid content-start gap-2">
                 <Label htmlFor={id('help')}>Help text</Label>
                 <Input
                     id={id('help')}
@@ -373,7 +373,7 @@ function FieldEditor({
             {isNumeric(field.type) && (
                 <div className="grid grid-cols-2 gap-2 md:col-span-2">
                     {(['min', 'max'] as const).map((bound) => (
-                        <div key={bound} className="grid gap-2">
+                        <div key={bound} className="grid content-start gap-2">
                             <Label htmlFor={id(bound)}>
                                 {bound === 'min' ? 'Minimum' : 'Maximum'}
                             </Label>
@@ -398,7 +398,7 @@ function FieldEditor({
             )}
 
             {isText(field.type) && (
-                <div className="grid gap-2">
+                <div className="grid content-start gap-2">
                     <Label htmlFor={id('max_length')}>Maximum length</Label>
                     <Input
                         id={id('max_length')}
