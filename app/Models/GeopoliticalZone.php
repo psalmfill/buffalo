@@ -37,6 +37,7 @@ class GeopoliticalZone extends Model
 
     protected $hidden = [
         'id',
+        'pivot',
     ];
 
     protected function casts(): array
