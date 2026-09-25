@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\JurisdictionLevel;
 use App\Enums\Role;
+use App\Models\Concerns\HasJurisdiction;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -77,10 +79,16 @@ use Spatie\Permission\Traits\HasRoles;
     'permissions',
     'pivot',
 ])]
-class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
+class User extends Authenticatable implements JurisdictionScoped, MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, HasUlidRouteKey, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasFactory, HasJurisdiction, HasRoles, HasUlidRouteKey, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+
+    /**
+     * Super admins manage users, so they may see all users. Everyone else
+     * sees users in their own jurisdiction (by the user's state/LGA).
+     */
+    protected bool $visibleToSuperAdmin = true;
 
     /**
      * @return array<string, string>

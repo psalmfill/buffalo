@@ -62,8 +62,10 @@ return [
     */
 
     'providers' => [
+        // "buffalo" = Eloquent provider whose lookups are not
+        // jurisdiction-scoped (App\Support\Jurisdiction\AuthenticationUserProvider).
         'users' => [
-            'driver' => 'eloquent',
+            'driver' => 'buffalo',
             'model' => env('AUTH_MODEL', User::class),
         ],
 
