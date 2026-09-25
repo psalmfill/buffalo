@@ -47,6 +47,18 @@ return [
             'report' => false,
         ],
 
+        // Incident evidence (Phase 5). Private Docker volume outside the
+        // application tree: never served directly, never symlinked into
+        // public/. Files are only ever streamed through authorised controllers.
+        'evidence' => [
+            'driver' => 'local',
+            'root' => env('EVIDENCE_ROOT', '/var/lib/buffalo/evidence'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

@@ -8,7 +8,11 @@
         "dev": "vp dev",
         "check": "vp check",
         "check:fix": "vp check --fix",
-        "types:check": "tsc --noEmit"
+        "types:check": "tsc --noEmit",
+        "lint": "vp lint",
+        "format": "vp fmt resources/ vite.config.ts",
+        "format:check": "vp fmt --check resources/ vite.config.ts",
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "@inertiajs/react": "^3.0.0",

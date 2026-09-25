@@ -1,0 +1,70 @@
+# BUFFALO development overrides (loaded automatically by `docker compose`).
+#
+# All published ports bind to 127.0.0.1 only.
+
+services:
+  app:
+    volumes:
+      - .:/var/www/html
+    environment:
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  horizon:
+    volumes:
+      - .:/var/www/html
+
+  scheduler:
+    volumes:
+      - .:/var/www/html
+
+  reverb:
+    volumes:
+      - .:/var/www/html
+
+  nginx:
+    volumes:
+      - .:/var/www/html:ro
+    ports:
+      - 127.0.0.1:${APP_PORT:-8000}:80
+
+  postgres:
+    ports:
+      - 127.0.0.1:${FORWARD_DB_PORT:-5432}:5432
+
+  valkey:
+    ports:
+      - 127.0.0.1:${FORWARD_VALKEY_PORT:-6379}:6379
+
+  mailpit:
+    image: axllent/mailpit:v1.31.2
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${FORWARD_MAILPIT_UI_PORT:-8025}:8025
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      # No external requests from the Mailpit UI (version checks, etc.).
+      MP_DISABLE_VERSION_CHECK: 1
+      MP_BLOCK_REMOTE_CSS_AND_FONTS: 1
+
+  vite:
+    image: node:24.21.0-alpine3.24
+    user: ${DOCKER_UID:-1000}:${DOCKER_GID:-1000}
+    working_dir: /app
+    command: ["npm", "run", "dev"]
+    restart: unless-stopped
+    environment:
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm
+      npm_config_update_notifier: "false"
+      # The Wayfinder Vite plugin normally runs `php artisan wayfinder:generate`.
+      # There is no PHP here, so it is a no-op; routes are generated in the app
+      # container instead (`make wayfinder`).
+      WAYFINDER_COMMAND: "true"
+      VITE_DEV_SERVER_PORT: ${VITE_PORT:-5173}
+    volumes:
+      - .:/app
+    ports:
+      - 127.0.0.1:${VITE_PORT:-5173}:${VITE_PORT:-5173}
