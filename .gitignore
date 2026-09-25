@@ -41,3 +41,7 @@ yarn-error.log
 /boost.json
 /opencode.json
 /opencode.jsonc
+
+# Offline map tiles (fetched by scripts/fetch-map-tiles.sh into a Docker volume)
+*.pmtiles
+*.pmtiles.partial

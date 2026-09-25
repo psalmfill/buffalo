@@ -2,6 +2,10 @@
 
 @import 'tw-animate-css';
 
+/* Inter is bundled by Vite from node_modules; no web font is fetched from an
+   external host. */
+@import '@fontsource-variable/inter';
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
@@ -9,7 +13,7 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Inter Variable', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
