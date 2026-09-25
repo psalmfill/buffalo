@@ -98,6 +98,10 @@ CI (`.github/workflows/ci.yml`) only runs [`scripts/ci.sh`](scripts/ci.sh), whic
 - **No external requests.** Fonts (Inter), Leaflet assets and everything else are bundled by Vite. Do not add CDN links, web fonts or third-party APIs (see `CLAUDE.md`).
 - **Evidence files** go to the `evidence` disk (`/var/lib/buffalo/evidence` in the containers). It is never served directly or symlinked into `public/`.
 
+## Reference data
+
+States and geopolitical zones are seeded from `database/data/zones_states.csv`. Senatorial districts, LGAs and wards come from CSV files supplied by the project owner and are loaded with `make artisan cmd="buffalo:import-hierarchy"`; see [`database/data/README.md`](database/data/README.md) for the formats and options. Until those files exist, `make fresh` in a local environment seeds clearly synthetic districts and LGAs for Lagos and Kano, and prints a warning.
+
 ## Handover notes
 
 Each phase or step records what was built, deviations, new packages and known issues in [`docs/handover/`](docs/handover). Phase prompts are in [`docs/prompts/`](docs/prompts).

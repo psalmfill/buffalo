@@ -1,0 +1,5 @@
+state_code,district_code,lga_code,lga_name,headquarters
+LA,LA-A,FAA,Fixture LGA One,Fixture Town One
+LA,LA-A,FAB,"Fixture LGA Two, East",
+LA,LA-B,FBA,Fixture LGA Three,Fixture Town Three
+KN,KN-A,FAA,Fixture LGA Four,
