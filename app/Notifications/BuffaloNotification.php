@@ -35,6 +35,15 @@ abstract class BuffaloNotification extends Notification implements ShouldBeEncry
     use Queueable;
     use SerializesModels;
 
+    /**
+     * Horizon defaults to one attempt; a worker that dies mid-job would then
+     * drop the notification silently. Security alerts must be retried.
+     */
+    public int $tries = 3;
+
+    /** @var list<int> */
+    public array $backoff = [10, 60];
+
     /** Machine-readable type, e.g. "account_locked". */
     abstract public function type(): string;
 

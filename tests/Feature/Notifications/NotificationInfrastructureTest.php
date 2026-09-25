@@ -7,13 +7,16 @@ use App\Models\Lga;
 use App\Models\State;
 use App\Models\User;
 use App\Notifications\BuffaloNotification;
+use App\Notifications\TwoFactorResetNotification;
 use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Notifications\NotifyRole;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 
 /**
  * A minimal notification for these tests.
@@ -90,6 +93,15 @@ test('every notification extends BuffaloNotification and is queued and encrypted
             ->and(is_subclass_of($class, ShouldQueue::class))->toBeTrue()
             ->and(is_subclass_of($class, ShouldBeEncrypted::class))->toBeTrue();
     }
+});
+
+test('queued notification deliveries are retried, not dropped after one attempt', function () {
+    Queue::fake();
+    $user = User::factory()->superAdmin()->create();
+
+    $user->notify(new TwoFactorResetNotification);
+
+    Queue::assertPushed(SendQueuedNotifications::class, fn (SendQueuedNotifications $job) => $job->tries === 3 && $job->backoff() === [10, 60]);
 });
 
 test('a sent notification is stored for the user and broadcast on users.{ulid}', function () {
