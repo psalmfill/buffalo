@@ -65,5 +65,6 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
 ForgotPassword.layout = {
     title: 'Forgot password',
-    description: 'Enter your email to receive a password reset link',
+    description:
+        'Enter your email address. If email is available you will receive a reset link; otherwise contact your administrator.',
 };

@@ -6,8 +6,10 @@ use App\Enums\JurisdictionLevel;
 use App\Enums\Role;
 use App\Models\Concerns\HasJurisdiction;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Support\Auth\MailConfiguration;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -116,6 +118,22 @@ class User extends Authenticatable implements JurisdictionScoped
             'lockout_count' => 'integer',
             'last_locked_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Password reset emails go only to active accounts, and only when mail
+     * can be delivered. The response to the user is the same either way
+     * (GenericPasswordResetLinkResponse).
+     *
+     * @param  string  $token
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        if (! MailConfiguration::isConfigured() || $this->isAccessBlocked()) {
+            return;
+        }
+
+        $this->notify(new ResetPassword($token));
     }
 
     /**

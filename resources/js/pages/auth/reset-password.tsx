@@ -4,6 +4,7 @@ import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PasswordRequirements from '@/components/password-requirements';
 import { Spinner } from '@/components/ui/spinner';
 import { update } from '@/routes/password';
 
@@ -11,9 +12,15 @@ type Props = {
     token: string;
     email: string;
     passwordRules: string;
+    passwordRequirements: string[];
 };
 
-export default function ResetPassword({ token, email, passwordRules }: Props) {
+export default function ResetPassword({
+    token,
+    email,
+    passwordRules,
+    passwordRequirements,
+}: Props) {
     return (
         <>
             <Head title="Reset password" />
@@ -41,6 +48,10 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 className="mt-2"
                             />
                         </div>
+
+                        <PasswordRequirements
+                            requirements={passwordRequirements}
+                        />
 
                         <div className="grid gap-2">
                             <Label htmlFor="password">Password</Label>
