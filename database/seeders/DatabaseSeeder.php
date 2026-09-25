@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(ZonesAndStatesSeeder::class);
+        // Before the hierarchy, which stops outside `local` until the
+        // owner's LGA files exist.
+        $this->call(ReferenceDataSeeder::class);
 
         if (is_file(database_path('data/'.ReadHierarchyFiles::LGAS_FILE))) {
             $exitCode = Artisan::call('buffalo:import-hierarchy', [], $this->command->getOutput());
