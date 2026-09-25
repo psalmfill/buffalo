@@ -59,7 +59,7 @@ Until the tiles are installed, the dashboard map shows a plain background with t
 | Service | URL / port (bound to 127.0.0.1) | Notes |
 |---|---|---|
 | Application (nginx) | <http://localhost:8000> | Also proxies Reverb WebSockets (`/app/`, `/apps/`) and serves tiles from `/tiles/` |
-| Horizon | <http://localhost:8000/horizon> | Only accessible when `APP_ENV=local` (Phase 1 restricts it to `super_admin`) |
+| Horizon | <http://localhost:8000/horizon> | Super admins only (`system.horizon`); "Queue monitor" in the sidebar |
 | Mailpit | <http://localhost:8025> | Catches all outgoing mail in development |
 | Vite dev server | <http://localhost:5173> | Hot module replacement; loaded automatically by the app |
 | PostgreSQL + PostGIS | `localhost:5432` | Database `buffalo`, user `buffalo`, password `buffalo`; tests use `buffalo_test` |
@@ -89,13 +89,15 @@ Containers: `app` (PHP-FPM), `nginx`, `postgres`, `valkey`, `horizon`, `schedule
 ## Tests and code quality
 
 ```sh
-make test   # Pest, against PostgreSQL (never SQLite)
+make test   # Pest, against PostgreSQL (never SQLite), then Vitest (frontend unit tests)
 make lint   # Pint --test, Larastan (level 7), ESLint, Prettier --check, tsc --noEmit
 make fix    # Pint and Prettier in write mode
 make ci     # the full CI pipeline, locally
 ```
 
-CI (`.github/workflows/ci.yml`) only runs [`scripts/ci.sh`](scripts/ci.sh), which contains all the CI logic. In order, it runs: Composer install, npm install, frontend build, Pint, Larastan, ESLint, Prettier, typecheck, Pest.
+CI (`.github/workflows/ci.yml`) only runs [`scripts/ci.sh`](scripts/ci.sh), which contains all the CI logic. In order, it runs: Composer install, npm install, frontend build, Pint, Larastan, ESLint, Prettier, typecheck, Vitest, Pest.
+
+Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Node (`vitest.config.ts`). They import the Wayfinder helpers, so run `make wayfinder` first if routes changed.
 
 ## Development notes
 
@@ -112,6 +114,14 @@ CI (`.github/workflows/ci.yml`) only runs [`scripts/ci.sh`](scripts/ci.sh), whic
 - Sessions: 30-minute idle timeout (with a warning 2 minutes before), 12-hour maximum, one active session per account (`BUFFALO_SINGLE_SESSION`).
 - Every sign-in event is recorded in the append-only `login_histories` table.
 - Deactivating a user (a reason is required) signs them out on their next request. Super admins can also edit profiles, change role/jurisdiction, unlock accounts, reset 2FA and issue new setup links; every action is audited.
+
+## Interface
+
+- **Navigation** is data: `resources/js/config/navigation.ts` lists sections and items, each with the permission that shows it. Adding a page to the sidebar is one entry. Hiding a link is never a security control; every route is authorised on the server.
+- **Shared page data:** `auth.user` (ULIDs and names, role, jurisdiction and `jurisdictionLabel`), `auth.permissions` and `app` (`name`, `banner`, `sessionIdleMinutes`). Use `useAuth()` and `can()` in React. No numeric ids are ever shared (tested).
+- **Dashboard:** `/dashboard` shows a page per role: system overview (super admin), national (DG/DDG), state (state directors) or LGA (LGA chiefs). Cards for later phases say "Available from Phase N".
+- **System banner:** set `BUFFALO_BANNER_TEXT` (and `BUFFALO_BANNER_LEVEL`: `info`, `restricted`, `confidential` or `secret`) to show a banner at the top of every page, including sign-in and error pages.
+- **Error pages:** 403, 404, 419, 500 and 503 are BUFFALO pages that never say why access was denied. Records outside a user's jurisdiction are 404.
 
 ## Audit and notifications
 
