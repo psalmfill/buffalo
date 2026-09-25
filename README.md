@@ -84,7 +84,7 @@ Containers: `app` (PHP-FPM), `nginx`, `postgres`, `valkey`, `horizon`, `schedule
 
 ```sh
 make test   # Pest, against PostgreSQL (never SQLite)
-make lint   # Pint --test, Larastan (level 6), ESLint, Prettier --check, tsc --noEmit
+make lint   # Pint --test, Larastan (level 7), ESLint, Prettier --check, tsc --noEmit
 make fix    # Pint and Prettier in write mode
 make ci     # the full CI pipeline, locally
 ```
