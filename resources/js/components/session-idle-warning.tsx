@@ -20,8 +20,8 @@ const WARNING_BEFORE_MS = 2 * 60 * 1000;
  * each Inertia visit. "Stay signed in" pings the server.
  */
 export default function SessionIdleWarning() {
-    const { session } = usePage().props as { session?: { lifetime: number } };
-    const lifetimeMs = (session?.lifetime ?? 30) * 60 * 1000;
+    const { sessionIdleMinutes } = usePage().props.app;
+    const lifetimeMs = sessionIdleMinutes * 60 * 1000;
     const { submit } = useHttp();
 
     const [lastActivity, setLastActivity] = useState(() => Date.now());

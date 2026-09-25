@@ -4,6 +4,7 @@ namespace App\Http\Presenters;
 
 use App\Models\OfficerPosting;
 use App\Models\User;
+use App\Support\Jurisdiction\JurisdictionLabel;
 
 /**
  * User data sent to the browser: ULIDs and labels only, never numeric ids
@@ -90,11 +91,7 @@ final class UserPresenter
         return [
             'ulid' => $posting->ulid,
             'role' => $posting->role->label(),
-            'jurisdiction' => match (true) {
-                $posting->lga !== null => $posting->lga->name.' LGA, '.($posting->state->name ?? '?'),
-                $posting->state !== null => $posting->state->name.' State',
-                default => $posting->jurisdiction_level->label(),
-            },
+            'jurisdiction' => JurisdictionLabel::for($posting->jurisdiction_level, $posting->state, $posting->lga),
             'position_title' => $posting->position_title,
             'started_at' => $posting->started_at->toIso8601String(),
             'ended_at' => $posting->ended_at?->toIso8601String(),

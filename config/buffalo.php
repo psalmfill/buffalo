@@ -6,6 +6,14 @@ return [
     // links are then handed over manually and notifications stay in-app.
     'mail_enabled' => (bool) env('BUFFALO_MAIL_ENABLED', false),
 
+    // Optional banner at the top of every page, e.g. "RESTRICTED — Authorised
+    // users only. All activity is logged." Level: info, restricted,
+    // confidential or secret (sets the colour). No text, no banner.
+    'banner' => [
+        'text' => env('BUFFALO_BANNER_TEXT'),
+        'level' => env('BUFFALO_BANNER_LEVEL', 'info'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Authentication and sessions (Phase 1C)

@@ -1,3 +1,4 @@
+import type { AppData } from '@/types/app';
 import type { Auth } from '@/types/auth';
 
 declare module 'react' {
@@ -11,10 +12,9 @@ declare module 'react' {
 declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
-            name: string;
+            app: AppData;
             auth: Auth;
             sidebarOpen: boolean;
-            session: { lifetime: number };
             notifications: { unreadCount: number };
             [key: string]: unknown;
         };

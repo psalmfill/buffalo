@@ -9,10 +9,11 @@ import { initializeEcho } from '@/lib/echo';
 
 initializeEcho();
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'BUFFALO';
 
 void createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    // "Page Name — BUFFALO"
+    title: (title) => (title ? `${title} — ${appName}` : appName),
     layout: (name) => {
         switch (true) {
             case name.startsWith('auth/'):

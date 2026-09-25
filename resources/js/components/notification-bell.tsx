@@ -14,6 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useCurrentUser } from '@/hooks/use-auth';
 import { timeAgo } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { AppNotification } from '@/types/notifications';
@@ -27,7 +28,7 @@ type LivePayload = Omit<AppNotification, 'read_at'> & { id: string };
  */
 export default function NotificationBell() {
     const page = usePage();
-    const userUlid = page.props.auth.user.ulid;
+    const userUlid = useCurrentUser().ulid;
     const sharedCount = page.props.notifications?.unreadCount ?? 0;
     const { submit } = useHttp();
 

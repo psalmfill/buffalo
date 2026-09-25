@@ -1,21 +1,17 @@
 import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import type { AppVariant } from '@/types';
 
-type Props = {
-    children: ReactNode;
-    variant?: AppVariant;
-};
-
-export function AppShell({ children, variant = 'sidebar' }: Props) {
+export function AppShell({ children }: { children: ReactNode }) {
     const isOpen = usePage().props.sidebarOpen;
 
-    if (variant === 'header') {
-        return (
-            <div className="flex min-h-screen w-full flex-col">{children}</div>
-        );
-    }
-
-    return <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>;
+    return (
+        <SidebarProvider
+            defaultOpen={isOpen}
+            // Full height below the system banner, if any.
+            className="min-h-[calc(100svh-var(--banner-h))]"
+        >
+            {children}
+        </SidebarProvider>
+    );
 }

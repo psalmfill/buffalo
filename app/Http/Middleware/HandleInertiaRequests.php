@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Presenters\CurrentUserPresenter;
 use App\Models\User;
+use App\Support\SystemBanner;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,30 +38,44 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
-            'name' => config('app.name'),
+            'app' => self::appData(),
+            // Never numeric ids (CLAUDE.md): CurrentUserPresenter shares
+            // ULIDs and names only.
             'auth' => [
-                'user' => $request->user(),
-                // Only for showing links; every route is authorised on the
-                // server. Role-aware navigation arrives in Phase 1E.
-                'can' => fn (): array => [
-                    'viewUsers' => $request->user()?->can('viewAny', User::class) ?? false,
-                    'viewAudit' => $request->user()?->can('viewAudit') ?? false,
-                    'viewLoginHistory' => $request->user()?->can('viewLoginHistory') ?? false,
-                ],
+                'user' => fn (): ?array => $user instanceof User ? CurrentUserPresenter::present($user) : null,
+                // For showing and hiding links only; every route is
+                // authorised on the server.
+                'permissions' => fn (): array => $user instanceof User
+                    ? $user->getAllPermissions()->pluck('name')->sort()->values()->all()
+                    : [],
             ],
             'notifications' => [
                 // Unread count for the bell; kept live over Echo afterwards.
-                'unreadCount' => fn (): int => $request->user() instanceof User
-                    ? $request->user()->unreadNotifications()->count()
+                'unreadCount' => fn (): int => $user instanceof User
+                    ? $user->unreadNotifications()->count()
                     : 0,
             ],
-            'session' => [
-                // Idle timeout in minutes, for the frontend idle warning.
-                'lifetime' => (int) config('session.lifetime'),
-            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+        ];
+    }
+
+    /**
+     * Application data every page needs, including pages rendered outside
+     * this middleware (error pages).
+     *
+     * @return array{name: string, banner: array{text: string, level: string}|null, sessionIdleMinutes: int}
+     */
+    public static function appData(): array
+    {
+        return [
+            'name' => (string) config('app.name'),
+            'banner' => SystemBanner::current(),
+            // Idle timeout, for the frontend idle warning.
+            'sessionIdleMinutes' => (int) config('session.lifetime'),
         ];
     }
 }

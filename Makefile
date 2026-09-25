@@ -45,9 +45,10 @@ shell: ## Open a shell in the app container
 artisan: ## Run an Artisan command: make artisan cmd="migrate"
 	$(COMPOSE) exec app php artisan $(cmd)
 
-test: ## Run the test suite (Pest) against buffalo_test
+test: ## Run the test suites: Pest (against buffalo_test) and Vitest
 	$(PHP) php artisan config:clear --ansi
 	$(PHP) php artisan test
+	$(NODE) npm run test
 
 lint: ## Pint (test), Larastan, ESLint, Prettier (check), tsc --noEmit
 	$(PHP_ND) vendor/bin/pint --test

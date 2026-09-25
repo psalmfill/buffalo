@@ -42,7 +42,7 @@ test('a valid link shows the setup form with the password rules', function () {
         ->where('email', 'new.officer@buffalo.test')
         ->where('userName', 'New Officer')
         // The shared application name must not be overridden by page props.
-        ->where('name', config('app.name'))
+        ->where('app.name', config('app.name'))
         ->has('passwordRequirements', 5));
 });
 

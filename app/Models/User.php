@@ -9,6 +9,7 @@ use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Support\Auth\MailConfiguration;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
+use App\Support\Jurisdiction\JurisdictionLabel;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -156,19 +157,17 @@ class User extends Authenticatable implements JurisdictionScoped
     }
 
     /**
-     * Human-readable jurisdiction, e.g. "Ikeja LGA, Lagos", "Lagos State",
-     * "National", "National (North Central, South West)", "System".
+     * Human-readable jurisdiction (JurisdictionLabel), e.g. "National",
+     * "North East Zone, North West Zone", "Lagos State", "Ikeja LGA, Lagos State".
      */
     public function jurisdictionLabel(): string
     {
-        return match ($this->jurisdiction_level) {
-            JurisdictionLevel::System => 'System',
-            JurisdictionLevel::National => $this->zones->isEmpty()
-                ? 'National'
-                : 'National ('.$this->zones->pluck('name')->sort()->implode(', ').')',
-            JurisdictionLevel::State => ($this->state->name ?? '?').' State',
-            JurisdictionLevel::Lga => ($this->lga->name ?? '?').' LGA, '.($this->state->name ?? '?'),
-        };
+        return JurisdictionLabel::for(
+            $this->jurisdiction_level,
+            $this->state,
+            $this->lga,
+            $this->jurisdiction_level === JurisdictionLevel::National ? $this->zones->pluck('name')->all() : [],
+        );
     }
 
     /**
