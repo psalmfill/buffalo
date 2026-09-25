@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,7 +12,7 @@ Route::get('/', fn (Request $request): RedirectResponse => $request->user() !== 
     : redirect()->route('login'))->name('home');
 
 Route::middleware(['auth'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     // The signed-in user's own notifications.
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

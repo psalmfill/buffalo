@@ -10,7 +10,9 @@ use App\Support\Jurisdiction\AuthenticationUserProvider;
 use App\Support\Jurisdiction\ContextMode;
 use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
 use App\Support\Jurisdiction\JurisdictionContext;
+use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\NullAccessGrantResolver;
+use App\Support\Jurisdiction\RestrictionType;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Hashing\Hasher;
@@ -68,6 +70,11 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
         Gate::define('viewLoginHistory', fn (User $user): bool => AuditAccess::canViewLoginHistory($user));
+
+        // A dashboard needs a role whose jurisdiction data is consistent
+        // (fails closed, like the jurisdiction scope).
+        Gate::define('viewDashboard', fn (User $user): bool => app(JurisdictionRules::class)
+            ->restrictionFor($user, visibleToSuperAdmin: true)->type !== RestrictionType::Nothing);
     }
 
     /**

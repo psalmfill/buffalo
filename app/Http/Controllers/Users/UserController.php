@@ -28,6 +28,7 @@ use App\Models\State;
 use App\Models\User;
 use App\Support\Auth\MailConfiguration;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Users\UserStatusFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -48,8 +49,6 @@ class UserController extends Controller
 
     private const SORTABLE = ['name', 'email', 'service_number', 'rank', 'last_login_at', 'created_at'];
 
-    private const STATUSES = ['active', 'inactive', 'locked', 'setup_pending', 'no_2fa'];
-
     public function index(Request $request, JurisdictionOptions $options): Response
     {
         $this->authorize('viewAny', User::class);
@@ -58,7 +57,7 @@ class UserController extends Controller
             'search' => ['nullable', 'string', 'max:100'],
             'role' => ['nullable', Rule::enum(Role::class)],
             'state' => ['nullable', 'string', 'max:26'],
-            'status' => ['nullable', Rule::in(self::STATUSES)],
+            'status' => ['nullable', Rule::in(UserStatusFilter::STATUSES)],
             'sort' => ['nullable', Rule::in(self::SORTABLE)],
             'direction' => ['nullable', Rule::in(['asc', 'desc'])],
         ]);
@@ -76,7 +75,7 @@ class UserController extends Controller
             })
             ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->role($role))
             ->when($filters['state'] ?? null, fn (Builder $query, string $state) => $query->whereIn('state_id', State::query()->where('ulid', $state)->select('id')))
-            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $this->applyStatus($query, $status))
+            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => UserStatusFilter::apply($query, $status))
             ->orderBy($sort, $direction)
             ->orderBy('id')
             ->paginate(self::PER_PAGE)
@@ -254,21 +253,6 @@ class UserController extends Controller
         return response()
             ->json(['delivery' => 'manual', 'url' => $issue($user, $this->actor($request), SetupLinkDelivery::Manual)])
             ->header('Cache-Control', 'no-store');
-    }
-
-    /**
-     * @param  Builder<User>  $query
-     */
-    private function applyStatus(Builder $query, string $status): void
-    {
-        match ($status) {
-            'active' => $query->where('is_active', true),
-            'inactive' => $query->where('is_active', false),
-            'locked' => $query->where('locked_until', '>', now()),
-            'setup_pending' => $query->whereNull('password_changed_at'),
-            'no_2fa' => $query->whereNull('two_factor_confirmed_at'),
-            default => null,
-        };
     }
 
     /**
