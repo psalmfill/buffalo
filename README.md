@@ -106,11 +106,19 @@ CI (`.github/workflows/ci.yml`) only runs [`scripts/ci.sh`](scripts/ci.sh), whic
 
 ## Accounts and sign-in
 
-- There is no self-registration. A super admin creates each account (user management UI: Phase 1D; until then the `CreateUser` action) and issues a **one-time setup link** (`IssueAccountSetupLink`, valid 72 hours), either emailed or handed over another way. The user chooses a password and must enrol in **two-factor authentication** (TOTP) before using BUFFALO.
+- There is no self-registration. A super admin creates each account at **Users → New user** (`/users/create`) and chooses how the **one-time setup link** (valid 72 hours) reaches the user: **Send by email** (only when `BUFFALO_MAIL_ENABLED=true`) or **Show link once**, for handover by another route. The link is never shown again; issue a new one from the user's page if needed. The user chooses a password and must enrol in **two-factor authentication** (TOTP) before using BUFFALO.
 - Passwords: at least 12 characters with upper and lower case, a number and a symbol; the last 5 cannot be reused.
 - 5 failed attempts (password or 2FA code) lock an account for 15 minutes, doubling for each further lock within 24 hours (maximum 24 hours). Super admins are notified.
 - Sessions: 30-minute idle timeout (with a warning 2 minutes before), 12-hour maximum, one active session per account (`BUFFALO_SINGLE_SESSION`).
 - Every sign-in event is recorded in the append-only `login_histories` table.
+- Deactivating a user (a reason is required) signs them out on their next request. Super admins can also edit profiles, change role/jurisdiction, unlock accounts, reset 2FA and issue new setup links; every action is audited.
+
+## Audit and notifications
+
+- All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
+- `/audit` and `/login-history` are read-only viewers for super admins (and `/audit` for the Director General). Roles below national level are refused even if granted the permission.
+- Officer postings (`officer_postings`) record each user's role and jurisdiction over time.
+- Notifications are stored in the database and pushed live over Reverb to the private channel `users.{ulid}`. Mail is sent only when `BUFFALO_MAIL_ENABLED=true` and the notification allows it. Notifications are queued, so Horizon must be running.
 
 ## Reference data
 
