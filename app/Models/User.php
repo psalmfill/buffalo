@@ -161,6 +161,14 @@ class User extends Authenticatable implements JurisdictionScoped
     }
 
     /**
+     * @return HasMany<LoginHistory, $this>
+     */
+    public function loginHistories(): HasMany
+    {
+        return $this->hasMany(LoginHistory::class);
+    }
+
+    /**
      * @return HasMany<PasswordHistory, $this>
      */
     public function passwordHistories(): HasMany
