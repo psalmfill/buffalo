@@ -21,3 +21,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('two-factor/setup/complete', [TwoFactorSetupController::class, 'complete'])
         ->name('two-factor.setup.complete');
 });
+
+// Keeps an active session alive ("Stay signed in" in the idle warning).
+Route::middleware(['auth'])->post('session/ping', fn () => response()->noContent())->name('session.ping');

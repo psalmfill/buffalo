@@ -51,6 +51,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property int|null $updated_by
  * @property int $session_version
  * @property string|null $session_token
+ * @property int $lockout_count
+ * @property Carbon|null $last_locked_at
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $two_factor_secret
@@ -77,6 +79,8 @@ use Spatie\Permission\Traits\HasRoles;
     'deactivated_by',
     'session_version',
     'session_token',
+    'lockout_count',
+    'last_locked_at',
     'roles',
     'permissions',
     'pivot',
@@ -109,6 +113,8 @@ class User extends Authenticatable implements JurisdictionScoped
             'password_changed_at' => 'datetime',
             'last_login_at' => 'datetime',
             'session_version' => 'integer',
+            'lockout_count' => 'integer',
+            'last_locked_at' => 'datetime',
         ];
     }
 

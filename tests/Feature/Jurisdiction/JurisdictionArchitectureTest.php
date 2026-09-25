@@ -14,6 +14,7 @@ test('no code outside the jurisdiction support namespace bypasses JurisdictionSc
     $patterns = [
         '/withoutGlobalScope\s*\(\s*[^)]*JurisdictionScope/' => 'removes JurisdictionScope',
         '/withoutGlobalScopes\s*\(/' => 'removes all global scopes (including JurisdictionScope)',
+        '/newModelQuery\s*\(|newQueryWithoutScopes\s*\(/' => 'builds a query without global scopes (including JurisdictionScope)',
         '/JurisdictionContext::class\)\s*->\s*system\s*\(|\$[a-zA-Z_]*[cC]ontext\s*->\s*system\s*\(/' => 'switches the jurisdiction context to system mode (use runAsSystem())',
     ];
 

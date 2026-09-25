@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Actions\Auth\AuthenticateUser;
 use App\Actions\Fortify\DisableTwoFactorAuthentication;
 use App\Actions\Fortify\EnableTwoFactorAuthentication;
 use App\Actions\Fortify\ResetUserPassword;
@@ -50,6 +51,10 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+
+        // Password step of every login: lockout, inactive accounts, history,
+        // one generic error message (App\Actions\Auth\AuthenticateUser).
+        Fortify::authenticateUsing(fn (Request $request) => app(AuthenticateUser::class)($request));
     }
 
     /**
@@ -91,10 +96,14 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->ip());
         });
 
+        // Per email+IP and per IP, in addition to the per-account lockout.
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $throttleKey = Str::transliterate(Str::lower((string) $request->input(Fortify::username())).'|'.$request->ip());
 
-            return Limit::perMinute(5)->by($throttleKey);
+            return [
+                Limit::perMinute(5)->by($throttleKey),
+                Limit::perMinute(20)->by('ip:'.$request->ip()),
+            ];
         });
     }
 }

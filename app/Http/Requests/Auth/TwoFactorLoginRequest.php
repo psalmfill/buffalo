@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -24,7 +25,7 @@ class TwoFactorLoginRequest extends FortifyTwoFactorLoginRequest
         }
 
         return $this->session()->has('login.id')
-            && $this->provider()->retrieveById($this->session()->get('login.id')) !== null;
+            && $this->usableUser($this->provider()->retrieveById($this->session()->get('login.id'))) !== null;
     }
 
     public function challengedUser()
@@ -34,7 +35,7 @@ class TwoFactorLoginRequest extends FortifyTwoFactorLoginRequest
         }
 
         $user = $this->session()->has('login.id')
-            ? $this->provider()->retrieveById($this->session()->get('login.id'))
+            ? $this->usableUser($this->provider()->retrieveById($this->session()->get('login.id')))
             : null;
 
         if ($user === null) {
@@ -44,6 +45,15 @@ class TwoFactorLoginRequest extends FortifyTwoFactorLoginRequest
         }
 
         return $this->challengedUser = $user;
+    }
+
+    /**
+     * An account locked (e.g. by failed codes), deactivated or deleted
+     * during the challenge cannot complete it.
+     */
+    private function usableUser(mixed $user): ?User
+    {
+        return $user instanceof User && ! $user->isAccessBlocked() ? $user : null;
     }
 
     private function provider(): UserProvider

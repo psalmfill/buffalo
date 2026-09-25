@@ -14,6 +14,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            session: { lifetime: number };
             [key: string]: unknown;
         };
     }

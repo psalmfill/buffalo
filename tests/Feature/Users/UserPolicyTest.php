@@ -102,9 +102,12 @@ test('the super admin role check ignores the jurisdiction context', function () 
 test('Horizon is only for users with system.horizon, in every environment', function () {
     app()->detectEnvironment(fn () => 'local');
 
+    // Each user gets their own session (as after a real login).
     $this->get('/horizon')->assertForbidden();
     $this->actingAs($this->world->users['director_general'])->get('/horizon')->assertForbidden();
+    $this->flushSession();
     $this->actingAs($this->world->users['super_admin'])->get('/horizon')->assertOk();
+    $this->flushSession();
 
     // A locked account is signed out before it reaches Horizon.
     $lockedAdmin = User::factory()->superAdmin()->locked()->create();

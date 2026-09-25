@@ -3,6 +3,7 @@
 namespace App\Actions\Users;
 
 use App\Models\User;
+use App\Support\Auth\SessionTerminator;
 use App\Support\Users\SuperAdmins;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -11,13 +12,16 @@ use Illuminate\Validation\ValidationException;
  * Deactivates an account (never deletes it). Requires a reason. A user
  * cannot deactivate themselves and the last active super admin cannot be
  * deactivated. A deactivated user immediately sees nothing (jurisdiction
- * scope) and may do nothing (Gate::before).
+ * scope) and may do nothing (Gate::before); all their sessions end.
  *
  * Authorisation (UserPolicy::deactivate) is the caller's job.
  */
 final class DeactivateUser
 {
-    public function __construct(private readonly SuperAdmins $superAdmins) {}
+    public function __construct(
+        private readonly SuperAdmins $superAdmins,
+        private readonly SessionTerminator $sessions,
+    ) {}
 
     /**
      * @throws ValidationException
@@ -49,8 +53,10 @@ final class DeactivateUser
                 'deactivation_reason' => $reason,
                 'deactivated_by' => $actor?->id,
                 'updated_by' => $actor?->id,
-                'remember_token' => null,
             ])->save();
+
+            // End every session of the user now.
+            $this->sessions->terminateAll($user);
 
             return $user;
         });
