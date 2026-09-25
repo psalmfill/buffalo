@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { SystemBanner } from '@/components/system-banner';
 import { Button } from '@/components/ui/button';
-import { dashboard, login, logout } from '@/routes';
+import { dashboard, home, login, logout } from '@/routes';
 
 type ErrorStatus = 403 | 404 | 419 | 500 | 503;
 
@@ -57,9 +57,16 @@ export default function ErrorStatusPage({
                     </p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">
-                    {status === 419 || !signedIn ? (
+                    {status === 419 ? (
                         <Button asChild>
                             <a href={login().url}>Sign in</a>
+                        </Button>
+                    ) : !signedIn ? (
+                        // Unknown URLs are answered before the session
+                        // starts, so the user may be signed in: "/" sends
+                        // them to the dashboard or to sign-in as appropriate.
+                        <Button asChild>
+                            <a href={home().url}>Continue to BUFFALO</a>
                         </Button>
                     ) : (
                         <>
