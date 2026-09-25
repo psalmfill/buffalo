@@ -32,19 +32,79 @@ L.Icon.Default.mergeOptions({
 // sites; OpenStreetMap attribution is still required by the ODbL.
 const ATTRIBUTION = 'Protomaps © OpenStreetMap contributors';
 
+/** A point shown on the map, with an optional popup and link. */
+export type MapMarker = {
+    id: string;
+    position: [number, number];
+    title: string;
+    /** Plain text (never HTML). */
+    popup?: string;
+    href?: string;
+};
+
+/** Click-to-set, draggable point (MapPointPicker). */
+export type MapPicker = {
+    value: [number, number] | null;
+    onChange: (value: [number, number]) => void;
+};
+
 type BuffaloMapProps = {
     center?: L.LatLngExpression;
     zoom?: number;
     className?: string;
+    /**
+     * Points to display. Plain markers: clustering would need a new package
+     * (see the Phase 2B handover).
+     */
+    markers?: MapMarker[];
+    /** Zoom to fit the markers once they are shown. */
+    fitMarkers?: boolean;
+    picker?: MapPicker;
 };
+
+/** Popup content built from text nodes, so names cannot inject HTML. */
+function popupContent(marker: MapMarker): HTMLElement {
+    const root = document.createElement('div');
+    const title = document.createElement(marker.href ? 'a' : 'strong');
+    title.textContent = marker.title;
+
+    if (marker.href && title instanceof HTMLAnchorElement) {
+        title.href = marker.href;
+        title.className = 'font-medium underline';
+    }
+
+    root.appendChild(title);
+
+    if (marker.popup) {
+        const detail = document.createElement('div');
+        detail.textContent = marker.popup;
+        detail.className = 'text-xs';
+        root.appendChild(detail);
+    }
+
+    return root;
+}
 
 export default function BuffaloMap({
     center = NIGERIA_CENTER,
     zoom = 6,
     className,
+    markers,
+    fitMarkers = false,
+    picker,
 }: BuffaloMapProps) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<L.Map | null>(null);
+    const markerLayerRef = useRef<L.LayerGroup | null>(null);
+    const pickerMarkerRef = useRef<L.Marker | null>(null);
+    // The latest picker callback, for the map's click handler.
+    const pickerRef = useRef<MapPicker | undefined>(picker);
     const [tilesMissing, setTilesMissing] = useState(false);
+    const [ready, setReady] = useState(false);
+
+    useEffect(() => {
+        pickerRef.current = picker;
+    });
 
     useEffect(() => {
         const container = containerRef.current;
@@ -66,6 +126,16 @@ export default function BuffaloMap({
         });
 
         L.control.attribution({ prefix: 'Leaflet' }).addTo(map);
+
+        mapRef.current = map;
+        markerLayerRef.current = L.layerGroup().addTo(map);
+        map.on('click', (event: L.LeafletMouseEvent) => {
+            pickerRef.current?.onChange([
+                Number(event.latlng.lat.toFixed(6)),
+                Number(event.latlng.lng.toFixed(6)),
+            ]);
+        });
+        setReady(true);
 
         const archive = new PMTiles(TILES_URL);
 
@@ -101,6 +171,10 @@ export default function BuffaloMap({
 
         return () => {
             cancelled = true;
+            mapRef.current = null;
+            markerLayerRef.current = null;
+            pickerMarkerRef.current = null;
+            setReady(false);
             map.remove();
         };
         // The map is created once; later phases will add props for layers
@@ -108,11 +182,75 @@ export default function BuffaloMap({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Display markers.
+    useEffect(() => {
+        const map = mapRef.current;
+        const layer = markerLayerRef.current;
+
+        if (!ready || !map || !layer) {
+            return;
+        }
+
+        layer.clearLayers();
+
+        for (const marker of markers ?? []) {
+            L.marker(marker.position, { title: marker.title })
+                .bindPopup(popupContent(marker))
+                .addTo(layer);
+        }
+
+        if (fitMarkers && markers && markers.length > 0) {
+            map.fitBounds(
+                L.latLngBounds(markers.map((marker) => marker.position)),
+                { padding: [24, 24], maxZoom: 13 },
+            );
+        }
+    }, [ready, markers, fitMarkers]);
+
+    // The picker's draggable marker follows its value.
+    const pickerValue = picker?.value ?? null;
+    const picking = picker !== undefined;
+
+    useEffect(() => {
+        const map = mapRef.current;
+
+        if (!ready || !map) {
+            return;
+        }
+
+        if (!picking || pickerValue === null) {
+            pickerMarkerRef.current?.remove();
+            pickerMarkerRef.current = null;
+
+            return;
+        }
+
+        if (pickerMarkerRef.current) {
+            pickerMarkerRef.current.setLatLng(pickerValue);
+        } else {
+            const marker = L.marker(pickerValue, {
+                draggable: true,
+                title: 'Selected location (drag to adjust)',
+            }).addTo(map);
+            marker.on('dragend', () => {
+                const position = marker.getLatLng();
+                pickerRef.current?.onChange([
+                    Number(position.lat.toFixed(6)),
+                    Number(position.lng.toFixed(6)),
+                ]);
+            });
+            pickerMarkerRef.current = marker;
+        }
+    }, [ready, picking, pickerValue]);
+
     return (
         <div className={cn('relative isolate overflow-hidden', className)}>
             <div
                 ref={containerRef}
-                className="h-full w-full !bg-muted"
+                className={cn(
+                    'h-full w-full !bg-muted',
+                    picker && 'cursor-crosshair',
+                )}
                 aria-label="Map of Nigeria"
             />
             {tilesMissing && (
