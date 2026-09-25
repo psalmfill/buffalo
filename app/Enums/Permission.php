@@ -24,4 +24,13 @@ enum Permission: string
     // Reference data (Phase 2A): configuration, not intelligence
     case ReferenceDataView = 'reference_data.view';
     case ReferenceDataManage = 'reference_data.manage';
+
+    // LGA profiles and communities (Phase 2B): intelligence, always also
+    // limited to the user's jurisdiction
+    case LgasView = 'lgas.view';
+    case LgaProfilesUpdate = 'lga_profiles.update';
+    case CommunitiesView = 'communities.view';
+    case CommunitiesManage = 'communities.manage';
+    case CommunitiesImport = 'communities.import';
+    case CommunitiesDelete = 'communities.delete';
 }

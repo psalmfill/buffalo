@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A Local Government Area. `code` is three uppercase letters, unique within
@@ -97,5 +98,23 @@ class Lga extends Model
     public function wards(): HasMany
     {
         return $this->hasMany(Ward::class);
+    }
+
+    /**
+     * The intelligence profile (Phase 2B), jurisdiction-scoped.
+     *
+     * @return HasOne<LgaProfile, $this>
+     */
+    public function profile(): HasOne
+    {
+        return $this->hasOne(LgaProfile::class);
+    }
+
+    /**
+     * @return HasMany<Community, $this>
+     */
+    public function communities(): HasMany
+    {
+        return $this->hasMany(Community::class);
     }
 }

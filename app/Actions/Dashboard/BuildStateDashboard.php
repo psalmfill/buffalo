@@ -10,11 +10,13 @@ use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Jurisdiction\JurisdictionLabel;
+use App\Support\LocalGovernment\ProfileCompleteness;
 
 /**
  * State Director and Deputy State Director dashboard: the state's LGAs with
- * their current LGA Security Chief, from open officer postings (read
- * through the jurisdiction scope).
+ * their current LGA Security Chief (from open officer postings) and profile
+ * completeness, least complete first (all read through the jurisdiction
+ * scope).
  */
 final class BuildStateDashboard
 {
@@ -39,6 +41,8 @@ final class BuildStateDashboard
             // The latest posting wins if an LGA ever has two open ones.
             ->keyBy('lga_id');
 
+        $stats = ProfileCompleteness::forLgas($lgas);
+
         return [
             'state' => [
                 'ulid' => $state->ulid,
@@ -46,16 +50,20 @@ final class BuildStateDashboard
                 'label' => $label,
                 'zone' => $state->geopoliticalZone->name ?? null,
             ],
-            'lgas' => $lgas->map(function (Lga $lga) use ($chiefs): array {
+            // Least complete profiles first: where work is needed.
+            'lgas' => $lgas->map(function (Lga $lga) use ($chiefs, $stats): array {
                 $chief = $chiefs->get($lga->id)?->user;
+                $lgaStats = $stats->get($lga->id);
 
                 return [
                     'ulid' => $lga->ulid,
                     'name' => $lga->name,
                     'headquarters' => $lga->headquarters,
                     'chief' => $chief === null ? null : ['ulid' => $chief->ulid, 'name' => $chief->name],
+                    'completeness' => $lgaStats['completeness'] ?? 0,
+                    'last_reviewed_at' => ($lgaStats['last_reviewed_at'] ?? null)?->toIso8601String(),
                 ];
-            })->values()->all(),
+            })->sortBy([['completeness', 'asc'], ['name', 'asc']])->values()->all(),
             'map' => MapView::for($state),
             'placeholders' => PlaceholderCards::for($label),
         ];

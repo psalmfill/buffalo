@@ -67,15 +67,45 @@ final class JurisdictionOptions
      */
     public function lgas(User $user, ?State $state = null): Collection
     {
+        return $this->lgaQuery($user)
+            ->active()
+            ->orderBy('name')
+            ->when($state !== null, fn (Builder $q) => $q->where('state_id', $state?->id))
+            ->get();
+    }
+
+    /**
+     * LGAs (reference data, not scoped) within the user's jurisdiction, as a
+     * query: the same rules as JurisdictionScope, for pages that list or
+     * open LGAs. Super admins get none (LGA pages are intelligence).
+     *
+     * @return Builder<Lga>
+     */
+    public function lgaQuery(User $user): Builder
+    {
         $restriction = $this->rules->restrictionFor($user, visibleToSuperAdmin: false);
-        $query = Lga::query()->active()->orderBy('name')
-            ->when($state !== null, fn (Builder $q) => $q->where('state_id', $state?->id));
+        $query = Lga::query();
 
         return match ($restriction->type) {
-            RestrictionType::Everything => $query->get(),
-            RestrictionType::States => $query->whereIn('state_id', $restriction->stateIds)->get(),
-            RestrictionType::Lga => $query->whereKey($restriction->lgaId)->get(),
-            RestrictionType::Nothing => new Collection,
+            RestrictionType::Everything => $query,
+            RestrictionType::States => $query->whereIn($query->qualifyColumn('state_id'), $restriction->stateIds),
+            RestrictionType::Lga => $query->whereKey($restriction->lgaId),
+            RestrictionType::Nothing => $query->whereRaw('1 = 0'),
+        };
+    }
+
+    /**
+     * Whether the LGA lies within the user's jurisdiction.
+     */
+    public function coversLga(User $user, Lga $lga): bool
+    {
+        $restriction = $this->rules->restrictionFor($user, visibleToSuperAdmin: false);
+
+        return match ($restriction->type) {
+            RestrictionType::Everything => true,
+            RestrictionType::States => in_array($lga->state_id, $restriction->stateIds, true),
+            RestrictionType::Lga => $lga->id === $restriction->lgaId,
+            RestrictionType::Nothing => false,
         };
     }
 }

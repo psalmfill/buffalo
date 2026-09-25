@@ -22,6 +22,15 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     public const GUARD = 'web';
 
+    /** Every role that sees intelligence content (all but super_admin). */
+    private const INTELLIGENCE_ROLES = [
+        Role::DirectorGeneral,
+        Role::DeputyDirectorGeneral,
+        Role::StateDirector,
+        Role::DeputyStateDirector,
+        Role::LgaSecurityChief,
+    ];
+
     /**
      * Module => [permission => roles that hold it].
      *
@@ -79,6 +88,28 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permission::ReferenceDataManage->value => [
                     Role::SuperAdmin,
                     Role::DirectorGeneral,
+                ],
+            ],
+
+            // ---------------------------------------------------------------
+            // Phase 2B — LGA profiles and communities (never the super admin:
+            // intelligence content)
+            // ---------------------------------------------------------------
+            'local_government' => [
+                Permission::LgasView->value => self::INTELLIGENCE_ROLES,
+                Permission::LgaProfilesUpdate->value => self::INTELLIGENCE_ROLES,
+                Permission::CommunitiesView->value => self::INTELLIGENCE_ROLES,
+                Permission::CommunitiesManage->value => self::INTELLIGENCE_ROLES,
+                Permission::CommunitiesImport->value => [
+                    Role::DirectorGeneral,
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                ],
+                // "State Director and above" (not the deputy, not LGA chiefs).
+                Permission::CommunitiesDelete->value => [
+                    Role::DirectorGeneral,
+                    Role::DeputyDirectorGeneral,
+                    Role::StateDirector,
                 ],
             ],
 

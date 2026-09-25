@@ -14,6 +14,12 @@ export const PERMISSIONS = [
     'system.settings',
     'reference_data.view',
     'reference_data.manage',
+    'lgas.view',
+    'lga_profiles.update',
+    'communities.view',
+    'communities.manage',
+    'communities.import',
+    'communities.delete',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

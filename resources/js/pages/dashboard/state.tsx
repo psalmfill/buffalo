@@ -1,10 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
+import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
 import EmptyState from '@/components/empty-state';
+import CompletenessBar from '@/components/local-government/completeness-bar';
 import { useAuth } from '@/hooks/use-auth';
+import { formatDateTime } from '@/lib/time';
 import { dashboard } from '@/routes';
 import type { StateDashboardProps } from '@/types/dashboard';
 
@@ -40,7 +43,8 @@ export default function StateDashboard({
 
                     <section className="rounded-xl border bg-card">
                         <h2 className="border-b px-4 py-3 text-sm font-medium">
-                            LGAs and their Security Chiefs
+                            LGAs: Security Chiefs and profiles (least complete
+                            first)
                         </h2>
                         {lgas.length === 0 ? (
                             <EmptyState
@@ -61,13 +65,26 @@ export default function StateDashboard({
                                             <th className="px-4 py-2 font-medium">
                                                 Security Chief
                                             </th>
+                                            <th className="px-4 py-2 font-medium">
+                                                Profile
+                                            </th>
+                                            <th className="px-4 py-2 font-medium">
+                                                Last reviewed
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
                                         {lgas.map((lga) => (
                                             <tr key={lga.ulid}>
                                                 <td className="px-4 py-2">
-                                                    {lga.name}
+                                                    <Link
+                                                        href={LgaController.show(
+                                                            lga.ulid,
+                                                        )}
+                                                        className="hover:underline"
+                                                    >
+                                                        {lga.name}
+                                                    </Link>
                                                 </td>
                                                 <td className="px-4 py-2 text-muted-foreground">
                                                     {lga.headquarters ?? '—'}
@@ -89,6 +106,20 @@ export default function StateDashboard({
                                                     ) : (
                                                         lga.chief.name
                                                     )}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <CompletenessBar
+                                                        percent={
+                                                            lga.completeness
+                                                        }
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-2 text-muted-foreground">
+                                                    {lga.last_reviewed_at
+                                                        ? formatDateTime(
+                                                              lga.last_reviewed_at,
+                                                          )
+                                                        : 'Never'}
                                                 </td>
                                             </tr>
                                         ))}

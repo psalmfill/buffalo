@@ -21,6 +21,8 @@ type Props = {
     url: string;
     destructive?: boolean;
     requireReason?: boolean;
+    /** HTTP method of the action (default POST). */
+    method?: 'post' | 'delete';
 };
 
 /**
@@ -36,13 +38,16 @@ export default function ConfirmActionDialog({
     url,
     destructive = false,
     requireReason = false,
+    method = 'post',
 }: Props) {
     const [reason, setReason] = useState('');
     const [error, setError] = useState<string | undefined>();
     const [processing, setProcessing] = useState(false);
 
     const confirm = () => {
-        router.post(url, requireReason ? { reason } : {}, {
+        router.visit(url, {
+            method,
+            data: requireReason ? { reason } : {},
             preserveScroll: true,
             onStart: () => setProcessing(true),
             onFinish: () => setProcessing(false),

@@ -6,9 +6,9 @@ use App\Models\Lga;
 use App\Models\State;
 
 /**
- * Initial map view for a dashboard: centred on the state's or LGA's
- * centroid when it has one, otherwise the national view (null centre).
- * Centroids are empty until the boundary import.
+ * Initial map view: centred on the LGA's centroid, else its state's, else
+ * the national view (null centre). Centroids are empty until the boundary
+ * import.
  */
 final class MapView
 {
@@ -29,7 +29,8 @@ final class MapView
             ->first();
 
         if ($point === null) {
-            return ['center' => null, 'zoom' => 6];
+            // An LGA without a centroid falls back to its state.
+            return $place instanceof Lga ? self::for($place->state) : ['center' => null, 'zoom' => 6];
         }
 
         return [

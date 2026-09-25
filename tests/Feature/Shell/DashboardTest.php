@@ -2,8 +2,10 @@
 
 use App\Actions\Users\OfficerPostings;
 use App\Enums\LoginEvent;
+use App\Models\Community;
 use App\Models\GeopoliticalZone;
 use App\Models\Lga;
+use App\Models\LgaProfile;
 use App\Models\LoginHistory;
 use App\Models\SenatorialDistrict;
 use App\Models\State;
@@ -146,8 +148,8 @@ test('a state director sees only their state\'s LGAs, with the chief from curren
         ->component('dashboard/state')
         ->where('state.label', 'Kano State')
         ->where('lgas', [
-            ['ulid' => $fagge->ulid, 'name' => 'Fagge', 'headquarters' => $fagge->headquarters, 'chief' => null],
-            ['ulid' => $nassarawa->ulid, 'name' => 'Nassarawa', 'headquarters' => $nassarawa->headquarters, 'chief' => ['ulid' => $chief->ulid, 'name' => 'Current Chief']],
+            ['ulid' => $fagge->ulid, 'name' => 'Fagge', 'headquarters' => $fagge->headquarters, 'chief' => null, 'completeness' => 0, 'last_reviewed_at' => null],
+            ['ulid' => $nassarawa->ulid, 'name' => 'Nassarawa', 'headquarters' => $nassarawa->headquarters, 'chief' => ['ulid' => $chief->ulid, 'name' => 'Current Chief'], 'completeness' => 0, 'last_reviewed_at' => null],
         ])
         ->has('placeholders', 4)
         ->where('placeholders.0.scope', 'Kano State'));
@@ -186,4 +188,39 @@ test('the map centres on the jurisdiction centroid when there is one', function 
     $this->flushSession();
     $this->actingAs(User::factory()->lgaChief($lga)->create())->get('/dashboard')
         ->assertInertia(fn (Assert $page) => $page->where('map.center', [11.99, 8.51])->where('map.zoom', 10));
+});
+
+test('the LGA chief dashboard shows profile completeness and communities', function () {
+    $world = JurisdictionWorld::build();
+    $lga = $world->lgas['A1a'];
+    LgaProfile::factory()->forLga($lga)->create(['history' => 'x', 'terrain' => ['urban']]);
+    Community::factory()->in($lga)->count(3)->create();
+
+    $this->actingAs($world->users['lga_chief'])->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('profile.completeness', 50)
+        ->where('profile.communities', 3)
+        ->where('profile.missing', ['Economic activities', 'Major roads', 'Borders'])
+        ->where('profile.last_reviewed_at', null));
+});
+
+test('national dashboards show average completeness by state within the jurisdiction', function () {
+    $world = JurisdictionWorld::build();
+    LgaProfile::factory()->forLga($world->lgas['A1a'])->create(['history' => 'x', 'economic_activities' => 'y', 'terrain' => ['urban'], 'major_roads' => 'r', 'borders' => 'b']);
+    Community::factory()->in($world->lgas['A1a'])->create();
+
+    $this->actingAs($world->users['ddg_zone_a'])->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('completenessByState', [
+            ['state' => $world->states['A2']->name, 'lgas' => 1, 'average' => 0],
+            ['state' => $world->states['A1']->name, 'lgas' => 2, 'average' => 50],
+        ]));
+});
+
+test('the state dashboard lists least complete LGAs first', function () {
+    $world = JurisdictionWorld::build();
+    Community::factory()->in($world->lgas['A1b'])->create();
+
+    $this->actingAs($world->users['state_director'])->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('lgas.0.ulid', $world->lgas['A1a']->ulid)
+        ->where('lgas.0.completeness', 0)
+        ->where('lgas.1.completeness', 17));
 });

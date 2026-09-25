@@ -4,11 +4,15 @@ import {
     Gauge,
     History,
     LayoutGrid,
+    Landmark,
     Library,
+    MapPinned,
     ScrollText,
     Users,
 } from 'lucide-react';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
+import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
+import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import LoginHistoryController from '@/actions/App/Http/Controllers/Audit/LoginHistoryController';
 import ReferenceDataController from '@/actions/App/Http/Controllers/ReferenceData/ReferenceDataController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
@@ -46,6 +50,13 @@ export const NAVIGATION: NavSection[] = [
         title: 'Overview',
         items: [
             { title: 'Dashboard', icon: LayoutGrid, href: dashboard(), permission: null },
+        ],
+    },
+    {
+        title: 'Local Government',
+        items: [
+            { title: 'LGAs', icon: Landmark, href: LgaController.index(), permission: 'lgas.view' },
+            { title: 'Communities', icon: MapPinned, href: CommunityController.index(), permission: 'communities.view' },
         ],
     },
     {

@@ -32,6 +32,7 @@ export type SystemDashboardProps = {
 
 export type NationalDashboardProps = {
     scope: { label: string; zones: string[]; states: number; lgas: number };
+    completenessByState: { state: string; lgas: number; average: number }[];
     map: MapView;
     placeholders: PlaceholderCardData[];
 };
@@ -43,6 +44,8 @@ export type StateDashboardProps = {
         name: string;
         headquarters: string | null;
         chief: { ulid: string; name: string } | null;
+        completeness: number;
+        last_reviewed_at: string | null;
     }[];
     map: MapView;
     placeholders: PlaceholderCardData[];
@@ -58,6 +61,12 @@ export type LgaDashboardProps = {
         headquarters: string | null;
         areaKm2: string | null;
         populationEstimate: number | null;
+    };
+    profile: {
+        completeness: number;
+        missing: string[];
+        communities: number;
+        last_reviewed_at: string | null;
     };
     map: MapView;
     placeholders: PlaceholderCardData[];

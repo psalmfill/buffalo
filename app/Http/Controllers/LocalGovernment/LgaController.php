@@ -1,0 +1,203 @@
+<?php
+
+namespace App\Http\Controllers\LocalGovernment;
+
+use App\Actions\LocalGovernment\MarkLgaProfileReviewed;
+use App\Actions\LocalGovernment\UpdateLgaProfile;
+use App\Enums\JurisdictionLevel;
+use App\Enums\Role;
+use App\Http\Controllers\Controller;
+use App\Http\Presenters\CommunityPresenter;
+use App\Http\Presenters\LgaPresenter;
+use App\Http\Requests\LocalGovernment\LgaProfileRequest;
+use App\Models\Community;
+use App\Models\Lga;
+use App\Models\LgaProfile;
+use App\Models\OfficerPosting;
+use App\Models\SenatorialDistrict;
+use App\Models\User;
+use App\Support\Dashboard\MapView;
+use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\LocalGovernment\ProfileCompleteness;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
+
+/**
+ * LGA pages: the list of LGAs in the user's jurisdiction and each LGA's
+ * overview, profile and communities. {lga} is bound within the user's
+ * jurisdiction (routes/local-government.php): others are 404.
+ */
+class LgaController extends Controller
+{
+    /**
+     * Tabs of an LGA page. Phase 2C and later phases add theirs here.
+     */
+    public const TABS = ['overview', 'profile', 'communities'];
+
+    /** Map markers per LGA page (plain markers, no clustering). */
+    private const MARKER_LIMIT = 1000;
+
+    public function index(Request $request, JurisdictionOptions $options): Response|RedirectResponse
+    {
+        $this->authorize('viewAny', Lga::class);
+        $user = $this->actor($request);
+
+        // An LGA chief has exactly one LGA: go straight to it.
+        if ($user->jurisdiction_level === JurisdictionLevel::Lga && $user->lga !== null) {
+            return redirect()->route('lgas.show', $user->lga);
+        }
+
+        $states = $options->states($user);
+
+        $filters = $request->validate([
+            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
+            'district' => ['nullable', 'string', 'size:26'],
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
+
+        $lgas = $options->lgaQuery($user)
+            ->active()
+            ->with(['state', 'senatorialDistrict'])
+            ->when($state, fn (Builder $query) => $query->where('lgas.state_id', $state?->id))
+            ->when($filters['district'] ?? null, fn (Builder $query, string $district) => $query->whereHas('senatorialDistrict', fn (Builder $q) => $q->where('ulid', $district)))
+            ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query->where('lgas.name', 'ilike', '%'.addcslashes($search, '%_\\').'%'))
+            ->join('states', 'states.id', '=', 'lgas.state_id')
+            ->orderBy('states.name')
+            ->orderBy('lgas.name')
+            ->select('lgas.*')
+            ->paginate(25)
+            ->withQueryString();
+
+        $stats = ProfileCompleteness::forLgas($lgas->items());
+
+        return Inertia::render('lgas/index', [
+            'lgas' => $lgas->through(fn (Lga $lga) => LgaPresenter::row($lga, $stats->get($lga->id, ['completeness' => 0, 'communities' => 0, 'last_reviewed_at' => null]))),
+            'filters' => [
+                'state' => $filters['state'] ?? '',
+                'district' => $filters['district'] ?? '',
+                'search' => $filters['search'] ?? '',
+            ],
+            'states' => $states->count() > 1 ? $states->map(fn ($s) => ['ulid' => $s->ulid, 'name' => $s->name])->values() : [],
+            'districts' => SenatorialDistrict::query()
+                ->whereIn('state_id', $state !== null ? [$state->id] : $states->modelKeys())
+                ->orderBy('name')
+                ->get(['ulid', 'name'])
+                ->map(fn (SenatorialDistrict $district) => ['ulid' => $district->ulid, 'name' => $district->name]),
+        ]);
+    }
+
+    public function show(Request $request, Lga $lga): Response
+    {
+        $this->authorize('view', $lga);
+        $user = $this->actor($request);
+
+        $tab = in_array($request->query('tab'), self::TABS, true) ? $request->query('tab') : 'overview';
+        $lga->loadMissing(['state', 'senatorialDistrict']);
+
+        $profile = LgaProfile::query()->with('reviewer')->firstWhere('lga_id', $lga->id);
+        $communityCount = Community::query()->where('lga_id', $lga->id)->count();
+
+        return Inertia::render('lgas/show', [
+            'lga' => LgaPresenter::facts($lga),
+            'tab' => $tab,
+            'tabs' => self::TABS,
+            'completeness' => LgaPresenter::completeness($profile, $communityCount),
+            'communityCount' => $communityCount,
+            'lastReviewed' => [
+                'at' => $profile?->last_reviewed_at?->toIso8601String(),
+                'by' => $profile?->reviewer?->name,
+            ],
+            'can' => [
+                'updateProfile' => $user->can('updateProfile', $lga),
+                'addCommunity' => $user->can('addCommunity', $lga),
+                'importCommunities' => $user->can('importCommunities', $lga),
+            ],
+            'overview' => $tab === 'overview' ? ['chief' => $this->chief($lga)] : null,
+            'profile' => $tab === 'profile' ? [
+                ...LgaPresenter::profile($profile),
+                'terrainOptions' => LgaPresenter::terrainOptions(),
+            ] : null,
+            'communities' => $tab === 'communities' ? $this->communities($request, $lga) : null,
+        ]);
+    }
+
+    public function updateProfile(LgaProfileRequest $request, Lga $lga, UpdateLgaProfile $update): RedirectResponse
+    {
+        $this->authorize('updateProfile', $lga);
+
+        $update($lga, $request->profile(), $request->basics(), $this->actor($request));
+
+        return back()->with('toast', ['type' => 'success', 'message' => 'Profile saved.']);
+    }
+
+    public function markReviewed(Request $request, Lga $lga, MarkLgaProfileReviewed $review): RedirectResponse
+    {
+        $this->authorize('updateProfile', $lga);
+
+        $review($lga, $this->actor($request));
+
+        return back()->with('toast', ['type' => 'success', 'message' => 'Profile marked as reviewed.']);
+    }
+
+    /**
+     * @return array{ulid: string, name: string}|null
+     */
+    private function chief(Lga $lga): ?array
+    {
+        $user = OfficerPosting::query()
+            ->with('user')
+            ->where('role', Role::LgaSecurityChief->value)
+            ->where('lga_id', $lga->id)
+            ->whereNull('ended_at')
+            ->latest('started_at')
+            ->first()
+            ?->user;
+
+        return $user === null ? null : ['ulid' => $user->ulid, 'name' => $user->name];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function communities(Request $request, Lga $lga): array
+    {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'type' => ['nullable', 'string', Rule::in(array_column(CommunityPresenter::typeOptions(), 'value'))],
+        ]);
+
+        $base = fn (): Builder => Community::query()
+            ->where('communities.lga_id', $lga->id)
+            ->with(['lga', 'state', 'ward'])
+            ->withCoordinates();
+
+        $list = $base()
+            ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('communities.type', $type))
+            ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query->search($search), fn (Builder $query) => $query->orderBy('communities.name'))
+            ->paginate(25, pageName: 'page')
+            ->withQueryString();
+
+        return [
+            'list' => $list->through(fn (Community $community) => CommunityPresenter::row($community)),
+            'filters' => ['search' => $filters['search'] ?? '', 'type' => $filters['type'] ?? ''],
+            'types' => CommunityPresenter::typeOptions(),
+            'markers' => $base()->whereNotNull('communities.location')->orderBy('communities.name')->limit(self::MARKER_LIMIT)->get()
+                ->map(fn (Community $community) => CommunityPresenter::marker($community))
+                ->filter()
+                ->values(),
+            'map' => MapView::for($lga),
+        ];
+    }
+
+    private function actor(Request $request): User
+    {
+        /** @var User */
+        return $request->user();
+    }
+}

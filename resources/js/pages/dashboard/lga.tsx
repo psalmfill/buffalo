@@ -1,7 +1,12 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
+import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
+import StatCard from '@/components/dashboard/stat-card';
+import CompletenessBar from '@/components/local-government/completeness-bar';
+import { Button } from '@/components/ui/button';
+import { formatDateTime } from '@/lib/time';
 import { dashboard } from '@/routes';
 import type { LgaDashboardProps } from '@/types/dashboard';
 
@@ -17,6 +22,7 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 /** LGA Security Chief. */
 export default function LgaDashboard({
     lga,
+    profile,
     map,
     placeholders,
 }: LgaDashboardProps) {
@@ -25,6 +31,42 @@ export default function LgaDashboard({
             <Head title="Dashboard" />
             <div className="flex flex-col gap-6 p-4">
                 <DashboardHeader title={lga.label} subtitle={lga.state} />
+
+                <section
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4"
+                    data-test="profile-card"
+                >
+                    <div className="space-y-1">
+                        <h2 className="text-sm font-medium">LGA profile</h2>
+                        <CompletenessBar percent={profile.completeness} />
+                        <p className="text-xs text-muted-foreground">
+                            {profile.missing.length > 0
+                                ? `Missing: ${profile.missing.join(', ')}.`
+                                : 'Complete.'}{' '}
+                            {profile.last_reviewed_at
+                                ? `Last reviewed ${formatDateTime(profile.last_reviewed_at)}.`
+                                : 'Never reviewed.'}
+                        </p>
+                    </div>
+                    <StatCard
+                        label="Communities"
+                        value={profile.communities}
+                        href={LgaController.show(lga.ulid, {
+                            query: { tab: 'communities' },
+                        })}
+                    />
+                    {profile.completeness < 100 && (
+                        <Button asChild>
+                            <Link
+                                href={LgaController.show(lga.ulid, {
+                                    query: { tab: 'profile' },
+                                })}
+                            >
+                                Complete the profile
+                            </Link>
+                        </Button>
+                    )}
+                </section>
 
                 <PlaceholderCardGrid cards={placeholders} />
 
