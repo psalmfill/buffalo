@@ -22,12 +22,19 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'login_history.view',
         'system.horizon',
         'system.settings',
+        'reference_data.view',
+        'reference_data.manage',
     ],
-    director_general: ['users.view', 'audit.view'],
-    deputy_director_general: ['users.view'],
-    state_director: ['users.view'],
-    deputy_state_director: ['users.view'],
-    lga_security_chief: [],
+    director_general: [
+        'users.view',
+        'audit.view',
+        'reference_data.view',
+        'reference_data.manage',
+    ],
+    deputy_director_general: ['users.view', 'reference_data.view'],
+    state_director: ['users.view', 'reference_data.view'],
+    deputy_state_director: ['users.view', 'reference_data.view'],
+    lga_security_chief: ['reference_data.view'],
 };
 
 describe('navigation', () => {
@@ -71,6 +78,7 @@ describe('navigation', () => {
                 Overview: ['Dashboard'],
                 Administration: [
                     'Users',
+                    'Reference data',
                     'Audit log',
                     'Login history',
                     'Queue monitor',
@@ -78,21 +86,24 @@ describe('navigation', () => {
             },
             director_general: {
                 Overview: ['Dashboard'],
-                Administration: ['Users', 'Audit log'],
+                Administration: ['Users', 'Reference data', 'Audit log'],
             },
             deputy_director_general: {
                 Overview: ['Dashboard'],
-                Administration: ['Users'],
+                Administration: ['Users', 'Reference data'],
             },
             state_director: {
                 Overview: ['Dashboard'],
-                Administration: ['Users'],
+                Administration: ['Users', 'Reference data'],
             },
             deputy_state_director: {
                 Overview: ['Dashboard'],
-                Administration: ['Users'],
+                Administration: ['Users', 'Reference data'],
             },
-            lga_security_chief: { Overview: ['Dashboard'] },
+            lga_security_chief: {
+                Overview: ['Dashboard'],
+                Administration: ['Reference data'],
+            },
         });
     });
 

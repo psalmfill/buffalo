@@ -64,6 +64,25 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 2A — Reference data (configuration, not intelligence, so
+            // every role may read it)
+            // ---------------------------------------------------------------
+            'reference_data' => [
+                Permission::ReferenceDataView->value => [
+                    Role::SuperAdmin,
+                    Role::DirectorGeneral,
+                    Role::DeputyDirectorGeneral,
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                    Role::LgaSecurityChief,
+                ],
+                Permission::ReferenceDataManage->value => [
+                    Role::SuperAdmin,
+                    Role::DirectorGeneral,
+                ],
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

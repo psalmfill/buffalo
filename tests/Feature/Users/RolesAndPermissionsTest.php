@@ -10,15 +10,15 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission as SpatiePermission;
 use Spatie\Permission\Models\Role as SpatieRole;
 
-test('roles hold exactly the Phase 1 permissions from the specification', function () {
-    // Written out independently of the seeder, from the Phase 1B prompt.
+test('roles hold exactly the permissions from the specification', function () {
+    // Written out independently of the seeder, from the Phase 1B and 2A prompts.
     $expected = [
-        'super_admin' => ['audit.view', 'login_history.view', 'system.horizon', 'system.settings', 'users.manage', 'users.view'],
-        'director_general' => ['audit.view', 'users.view'],
-        'deputy_director_general' => ['users.view'],
-        'state_director' => ['users.view'],
-        'deputy_state_director' => ['users.view'],
-        'lga_security_chief' => [],
+        'super_admin' => ['audit.view', 'login_history.view', 'reference_data.manage', 'reference_data.view', 'system.horizon', 'system.settings', 'users.manage', 'users.view'],
+        'director_general' => ['audit.view', 'reference_data.manage', 'reference_data.view', 'users.view'],
+        'deputy_director_general' => ['reference_data.view', 'users.view'],
+        'state_director' => ['reference_data.view', 'users.view'],
+        'deputy_state_director' => ['reference_data.view', 'users.view'],
+        'lga_security_chief' => ['reference_data.view'],
     ];
 
     $actual = SpatieRole::query()->with('permissions')->get()
@@ -48,8 +48,8 @@ test('the seeder is idempotent and restores drifted permissions', function () {
     $this->seed(RolesAndPermissionsSeeder::class);
 
     expect(SpatieRole::count())->toBe(6)
-        ->and(SpatiePermission::count())->toBe(6)
-        ->and(SpatieRole::findByName('lga_security_chief')->permissions)->toHaveCount(0);
+        ->and(SpatiePermission::count())->toBe(count(Permission::cases()))
+        ->and(SpatieRole::findByName('lga_security_chief')->permissions->pluck('name')->all())->toBe(['reference_data.view']);
 });
 
 test('AssignRole leaves a user with exactly one role', function () {

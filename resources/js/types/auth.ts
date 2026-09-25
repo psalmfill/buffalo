@@ -12,6 +12,8 @@ export const PERMISSIONS = [
     'login_history.view',
     'system.horizon',
     'system.settings',
+    'reference_data.view',
+    'reference_data.manage',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Console\Commands\DisabledCleanActivitylogCommand;
 use App\Models\User;
+use App\Policies\ReferenceDataPolicy;
 use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
@@ -13,6 +14,9 @@ use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\NullAccessGrantResolver;
 use App\Support\Jurisdiction\RestrictionType;
+use App\Support\ReferenceData\Contracts\ReferenceUsage;
+use App\Support\ReferenceData\NoReferenceUsage;
+use App\Support\ReferenceData\ReferenceTable;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Hashing\Hasher;
@@ -31,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // No module references lookup values yet; later phases bind a real check.
+        $this->app->bind(ReferenceUsage::class, NoReferenceUsage::class);
+
         // Fresh per HTTP request and per queued job. HTTP requests start in
         // `none` (SetJurisdictionContext sets the user); the console and
         // queue workers start in `system`.
@@ -67,6 +74,11 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         Gate::before(fn (User $user): ?bool => $user->isAccessBlocked() ? false : null);
+
+        // One policy for every lookup table (reference data, Phase 2A).
+        foreach (ReferenceTable::cases() as $table) {
+            Gate::policy($table->modelClass(), ReferenceDataPolicy::class);
+        }
 
         Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
         Gate::define('viewLoginHistory', fn (User $user): bool => AuditAccess::canViewLoginHistory($user));

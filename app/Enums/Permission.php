@@ -20,4 +20,8 @@ enum Permission: string
     // System administration (Phase 1)
     case SystemHorizon = 'system.horizon';
     case SystemSettings = 'system.settings';
+
+    // Reference data (Phase 2A): configuration, not intelligence
+    case ReferenceDataView = 'reference_data.view';
+    case ReferenceDataManage = 'reference_data.manage';
 }

@@ -1,8 +1,16 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
-import { Gauge, History, LayoutGrid, ScrollText, Users } from 'lucide-react';
+import {
+    Gauge,
+    History,
+    LayoutGrid,
+    Library,
+    ScrollText,
+    Users,
+} from 'lucide-react';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import LoginHistoryController from '@/actions/App/Http/Controllers/Audit/LoginHistoryController';
+import ReferenceDataController from '@/actions/App/Http/Controllers/ReferenceData/ReferenceDataController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import { can } from '@/lib/permissions';
 import { dashboard } from '@/routes';
@@ -44,6 +52,7 @@ export const NAVIGATION: NavSection[] = [
         title: 'Administration',
         items: [
             { title: 'Users', icon: Users, href: UserController.index(), permission: 'users.view' },
+            { title: 'Reference data', icon: Library, href: ReferenceDataController.home(), permission: 'reference_data.view' },
             { title: 'Audit log', icon: ScrollText, href: AuditLogController.index(), permission: 'audit.view' },
             { title: 'Login history', icon: History, href: LoginHistoryController.index(), permission: 'login_history.view' },
             { title: 'Queue monitor', icon: Gauge, href: horizon.index(), permission: 'system.horizon', external: true },
