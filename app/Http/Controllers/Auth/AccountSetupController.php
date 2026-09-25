@@ -51,8 +51,11 @@ class AccountSetupController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        // Phase 1C.4 sends new users straight to two-factor enrolment.
-        return redirect()->route('dashboard');
+        // The user has just chosen their password: treat it as confirmed so
+        // two-factor enrolment starts without asking for it again.
+        $request->session()->passwordConfirmed();
+
+        return redirect()->route('two-factor.setup');
     }
 
     private function invalid(): Response

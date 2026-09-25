@@ -11,7 +11,8 @@ test('login screen can be rendered', function () {
 });
 
 test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
+    // Not yet enrolled: the password step logs in, then enrolment is required.
+    $user = User::factory()->withoutTwoFactor()->create();
 
     $response = $this->post(route('login.store'), [
         'email' => $user->email,

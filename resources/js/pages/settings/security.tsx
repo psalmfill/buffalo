@@ -7,12 +7,13 @@ import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/security';
-import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
-import ManageTwoFactor from '@/components/manage-two-factor';
+import PasswordRequirements from '@/components/password-requirements';
+import RegenerateRecoveryCodes from '@/components/regenerate-recovery-codes';
 
 type Props = {
     passwordRules: string;
-} & ManageTwoFactorProps;
+    passwordRequirements: string[];
+};
 
 export default function Security(props: Props) {
     const passwordInput = useRef<HTMLInputElement>(null);
@@ -72,6 +73,10 @@ export default function Security(props: Props) {
                                 <InputError message={errors.current_password} />
                             </div>
 
+                            <PasswordRequirements
+                                requirements={props.passwordRequirements}
+                            />
+
                             <div className="grid gap-2">
                                 <Label htmlFor="password">New password</Label>
 
@@ -120,11 +125,14 @@ export default function Security(props: Props) {
                 </Form>
             </div>
 
-            <ManageTwoFactor
-                canManageTwoFactor={props.canManageTwoFactor}
-                requiresConfirmation={props.requiresConfirmation}
-                twoFactorEnabled={props.twoFactorEnabled}
-            />
+            <div className="space-y-6">
+                <Heading
+                    variant="small"
+                    title="Two-factor authentication"
+                    description="Two-factor authentication is required for every account and cannot be turned off. If you lose your authenticator, use a recovery code or ask an administrator to reset it."
+                />
+                <RegenerateRecoveryCodes />
+            </div>
         </>
     );
 }

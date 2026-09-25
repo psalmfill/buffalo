@@ -135,6 +135,8 @@ test('route model binding is jurisdiction-scoped (context is set before bindings
 
 test('users can still log in while unauthenticated requests are in none mode', function () {
     $user = $this->world->users['lga_chief'];
+    // Without 2FA the password step logs in directly (enrolment follows).
+    $user->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
 
     $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
         ->assertSessionHasNoErrors();

@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Spatie\Permission\Models\Role as SpatieRole;
 
 /**
@@ -46,13 +47,16 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'two_factor_secret' => null,
-            'two_factor_recovery_codes' => null,
-            'two_factor_confirmed_at' => null,
+            // Two-factor authentication is mandatory, so users have it by
+            // default; use withoutTwoFactor() for enrolment scenarios.
+            'two_factor_secret' => encrypt(app(TwoFactorAuthenticationProvider::class)->generateSecretKey()),
+            'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1', 'recovery-code-2'])),
+            'two_factor_confirmed_at' => now(),
             'jurisdiction_level' => JurisdictionLevel::System,
             'state_id' => null,
             'lga_id' => null,
             'is_active' => true,
+            'session_version' => 0,
         ];
     }
 
@@ -116,12 +120,27 @@ class UserFactory extends Factory
         ]);
     }
 
+    /**
+     * Confirmed two-factor authentication (the default).
+     */
     public function withTwoFactor(): static
     {
         return $this->state(fn (array $attributes) => [
-            'two_factor_secret' => encrypt('secret'),
-            'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
+            'two_factor_secret' => encrypt(app(TwoFactorAuthenticationProvider::class)->generateSecretKey()),
+            'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1', 'recovery-code-2'])),
             'two_factor_confirmed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Not yet enrolled in two-factor authentication.
+     */
+    public function withoutTwoFactor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
         ]);
     }
 

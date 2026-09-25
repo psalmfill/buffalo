@@ -106,6 +106,8 @@ test('Horizon is only for users with system.horizon, in every environment', func
     $this->actingAs($this->world->users['director_general'])->get('/horizon')->assertForbidden();
     $this->actingAs($this->world->users['super_admin'])->get('/horizon')->assertOk();
 
+    // A locked account is signed out before it reaches Horizon.
     $lockedAdmin = User::factory()->superAdmin()->locked()->create();
-    $this->actingAs($lockedAdmin)->get('/horizon')->assertForbidden();
+    $this->actingAs($lockedAdmin)->get('/horizon')->assertRedirect(route('login'));
+    $this->assertGuest();
 });
