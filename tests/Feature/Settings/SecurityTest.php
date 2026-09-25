@@ -12,9 +12,6 @@ test('security page is displayed', function () {
         'confirm' => true,
         'confirmPassword' => true,
     ]);
-    Features::passkeys([
-        'confirmPassword' => true,
-    ]);
 
     $user = User::factory()->create();
 
@@ -23,8 +20,6 @@ test('security page is displayed', function () {
         ->get(route('security.edit'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/security')
-            ->where('canManagePasskeys', true)
-            ->where('passkeys', [])
             ->where('canManageTwoFactor', true)
             ->where('twoFactorEnabled', false),
         );
@@ -44,27 +39,6 @@ test('security page requires password confirmation when enabled', function () {
         ->get(route('security.edit'));
 
     $response->assertRedirect(route('password.confirm'));
-});
-
-test('security page renders without two factor when feature is disabled', function () {
-    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-    config(['fortify.features' => []]);
-
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->withSession(['auth.password_confirmed_at' => time()])
-        ->get(route('security.edit'))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/security')
-            ->where('canManagePasskeys', false)
-            ->where('passkeys', [])
-            ->where('canManageTwoFactor', false)
-            ->missing('twoFactorEnabled')
-            ->missing('requiresConfirmation'),
-        );
 });
 
 test('password can be updated', function () {

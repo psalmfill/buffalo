@@ -1,10 +1,15 @@
 <?php
 
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+// No public landing page: guests go to the login form, users to the dashboard.
+Route::get('/', fn (Request $request): RedirectResponse => $request->user() !== null
+    ? redirect()->route('dashboard')
+    : redirect()->route('login'))->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 

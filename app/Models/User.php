@@ -8,7 +8,6 @@ use App\Models\Concerns\HasJurisdiction;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
 use Database\Factories\UserFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,8 +17,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
-use Laravel\Fortify\Contracts\PasskeyUser;
-use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -79,10 +76,10 @@ use Spatie\Permission\Traits\HasRoles;
     'permissions',
     'pivot',
 ])]
-class User extends Authenticatable implements JurisdictionScoped, MustVerifyEmail, PasskeyUser
+class User extends Authenticatable implements JurisdictionScoped
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasJurisdiction, HasRoles, HasUlidRouteKey, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasFactory, HasJurisdiction, HasRoles, HasUlidRouteKey, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * Super admins manage users, so they may see all users. Everyone else
