@@ -123,6 +123,17 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **System banner:** set `BUFFALO_BANNER_TEXT` (and `BUFFALO_BANNER_LEVEL`: `info`, `restricted`, `confidential` or `secret`) to show a banner at the top of every page, including sign-in and error pages.
 - **Error pages:** 403, 404, 419, 500 and 503 are BUFFALO pages that never say why access was denied. Records outside a user's jurisdiction are 404.
 
+## Lookup tables (administrator-managed reference data)
+
+- **Tables:** incident types, threat types, security agencies, religions, denominations and property types. They are managed at **Administration → Reference data** (`/reference-data`): everyone can view them, and the super admin and Director General can manage them.
+- **Never deleted:** values are deactivated instead. A deactivated value stays on existing records but can't be chosen for new ones. Codes are fixed once created.
+- **Seeding:** `ReferenceDataSeeder` (part of `db:seed`) creates missing defaults only. It never changes existing values, so administrators' edits survive.
+- **Incident type detail fields:** each incident type has its own fields (`details_schema`, BUFFALO's own format), edited with the field builder on the type's edit page.
+  - `App\Support\DynamicFields\SchemaValidator` validates a schema. Once a type is in use, keys and types are fixed, and fields and options can only be deprecated.
+  - `DetailsValidator` validates a record's `details`.
+  - `DynamicFields` and `DynamicFieldsView` (`resources/js/components/dynamic-fields/`) render them.
+- **Form options:** `App\Support\ReferenceData\ReferenceData::options()` returns the active values for forms. It is cached in Valkey and cleared whenever a value changes.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
