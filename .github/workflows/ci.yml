@@ -57,7 +57,7 @@ jobs:
         with:
           php-version: '8.4'
           extensions: pdo_pgsql, pgsql, intl, zip, gd, exif, bcmath, pcntl, redis
-          tools: composer:v2
+          tools: composer:2.10.3
           coverage: none
 
       - name: Setup Node

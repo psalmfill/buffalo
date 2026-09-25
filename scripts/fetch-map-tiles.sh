@@ -9,7 +9,7 @@
 #
 # For an air-gapped server, run this on a connected machine, then copy
 # nigeria.pmtiles into the target's map_tiles volume, e.g.:
-#   docker run --rm -v buffalo_map_tiles:/tiles -v "$PWD":/src alpine:3.24 \
+#   docker run --rm -v buffalo_map_tiles:/tiles -v "$PWD":/src alpine:3.24.2 \
 #       cp /src/nigeria.pmtiles /tiles/nigeria.pmtiles
 #
 # It uses the official pmtiles CLI Docker image to extract the Nigeria
@@ -82,7 +82,7 @@ docker run --rm \
 docker run --rm \
     -v "${VOLUME}:/tiles" \
     --entrypoint /bin/sh \
-    alpine:3.24 \
+    alpine:3.24.2 \
     -c "mv /tiles/${OUTPUT}.partial /tiles/${OUTPUT} && chmod 0644 /tiles/${OUTPUT} && ls -lh /tiles/${OUTPUT}"
 
 echo "Done. The map at http://localhost:8000/dashboard now uses the offline tiles."
