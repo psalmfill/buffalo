@@ -11,3 +11,10 @@ parameters:
         - routes/
 
     level: 7
+
+    ignoreErrors:
+        # Access-logging infrastructure (Phase 1D) whose first production
+        # users arrive in Phase 3; covered by tests/Feature/Audit.
+        -
+            identifier: trait.unused
+            path: app/Models/Concerns/LogsReads.php
