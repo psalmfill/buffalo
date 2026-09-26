@@ -65,7 +65,8 @@ class VulnerablePopulationStat extends Model implements JurisdictionScoped
             'adult_female' => 'integer',
             'child_male' => 'integer',
             'child_female' => 'integer',
-            'as_of_date' => 'date',
+            // A plain date when serialised (audit log), not a UTC timestamp.
+            'as_of_date' => 'date:Y-m-d',
         ];
     }
 

@@ -152,3 +152,14 @@ test('notes need a community of the LGA and a past observation date', function (
     $this->post("/lgas/{$lga->ulid}/security-notes", notePayload($otherLgaCommunity))->assertSessionHasErrors('community');
     $this->post("/lgas/{$lga->ulid}/security-notes", notePayload(Community::factory()->in($lga)->create(), ['observed_at' => now()->addDay()->toDateString()]))->assertSessionHasErrors('observed_at');
 });
+
+test('dates are audited as plain dates, not shifted timestamps', function () {
+    $world = JurisdictionWorld::build();
+    $lga = $world->lgas['A1a'];
+    $this->actingAs($world->users['lga_chief'])->post("/lgas/{$lga->ulid}/security-notes", notePayload(Community::factory()->in($lga)->create(), ['observed_at' => '2026-09-20']));
+
+    systemContext();
+    $created = Activity::query()->where('subject_type', CommunitySecurityNote::class)->where('event', 'created')->sole();
+
+    expect($created->attribute_changes['attributes']['observed_at'])->toBe('2026-09-20');
+});

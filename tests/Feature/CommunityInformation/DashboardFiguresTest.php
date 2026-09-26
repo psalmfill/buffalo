@@ -47,10 +47,11 @@ test('state dashboards count active notes by LGA within the state and clearance'
 
     // Deputy: restricted + confidential (+ cult) = 3 per LGA; not secret.
     $this->actingAs($world->users['deputy_state_director'])->get('/dashboard')->assertInertia(fn (Assert $page) => $page
-        ->where('securityNotesByLga', fn ($rows) => collect($rows)->pluck('active', 'ulid')->all() === [
+        // Equal counts: order between the two LGAs follows their names.
+        ->where('securityNotesByLga', fn ($rows) => collect($rows)->pluck('active', 'ulid')->sortKeys()->all() === collect([
             $world->lgas['A1a']->ulid => 3,
             $world->lgas['A1b']->ulid => 3,
-        ]));
+        ])->sortKeys()->all()));
 
     $this->flushSession();
     $this->actingAs($world->users['state_director'])->get('/dashboard')->assertInertia(fn (Assert $page) => $page

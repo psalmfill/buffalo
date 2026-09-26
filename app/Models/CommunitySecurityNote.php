@@ -70,8 +70,9 @@ class CommunitySecurityNote extends Model implements Classified, JurisdictionSco
             'category' => SecurityNoteCategory::class,
             'status' => SecurityNoteStatus::class,
             'classification' => Classification::class,
-            'observed_at' => 'date',
-            'resolved_at' => 'date',
+            // Plain dates when serialised (audit log), not UTC timestamps.
+            'observed_at' => 'date:Y-m-d',
+            'resolved_at' => 'date:Y-m-d',
         ];
     }
 
