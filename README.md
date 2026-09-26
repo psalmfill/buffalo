@@ -148,6 +148,20 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **CSV import:** at **Communities → Import CSV** (DG, State Directors and Deputies). Download the template, upload a file for one LGA, and review the preview: every row is marked new, possible duplicate or error. New rows are imported, possible duplicates only if you tick them, and errors never. The import is one transaction; files over 200 rows run in the background and notify you when done. The uploaded file is never stored.
 - **Scoping:** everything here is scoped to the user's jurisdiction. The super admin has no access. Out-of-jurisdiction LGAs and communities are 404.
 
+## Community information and classification
+
+- **Classification** (`CLAUDE.md` section 4a) is enforced by `App\Support\Classification\ClassificationGate`, both in queries (the `HasClassification` global scope, which applies together with the jurisdiction scope) and in policies. The levels:
+  - **Restricted:** all intelligence roles.
+  - **Confidential:** Deputy State Directors and above.
+  - **Secret:** State Directors and above.
+
+  A record's creator always sees it. Nobody can classify a record above their own level. Level changes are audited.
+- **LGA and community pages** have three more tabs:
+  - **Religious institutions:** counts by religion and type are computed; institutions can be added with the map picker and shown as a map layer.
+  - **Vulnerable population:** aggregate counts only, with no names and no free text; new figures are new rows, so history is kept.
+  - **Security notes:** classified, with status changes. Reading a confidential or secret note is recorded in `record_access_logs`.
+- **Deleting** any of these needs State Director or above and a reason.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
