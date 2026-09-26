@@ -162,6 +162,21 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - **Security notes:** classified, with status changes. Reading a confidential or secret note is recorded in `record_access_logs`.
 - **Deleting** any of these needs State Director or above and a reason.
 
+## Persons (Phase 3A)
+
+> **Field encryption key.** NIN, phone number, date of birth and address of
+> persons are encrypted with `CIPHERSWEET_KEY` (created once by
+> `make setup`). **Losing this key makes all encrypted person data
+> unrecoverable: back it up separately from the database, and never commit
+> it.** See [docs/security/encryption-keys.md](docs/security/encryption-keys.md).
+
+- **Persons** (Intelligence → Persons) are scoped to the user's jurisdiction and classified, and every view of a person is recorded in `record_access_logs`.
+- **Search:** by name or alias (fuzzy, pg_trgm), by NIN, or by phone number in any format (exact match through blind indexes). Searches are POSTed, so names and numbers never appear in URLs.
+- **Creating a person** first shows possible duplicates within the jurisdiction.
+- **Photos** are re-encoded to remove EXIF (including GPS) and stored on the private `evidence` disk. They are only streamed through an authorised route, never by URL.
+- **Aliases, roles and associations:** a person has aliases, roles (political leader, traditional ruler, religious leader, community leader), and associations with other persons, shown from both sides.
+- **Links from Phase 2:** communities can name a traditional ruler, and religious institutions a leader.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
