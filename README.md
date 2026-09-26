@@ -177,6 +177,20 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Aliases, roles and associations:** a person has aliases, roles (political leader, traditional ruler, religious leader, community leader), and associations with other persons, shown from both sides.
 - **Links from Phase 2:** communities can name a traditional ruler, and religious institutions a leader.
 
+## Political information, persons of interest, criminal groups (Phase 3B)
+
+- **Political offices** are recorded on a person's page. The office type decides whether a senatorial district, LGA or ward is required. Recording an office gives the person the political leader role. A second current holder of a single seat produces a warning, not an error.
+- **LGA chiefs** see offices of their LGA, plus offices with no LGA whose senatorial district contains their LGA (their senator).
+- **Senatorial districts** (Local Government menu) and the LGA **Leadership** tab show current and past office holders, traditional rulers, and religious and community leaders.
+- **Persons of interest** are designated from a person's page. A POI is visible only when its person is.
+  - Status and risk changes always need a comment and form the POI's timeline.
+  - Clearing a POI needs State Director or above.
+  - Reviews fall due after `BUFFALO_POI_REVIEW_MONTHS` months. `buffalo:poi-review-reminders` runs daily and notifies LGA chiefs and State Directors of overdue reviews (counts only).
+- **Criminal groups** are owned by their home LGA and are classified.
+  - Areas of operation may be in any state but never make the group visible there.
+  - Only persons the user can see can be added as members.
+- **Views are access-logged:** POI details (context `poi`) and criminal groups.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
