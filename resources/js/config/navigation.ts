@@ -1,21 +1,27 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
+    Crosshair,
     Gauge,
     History,
     LayoutGrid,
     Landmark,
     Library,
+    Map as MapIcon,
     MapPinned,
+    Network,
     ScrollText,
     UserSearch,
     Users,
 } from 'lucide-react';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
+import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import LoginHistoryController from '@/actions/App/Http/Controllers/Audit/LoginHistoryController';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
+import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOfInterest/PersonOfInterestController';
+import SenatorialDistrictController from '@/actions/App/Http/Controllers/Political/SenatorialDistrictController';
 import ReferenceDataController from '@/actions/App/Http/Controllers/ReferenceData/ReferenceDataController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import { can } from '@/lib/permissions';
@@ -59,12 +65,15 @@ export const NAVIGATION: NavSection[] = [
         items: [
             { title: 'LGAs', icon: Landmark, href: LgaController.index(), permission: 'lgas.view' },
             { title: 'Communities', icon: MapPinned, href: CommunityController.index(), permission: 'communities.view' },
+            { title: 'Senatorial districts', icon: MapIcon, href: SenatorialDistrictController.index(), permission: 'lgas.view' },
         ],
     },
     {
         title: 'Intelligence',
         items: [
             { title: 'Persons', icon: UserSearch, href: PersonController.index(), permission: 'persons.view' },
+            { title: 'Persons of interest', icon: Crosshair, href: PersonOfInterestController.index(), permission: 'poi.view' },
+            { title: 'Criminal groups', icon: Network, href: CriminalGroupController.index(), permission: 'criminal_groups.view' },
         ],
     },
     {

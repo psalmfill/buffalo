@@ -5,6 +5,7 @@ namespace App\Support\Jurisdiction;
 use App\Models\User;
 use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
+use App\Support\Jurisdiction\Contracts\LgaVisibilityRule;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -43,7 +44,9 @@ final class JurisdictionGate
             RestrictionType::Everything => true,
             RestrictionType::Nothing => false,
             RestrictionType::States => in_array($this->intAttribute($record, $record->jurisdictionStateColumn()), $restriction->stateIds, true),
-            RestrictionType::Lga => $record->jurisdictionLgaColumn() !== null
+            RestrictionType::Lga => $record instanceof LgaVisibilityRule
+                ? $restriction->lgaId !== null && $record->visibleToLga($restriction->lgaId)
+                : $record->jurisdictionLgaColumn() !== null
                 && $restriction->lgaId !== null
                 && $this->intAttribute($record, $record->jurisdictionLgaColumn()) === $restriction->lgaId,
         };

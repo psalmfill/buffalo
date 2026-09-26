@@ -4,6 +4,7 @@ import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
 import StatCard from '@/components/dashboard/stat-card';
+import { PoiRiskCards } from '@/components/dashboard/threat-figures';
 import CompletenessBar from '@/components/local-government/completeness-bar';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/time';
@@ -24,6 +25,7 @@ export default function LgaDashboard({
     lga,
     profile,
     information,
+    threats,
     map,
     placeholders,
 }: LgaDashboardProps) {
@@ -90,6 +92,13 @@ export default function LgaDashboard({
                         })}
                     />
                 </div>
+
+                {threats && (
+                    <PoiRiskCards
+                        byRisk={threats.poisByRisk}
+                        overdue={threats.overdueReviews}
+                    />
+                )}
 
                 <PlaceholderCardGrid cards={placeholders} />
 

@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDateTime } from '@/lib/time';
+import LeadershipPanel from '@/components/political/leadership-panel';
 import { cn } from '@/lib/utils';
 import type {
     InformationCan,
@@ -39,11 +40,13 @@ import type {
     LgaProfileData,
     NamedRef,
 } from '@/types/local-government';
+import type { LgaLeadership } from '@/types/political';
 
 type Tab =
     | 'overview'
     | 'profile'
     | 'communities'
+    | 'leadership'
     | 'religious_institutions'
     | 'vulnerable_population'
     | 'security_notes';
@@ -59,6 +62,7 @@ type Props = {
         updateProfile: boolean;
         addCommunity: boolean;
         importCommunities: boolean;
+        viewLeadership: boolean;
     };
     options: InformationOptions;
     overview: { chief: NamedRef | null } | null;
@@ -68,6 +72,7 @@ type Props = {
     religiousInstitutions: InstitutionsTab | null;
     vulnerablePopulation: VulnerableTab | null;
     securityNotes: NotesTab | null;
+    leadership: LgaLeadership | null;
 };
 
 // Later phases add their tabs here and in LgaController::TABS.
@@ -75,6 +80,7 @@ const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
     profile: 'Profile',
     communities: 'Communities',
+    leadership: 'Leadership',
     religious_institutions: 'Religious institutions',
     vulnerable_population: 'Vulnerable population',
     security_notes: 'Security notes',
@@ -105,24 +111,30 @@ export default function LgaShow(props: Props) {
                 </div>
 
                 <nav className="flex gap-1 border-b" aria-label="LGA sections">
-                    {tabs.map((name) => (
-                        <Link
-                            key={name}
-                            href={LgaController.show(lga.ulid, {
-                                query: { tab: name },
-                            })}
-                            preserveScroll
-                            className={cn(
-                                '-mb-px border-b-2 px-3 py-2 text-sm',
-                                tab === name
-                                    ? 'border-primary font-medium'
-                                    : 'border-transparent text-muted-foreground hover:text-foreground',
-                            )}
-                            aria-current={tab === name ? 'page' : undefined}
-                        >
-                            {TAB_LABELS[name]}
-                        </Link>
-                    ))}
+                    {tabs
+                        .filter(
+                            (name) =>
+                                name !== 'leadership' ||
+                                props.can.viewLeadership,
+                        )
+                        .map((name) => (
+                            <Link
+                                key={name}
+                                href={LgaController.show(lga.ulid, {
+                                    query: { tab: name },
+                                })}
+                                preserveScroll
+                                className={cn(
+                                    '-mb-px border-b-2 px-3 py-2 text-sm',
+                                    tab === name
+                                        ? 'border-primary font-medium'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground',
+                                )}
+                                aria-current={tab === name ? 'page' : undefined}
+                            >
+                                {TAB_LABELS[name]}
+                            </Link>
+                        ))}
                 </nav>
 
                 {tab === 'overview' && props.overview && (
@@ -161,6 +173,9 @@ export default function LgaShow(props: Props) {
                             can={props.can}
                         />
                     )}
+                {tab === 'leadership' && props.leadership && (
+                    <LeadershipPanel data={props.leadership} />
+                )}
                 {tab === 'security_notes' && props.securityNotes && (
                     <SecurityNotesPanel
                         lgaUlid={lga.ulid}

@@ -52,4 +52,17 @@ enum Permission: string
     case PersonsView = 'persons.view';
     case PersonsManage = 'persons.manage';
     case PersonsDelete = 'persons.delete';
+
+    // Political information, persons of interest and criminal groups
+    // (Phase 3B). Clearing a POI and deleting need State Director or above.
+    case PoliticalView = 'political.view';
+    case PoliticalManage = 'political.manage';
+    case PoliticalDelete = 'political.delete';
+    case PoiView = 'poi.view';
+    case PoiManage = 'poi.manage';
+    case PoiClear = 'poi.clear';
+    case PoiDelete = 'poi.delete';
+    case CriminalGroupsView = 'criminal_groups.view';
+    case CriminalGroupsManage = 'criminal_groups.manage';
+    case CriminalGroupsDelete = 'criminal_groups.delete';
 }

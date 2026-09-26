@@ -42,3 +42,22 @@ export async function postJson<T>(url: string, body: unknown = {}): Promise<T> {
 
     return data as T;
 }
+
+/** Same-origin JSON GET (for small reference lookups; nothing sensitive in the URL). */
+export async function getJson<T>(url: string): Promise<T> {
+    const response = await fetch(url, {
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new HttpError(response.status, data);
+    }
+
+    return data as T;
+}

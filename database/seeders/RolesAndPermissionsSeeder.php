@@ -143,6 +143,27 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 3B — Political information, persons of interest,
+            // criminal groups (never the super admin)
+            // ---------------------------------------------------------------
+            'political' => [
+                Permission::PoliticalView->value => self::INTELLIGENCE_ROLES,
+                Permission::PoliticalManage->value => self::INTELLIGENCE_ROLES,
+                Permission::PoliticalDelete->value => self::DELETE_ROLES,
+            ],
+            'persons_of_interest' => [
+                Permission::PoiView->value => self::INTELLIGENCE_ROLES,
+                Permission::PoiManage->value => self::INTELLIGENCE_ROLES,
+                Permission::PoiClear->value => self::DELETE_ROLES,
+                Permission::PoiDelete->value => self::DELETE_ROLES,
+            ],
+            'criminal_groups' => [
+                Permission::CriminalGroupsView->value => self::INTELLIGENCE_ROLES,
+                Permission::CriminalGroupsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::CriminalGroupsDelete->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

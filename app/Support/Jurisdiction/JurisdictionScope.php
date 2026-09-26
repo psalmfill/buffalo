@@ -4,6 +4,7 @@ namespace App\Support\Jurisdiction;
 
 use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
+use App\Support\Jurisdiction\Contracts\LgaVisibilityRule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
@@ -76,9 +77,13 @@ final class JurisdictionScope implements Scope
 
         match ($restriction->type) {
             RestrictionType::States => $query->whereIn($model->qualifyColumn($model->jurisdictionStateColumn()), $restriction->stateIds),
-            RestrictionType::Lga => $lgaColumn === null
+            // An explicit per-model rule for LGA-level users (e.g. offices
+            // tied to a senatorial district rather than an LGA).
+            RestrictionType::Lga => $model instanceof LgaVisibilityRule && $restriction->lgaId !== null
+                ? $query->where(fn (Builder $q) => $model->applyLgaVisibility($q, (int) $restriction->lgaId))
+                : ($lgaColumn === null
                 ? $query->whereRaw('1 = 0')
-                : $query->where($model->qualifyColumn($lgaColumn), $restriction->lgaId),
+                : $query->where($model->qualifyColumn($lgaColumn), $restriction->lgaId)),
             RestrictionType::Nothing => $query->whereRaw('1 = 0'),
             RestrictionType::Everything => null,
         };

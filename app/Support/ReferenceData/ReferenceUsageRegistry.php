@@ -44,15 +44,16 @@ final class ReferenceUsageRegistry implements ReferenceUsage
     }
 
     /**
-     * The value is in use when any row of $table lists its id in the jsonb
-     * array $column (e.g. persons_of_interest.offence_categories, Phase 3B).
+     * The value is in use when any row of $table lists it in the jsonb
+     * array $column, by $attribute (e.g. persons_of_interest.offence_categories
+     * holds threat type codes, Phase 3B).
      *
      * @param  class-string<Model>  $lookup
      */
-    public function jsonArray(string $lookup, string $table, string $column): void
+    public function jsonArray(string $lookup, string $table, string $column, string $attribute = 'id'): void
     {
         $this->register($lookup, fn (Model $value): bool => DB::table($table)
-            ->whereJsonContains($column, $value->getKey())
+            ->whereJsonContains($column, $value->getAttribute($attribute))
             ->exists());
     }
 

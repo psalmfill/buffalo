@@ -6,7 +6,6 @@ use App\Actions\LocalGovernment\MarkLgaProfileReviewed;
 use App\Actions\LocalGovernment\UpdateLgaProfile;
 use App\Enums\JurisdictionLevel;
 use App\Enums\Permission;
-use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\CommunityInformationPresenter;
 use App\Http\Presenters\CommunityPresenter;
@@ -16,7 +15,7 @@ use App\Models\Community;
 use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
 use App\Models\LgaProfile;
-use App\Models\OfficerPosting;
+use App\Models\PoliticalOffice;
 use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
 use App\Models\User;
@@ -25,6 +24,7 @@ use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\ProfileCompleteness;
+use App\Support\Political\Leadership;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,7 +42,7 @@ class LgaController extends Controller
     /**
      * Tabs of an LGA page. Phase 2C and later phases add theirs here.
      */
-    public const TABS = ['overview', 'profile', 'communities', 'religious_institutions', 'vulnerable_population', 'security_notes'];
+    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes'];
 
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
@@ -98,7 +98,7 @@ class LgaController extends Controller
         ]);
     }
 
-    public function show(Request $request, Lga $lga, TabData $data): Response
+    public function show(Request $request, Lga $lga, TabData $data, Leadership $leadership): Response
     {
         $this->authorize('view', $lga);
         $user = $this->actor($request);
@@ -129,12 +129,14 @@ class LgaController extends Controller
                 'viewReligiousInstitutions' => $user->can('viewAny', ReligiousInstitution::class),
                 'viewVulnerableFigures' => $user->can('viewAny', VulnerablePopulationStat::class),
                 'viewSecurityNotes' => $user->can('viewAny', CommunitySecurityNote::class),
+                'viewLeadership' => $user->can('viewAny', PoliticalOffice::class),
                 // For showing row actions; each action is authorised on the record.
                 'deleteReligiousInstitutions' => $user->checkPermissionTo(Permission::ReligiousInstitutionsDelete->value),
                 'deleteVulnerableFigures' => $user->checkPermissionTo(Permission::VulnerableStatsDelete->value),
             ],
             'options' => CommunityInformationPresenter::options(),
-            'overview' => $tab === 'overview' ? ['chief' => $this->chief($lga)] : null,
+            'overview' => $tab === 'overview' ? ['chief' => $leadership->chief($lga)] : null,
+            'leadership' => $tab === 'leadership' && $user->can('viewAny', PoliticalOffice::class) ? $leadership->forLga($lga) : null,
             'profile' => $tab === 'profile' ? [
                 ...LgaPresenter::profile($profile),
                 'terrainOptions' => LgaPresenter::terrainOptions(),
@@ -168,23 +170,6 @@ class LgaController extends Controller
         $review($lga, $this->actor($request));
 
         return back()->with('toast', ['type' => 'success', 'message' => 'Profile marked as reviewed.']);
-    }
-
-    /**
-     * @return array{ulid: string, name: string}|null
-     */
-    private function chief(Lga $lga): ?array
-    {
-        $user = OfficerPosting::query()
-            ->with('user')
-            ->where('role', Role::LgaSecurityChief->value)
-            ->where('lga_id', $lga->id)
-            ->whereNull('ended_at')
-            ->latest('started_at')
-            ->first()
-            ?->user;
-
-        return $user === null ? null : ['ulid' => $user->ulid, 'name' => $user->name];
     }
 
     /**

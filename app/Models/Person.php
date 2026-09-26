@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -385,6 +386,32 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
     public function associatedBy(): HasMany
     {
         return $this->hasMany(PersonAssociation::class, 'associated_person_id');
+    }
+
+    /**
+     * @return HasMany<PoliticalOffice, $this>
+     */
+    public function politicalOffices(): HasMany
+    {
+        return $this->hasMany(PoliticalOffice::class);
+    }
+
+    /**
+     * The person's (current) person-of-interest record, if any.
+     *
+     * @return HasOne<PersonOfInterest, $this>
+     */
+    public function personOfInterest(): HasOne
+    {
+        return $this->hasOne(PersonOfInterest::class);
+    }
+
+    /**
+     * @return HasMany<CriminalGroupMember, $this>
+     */
+    public function groupMemberships(): HasMany
+    {
+        return $this->hasMany(CriminalGroupMember::class);
     }
 
     /**

@@ -6,14 +6,17 @@ use App\Enums\Role;
 use App\Enums\SecurityNoteStatus;
 use App\Enums\VulnerableCategory;
 use App\Models\CommunitySecurityNote;
+use App\Models\CriminalGroup;
 use App\Models\Lga;
 use App\Models\OfficerPosting;
+use App\Models\PersonOfInterest;
 use App\Models\State;
 use App\Models\User;
 use App\Models\VulnerablePopulationStat;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
+use App\Support\Dashboard\ThreatFigures;
 use App\Support\Jurisdiction\JurisdictionLabel;
 use App\Support\LocalGovernment\ProfileCompleteness;
 use Illuminate\Database\Eloquent\Collection;
@@ -26,6 +29,8 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final class BuildStateDashboard
 {
+    public function __construct(private readonly ThreatFigures $figures) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -72,6 +77,12 @@ final class BuildStateDashboard
             })->sortBy([['completeness', 'asc'], ['name', 'asc']])->values()->all(),
             'securityNotesByLga' => $this->activeNotesByLga($lgas),
             'vulnerableTotals' => $this->vulnerableTotals($state),
+            'threats' => [
+                'riskLevels' => ThreatFigures::riskLevels(),
+                'poisByLga' => $user->can('viewAny', PersonOfInterest::class) ? $this->figures->poisByPlace('lgas') : [],
+                'overdueReviews' => $user->can('viewAny', PersonOfInterest::class) ? $this->figures->overdueReviews() : 0,
+                'activeGroups' => $user->can('viewAny', CriminalGroup::class) ? $this->figures->activeGroups() : 0,
+            ],
             'map' => MapView::for($state),
             'placeholders' => PlaceholderCards::for($label),
         ];

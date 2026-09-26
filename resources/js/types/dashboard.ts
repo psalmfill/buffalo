@@ -1,3 +1,8 @@
+import type {
+    PoiPlaceRow,
+    RiskCount,
+} from '@/components/dashboard/threat-figures';
+import type { Option } from '@/types/local-government';
 import type { RoleName } from '@/types/auth';
 import type { ActivityEntry } from '@/types/users';
 
@@ -33,6 +38,11 @@ export type SystemDashboardProps = {
 export type NationalDashboardProps = {
     scope: { label: string; zones: string[]; states: number; lgas: number };
     completenessByState: { state: string; lgas: number; average: number }[];
+    threats: {
+        riskLevels: Option[];
+        poisByState: PoiPlaceRow[];
+        groupsByType: RiskCount[];
+    };
     securityNotesByState: {
         categories: { value: string; label: string }[];
         rows: {
@@ -56,6 +66,12 @@ export type StateDashboardProps = {
         last_reviewed_at: string | null;
     }[];
     securityNotesByLga: { ulid: string; name: string; active: number }[];
+    threats: {
+        riskLevels: Option[];
+        poisByLga: PoiPlaceRow[];
+        overdueReviews: number;
+        activeGroups: number;
+    };
     vulnerableTotals: {
         category: string;
         label: string;
@@ -81,6 +97,7 @@ export type LgaDashboardProps = {
         populationEstimate: number | null;
     };
     information: { activeSecurityNotes: number; religiousInstitutions: number };
+    threats: { poisByRisk: RiskCount[]; overdueReviews: number } | null;
     profile: {
         completeness: number;
         missing: string[];

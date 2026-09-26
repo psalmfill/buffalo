@@ -7,10 +7,12 @@ use App\Models\Community;
 use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
 use App\Models\LgaProfile;
+use App\Models\PersonOfInterest;
 use App\Models\ReligiousInstitution;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
+use App\Support\Dashboard\ThreatFigures;
 use App\Support\Jurisdiction\JurisdictionLabel;
 use App\Support\LocalGovernment\ProfileCompleteness;
 
@@ -19,6 +21,8 @@ use App\Support\LocalGovernment\ProfileCompleteness;
  */
 final class BuildLgaDashboard
 {
+    public function __construct(private readonly ThreatFigures $figures) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -45,6 +49,10 @@ final class BuildLgaDashboard
                 'activeSecurityNotes' => CommunitySecurityNote::query()->where('lga_id', $lga->id)->where('status', SecurityNoteStatus::Active->value)->count(),
                 'religiousInstitutions' => ReligiousInstitution::query()->where('lga_id', $lga->id)->count(),
             ],
+            'threats' => $user->can('viewAny', PersonOfInterest::class) ? [
+                'poisByRisk' => $this->figures->poisByRisk($lga->id),
+                'overdueReviews' => $this->figures->overdueReviews($lga->id),
+            ] : null,
             'map' => MapView::for($lga),
             'placeholders' => PlaceholderCards::for($label),
         ];

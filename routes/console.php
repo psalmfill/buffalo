@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Weekly reminder to LGA chiefs whose LGA profile is due for review (Phase 2B).
 Schedule::command('buffalo:profile-review-reminders')->weeklyOn(1, '07:00');
+
+// Daily reminder of overdue person of interest reviews (Phase 3B).
+Schedule::command('buffalo:poi-review-reminders')->dailyAt('07:00');

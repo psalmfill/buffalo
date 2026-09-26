@@ -6,11 +6,14 @@ use App\Enums\JurisdictionLevel;
 use App\Enums\SecurityNoteCategory;
 use App\Enums\SecurityNoteStatus;
 use App\Models\CommunitySecurityNote;
+use App\Models\CriminalGroup;
 use App\Models\Lga;
+use App\Models\PersonOfInterest;
 use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
+use App\Support\Dashboard\ThreatFigures;
 use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\RestrictionType;
 use App\Support\LocalGovernment\ProfileCompleteness;
@@ -23,7 +26,10 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final class BuildNationalDashboard
 {
-    public function __construct(private readonly JurisdictionRules $rules) {}
+    public function __construct(
+        private readonly JurisdictionRules $rules,
+        private readonly ThreatFigures $figures,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -48,6 +54,11 @@ final class BuildNationalDashboard
                 'lgas' => Lga::query()->active()->whereIn('state_id', (clone $states)->select('id'))->count(),
             ],
             'securityNotesByState' => $this->activeNotesByState(),
+            'threats' => [
+                'riskLevels' => ThreatFigures::riskLevels(),
+                'poisByState' => $user->can('viewAny', PersonOfInterest::class) ? $this->figures->poisByPlace('states') : [],
+                'groupsByType' => $user->can('viewAny', CriminalGroup::class) ? $this->figures->activeGroupsByType() : [],
+            ],
             'completenessByState' => $this->completenessByState((clone $states)->orderBy('name')->get()),
             'map' => MapView::for(null),
             'placeholders' => PlaceholderCards::for($label),

@@ -1,9 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
+import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
+import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOfInterest/PersonOfInterestController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
+import StatCard from '@/components/dashboard/stat-card';
+import { PoiByPlaceTable } from '@/components/dashboard/threat-figures';
 import EmptyState from '@/components/empty-state';
 import CompletenessBar from '@/components/local-government/completeness-bar';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,6 +21,7 @@ export default function StateDashboard({
     lgas,
     securityNotesByLga,
     vulnerableTotals,
+    threats,
     map,
     placeholders,
 }: StateDashboardProps) {
@@ -37,6 +42,44 @@ export default function StateDashboard({
                         .filter(Boolean)
                         .join(' · ')}
                 />
+
+                {(can('poi.view') || can('criminal_groups.view')) && (
+                    <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+                        {can('poi.view') && (
+                            <PoiByPlaceTable
+                                title="Open persons of interest by LGA and risk"
+                                place="LGA"
+                                rows={threats.poisByLga}
+                                riskLevels={threats.riskLevels}
+                            />
+                        )}
+                        <div className="grid content-start gap-4">
+                            {can('poi.view') && (
+                                <StatCard
+                                    label="POI reviews overdue"
+                                    value={threats.overdueReviews}
+                                    tone={
+                                        threats.overdueReviews > 0
+                                            ? 'warning'
+                                            : 'default'
+                                    }
+                                    href={PersonOfInterestController.index({
+                                        query: { overdue: '1' },
+                                    })}
+                                />
+                            )}
+                            {can('criminal_groups.view') && (
+                                <StatCard
+                                    label="Active criminal groups"
+                                    value={threats.activeGroups}
+                                    href={CriminalGroupController.index({
+                                        query: { status: 'active' },
+                                    })}
+                                />
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 <PlaceholderCardGrid cards={placeholders} />
 

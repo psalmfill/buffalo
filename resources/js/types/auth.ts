@@ -32,6 +32,16 @@ export const PERMISSIONS = [
     'persons.view',
     'persons.manage',
     'persons.delete',
+    'political.view',
+    'political.manage',
+    'political.delete',
+    'poi.view',
+    'poi.manage',
+    'poi.clear',
+    'poi.delete',
+    'criminal_groups.view',
+    'criminal_groups.manage',
+    'criminal_groups.delete',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

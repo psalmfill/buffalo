@@ -8,6 +8,7 @@ use App\Models\Person;
 use App\Models\PersonAssociation;
 use App\Models\Religion;
 use App\Models\ReligiousInstitution;
+use App\Models\ThreatType;
 use App\Support\ReferenceData\Contracts\ReferenceUsage;
 use App\Support\ReferenceData\ReferenceUsageRegistry;
 use Illuminate\Database\QueryException;
@@ -292,7 +293,7 @@ test('modules register their own usage checks', function () {
 
     expect($registry->isInUse($religion))->toBeTrue()
         ->and($registry->lookups())->toBe([Religion::class])
-        ->and(app(ReferenceUsageRegistry::class)->lookups())->toEqualCanonicalizing([Religion::class, Denomination::class]);
+        ->and(app(ReferenceUsageRegistry::class)->lookups())->toEqualCanonicalizing([Religion::class, Denomination::class, ThreatType::class]);
 });
 
 beforeEach(function () {

@@ -11,8 +11,11 @@ import EmptyState from '@/components/empty-state';
 import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
 import Pagination from '@/components/pagination';
+import GroupMembershipsPanel from '@/components/persons/group-memberships-panel';
 import PersonAvatar from '@/components/persons/person-avatar';
 import PersonPicker from '@/components/persons/person-picker';
+import PoiPanel from '@/components/persons/poi-panel';
+import PoliticalOfficesPanel from '@/components/persons/political-offices-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,9 +33,23 @@ import type {
     PersonOptions,
     PersonPhoto,
 } from '@/types/persons';
+import type {
+    GroupMember,
+    PoiDetail,
+    PoiOptions,
+    PoliticalOffice,
+} from '@/types/political';
 import type { ActivityEntry } from '@/types/users';
 
-type PersonTab = 'profile' | 'aliases' | 'associations' | 'photos' | 'history';
+type PersonTab =
+    | 'profile'
+    | 'aliases'
+    | 'associations'
+    | 'photos'
+    | 'political_offices'
+    | 'poi'
+    | 'group_memberships'
+    | 'history';
 
 type Props = {
     person: PersonDetail;
@@ -44,7 +61,22 @@ type Props = {
     associations: PersonAssociationRow[] | null;
     photos: PersonPhoto[] | null;
     history: Paginated<ActivityEntry> | null;
-    can: { update: boolean; delete: boolean };
+    politicalOffices: {
+        current: PoliticalOffice[];
+        past: PoliticalOffice[];
+    } | null;
+    poi: PoiDetail | null;
+    poiOptions: PoiOptions | null;
+    groupMemberships: GroupMember[] | null;
+    can: {
+        update: boolean;
+        delete: boolean;
+        viewPolitical: boolean;
+        addOffice: boolean;
+        viewPoi: boolean;
+        designatePoi: boolean;
+        viewGroups: boolean;
+    };
 };
 
 // 3B adds political offices, POI details and group memberships; Phase 5
@@ -54,6 +86,9 @@ const TAB_LABELS: Record<PersonTab, string> = {
     aliases: 'Aliases',
     associations: 'Associations',
     photos: 'Photos',
+    political_offices: 'Political offices',
+    poi: 'Person of interest',
+    group_memberships: 'Group memberships',
     history: 'History',
 };
 
@@ -461,6 +496,10 @@ export default function PersonShow({
     associations,
     photos,
     history,
+    politicalOffices,
+    poi,
+    poiOptions,
+    groupMemberships,
     can,
 }: Props) {
     const [deleting, setDeleting] = useState(false);
@@ -531,23 +570,32 @@ export default function PersonShow({
                     className="flex gap-1 overflow-x-auto border-b"
                     aria-label="Person sections"
                 >
-                    {tabs.map((name) => (
-                        <Link
-                            key={name}
-                            href={PersonController.show(person.ulid, {
-                                query: { tab: name },
-                            })}
-                            preserveScroll
-                            className={cn(
-                                '-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap',
-                                tab === name
-                                    ? 'border-primary font-medium'
-                                    : 'border-transparent text-muted-foreground hover:text-foreground',
-                            )}
-                        >
-                            {TAB_LABELS[name]}
-                        </Link>
-                    ))}
+                    {tabs
+                        .filter(
+                            (name) =>
+                                (name !== 'political_offices' ||
+                                    can.viewPolitical) &&
+                                (name !== 'poi' || can.viewPoi) &&
+                                (name !== 'group_memberships' ||
+                                    can.viewGroups),
+                        )
+                        .map((name) => (
+                            <Link
+                                key={name}
+                                href={PersonController.show(person.ulid, {
+                                    query: { tab: name },
+                                })}
+                                preserveScroll
+                                className={cn(
+                                    '-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap',
+                                    tab === name
+                                        ? 'border-primary font-medium'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground',
+                                )}
+                            >
+                                {TAB_LABELS[name]}
+                            </Link>
+                        ))}
                 </nav>
 
                 {tab === 'profile' && (
@@ -677,6 +725,24 @@ export default function PersonShow({
                         photos={photos}
                         canUpdate={can.update}
                     />
+                )}
+                {tab === 'political_offices' && politicalOffices && (
+                    <PoliticalOfficesPanel
+                        personUlid={person.ulid}
+                        offices={politicalOffices}
+                        canAdd={can.addOffice}
+                    />
+                )}
+                {tab === 'poi' && can.viewPoi && (
+                    <PoiPanel
+                        personUlid={person.ulid}
+                        poi={poi}
+                        options={poiOptions}
+                        canDesignate={can.designatePoi}
+                    />
+                )}
+                {tab === 'group_memberships' && groupMemberships && (
+                    <GroupMembershipsPanel memberships={groupMemberships} />
                 )}
                 {tab === 'history' && history && (
                     <div className="space-y-3">

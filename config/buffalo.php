@@ -13,6 +13,12 @@ return [
     // for this many days (Phase 2B).
     'profile_review_days' => (int) env('BUFFALO_PROFILE_REVIEW_DAYS', 180),
 
+    // Persons of interest are due for review this many months after being
+    // designated or last reviewed (Phase 3B). A cleared POI is due in
+    // `poi_cleared_review_days` days, to decide on archiving.
+    'poi_review_months' => (int) env('BUFFALO_POI_REVIEW_MONTHS', 12),
+    'poi_cleared_review_days' => 30,
+
     'banner' => [
         'text' => env('BUFFALO_BANNER_TEXT'),
         'level' => env('BUFFALO_BANNER_LEVEL', 'info'),

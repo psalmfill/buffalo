@@ -4,6 +4,7 @@ namespace App\Support\Jurisdiction;
 
 use App\Enums\Permission;
 use App\Models\Lga;
+use App\Models\SenatorialDistrict;
 use App\Models\State;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -90,6 +91,26 @@ final class JurisdictionOptions
             RestrictionType::Everything => $query,
             RestrictionType::States => $query->whereIn($query->qualifyColumn('state_id'), $restriction->stateIds),
             RestrictionType::Lga => $query->whereKey($restriction->lgaId),
+            RestrictionType::Nothing => $query->whereRaw('1 = 0'),
+        };
+    }
+
+    /**
+     * Senatorial districts (reference data, not scoped) within the user's
+     * jurisdiction, as a query: those of their states, or the district of
+     * an LGA chief's LGA. Super admins get none.
+     *
+     * @return Builder<SenatorialDistrict>
+     */
+    public function districtQuery(User $user): Builder
+    {
+        $restriction = $this->rules->restrictionFor($user, visibleToSuperAdmin: false);
+        $query = SenatorialDistrict::query();
+
+        return match ($restriction->type) {
+            RestrictionType::Everything => $query,
+            RestrictionType::States => $query->whereIn($query->qualifyColumn('state_id'), $restriction->stateIds),
+            RestrictionType::Lga => $query->whereKey(Lga::query()->whereKey($restriction->lgaId)->select('senatorial_district_id')),
             RestrictionType::Nothing => $query->whereRaw('1 = 0'),
         };
     }

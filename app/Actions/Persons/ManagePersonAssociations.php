@@ -14,6 +14,8 @@ use InvalidArgumentException;
  * Links two persons (stored once per pair, shown from both sides) and
  * removes a link (soft delete). Both persons must be visible to the actor:
  * the controller binds them through both scopes and the policy checks them.
+ * Audit entries name the other person by ULID only: a reader of one
+ * person's history may not be allowed to see the other.
  */
 final class ManagePersonAssociations
 {
@@ -31,8 +33,8 @@ final class ManagePersonAssociations
                 'created_by' => $actor->id,
             ])->save();
 
-            AuditLog::event('association_added', "Associated with {$other->name} ({$relationship->label()})", $person, ['association' => $association->ulid, 'person' => $other->ulid], $actor);
-            AuditLog::event('association_added', "Associated with {$person->name} ({$relationship->inverse()->label()})", $other, ['association' => $association->ulid, 'person' => $person->ulid], $actor);
+            AuditLog::event('association_added', 'Association added ('.$relationship->label().')', $person, ['association' => $association->ulid, 'person' => $other->ulid], $actor);
+            AuditLog::event('association_added', 'Association added ('.$relationship->inverse()->label().')', $other, ['association' => $association->ulid, 'person' => $person->ulid], $actor);
 
             return $association;
         });
@@ -44,8 +46,8 @@ final class ManagePersonAssociations
     public function remove(PersonAssociation $association, Person $from, Person $other, User $actor): void
     {
         DB::transaction(function () use ($association, $from, $other, $actor): void {
-            AuditLog::event('association_removed', "Association with {$other->name} removed", $from, ['association' => $association->ulid, 'person' => $other->ulid], $actor);
-            AuditLog::event('association_removed', "Association with {$from->name} removed", $other, ['association' => $association->ulid, 'person' => $from->ulid], $actor);
+            AuditLog::event('association_removed', 'Association removed', $from, ['association' => $association->ulid, 'person' => $other->ulid], $actor);
+            AuditLog::event('association_removed', 'Association removed', $other, ['association' => $association->ulid, 'person' => $from->ulid], $actor);
             $association->delete();
         });
     }

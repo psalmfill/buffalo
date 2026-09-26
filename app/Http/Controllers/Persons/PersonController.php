@@ -7,17 +7,24 @@ use App\Actions\Persons\AddPersonPhoto;
 use App\Actions\Persons\SavePerson;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\CriminalGroupPresenter;
 use App\Http\Presenters\PersonPresenter;
+use App\Http\Presenters\PoiPresenter;
+use App\Http\Presenters\PoliticalPresenter;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Persons\PersonRequest;
 use App\Http\Requests\Persons\PersonSearchRequest;
 use App\Models\Community;
+use App\Models\CriminalGroup;
+use App\Models\CriminalGroupMember;
 use App\Models\Lga;
 use App\Models\Media;
 use App\Models\Person;
 use App\Models\PersonAlias;
 use App\Models\PersonAssociation;
+use App\Models\PersonOfInterest;
 use App\Models\PersonRole;
+use App\Models\PoliticalOffice;
 use App\Models\User;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Persons\PersonSearch;
@@ -50,7 +57,7 @@ use Spatie\Activitylog\Models\Activity;
 class PersonController extends Controller
 {
     /** Tabs of the person page (3B adds political offices, POI details and group memberships; Phase 5 linked incidents). */
-    public const TABS = ['profile', 'aliases', 'associations', 'photos', 'history'];
+    public const TABS = ['profile', 'aliases', 'associations', 'photos', 'political_offices', 'poi', 'group_memberships', 'history'];
 
     /** Search results shown at most. */
     public const RESULT_LIMIT = 50;
@@ -160,9 +167,26 @@ class PersonController extends Controller
                 ? $photos->map(fn (Media $media) => PersonPresenter::photo($person, $media, $media->is($current)))->all()
                 : null,
             'history' => $tab === 'history' ? $this->history($person) : null,
+            'politicalOffices' => $tab === 'political_offices' && $actor->can('viewAny', PoliticalOffice::class) ? $this->offices($person) : null,
+            'poi' => $tab === 'poi' && $actor->can('viewAny', PersonOfInterest::class) ? $this->poi($person, $actor) : null,
+            'groupMemberships' => $tab === 'group_memberships' && $actor->can('viewAny', CriminalGroup::class)
+                ? CriminalGroupMember::query()
+                    ->where('person_id', $person->id)
+                    ->with(['group.lga', 'group.state'])
+                    ->latest('id')
+                    ->get()
+                    ->map(fn (CriminalGroupMember $m) => CriminalGroupPresenter::member($m, withGroup: true))
+                    ->values()
+                : null,
+            'poiOptions' => $tab === 'poi' ? PoiPresenter::options() : null,
             'can' => [
                 'update' => $actor->can('update', $person),
                 'delete' => $actor->can('delete', $person),
+                'viewPolitical' => $actor->can('viewAny', PoliticalOffice::class),
+                'addOffice' => $actor->can('create', [PoliticalOffice::class, $person]),
+                'viewPoi' => $actor->can('viewAny', PersonOfInterest::class),
+                'designatePoi' => $actor->can('create', [PersonOfInterest::class, $person]),
+                'viewGroups' => $actor->can('viewAny', CriminalGroup::class),
             ],
         ]);
     }
@@ -350,6 +374,56 @@ class PersonController extends Controller
             ->paginate(25, pageName: 'history_page')
             ->withQueryString()
             ->through(fn (Activity $activity) => ActivityPresenter::present($activity));
+    }
+
+    /**
+     * Current and past offices the user can see.
+     *
+     * @return array{current: list<array<string, mixed>>, past: list<array<string, mixed>>}
+     */
+    private function offices(Person $person): array
+    {
+        $offices = PoliticalOffice::query()
+            ->where('person_id', $person->id)
+            ->with(['state', 'senatorialDistrict', 'lga', 'ward'])
+            ->orderByDesc('started_on')
+            ->get();
+        $user = request()->user();
+        $present = fn (PoliticalOffice $o) => [
+            ...PoliticalPresenter::office($o, withPerson: false),
+            'can' => ['update' => $user?->can('update', $o) ?? false, 'delete' => $user?->can('delete', $o) ?? false],
+        ];
+
+        return [
+            'current' => array_values($offices->filter(fn (PoliticalOffice $o) => $o->isCurrent())->map($present)->all()),
+            'past' => array_values($offices->reject(fn (PoliticalOffice $o) => $o->isCurrent())->map($present)->all()),
+        ];
+    }
+
+    /**
+     * The person's POI record, when there is one the user may view. Reading
+     * it is access-logged on the POI with context "poi".
+     *
+     * @return array<string, mixed>|null
+     */
+    private function poi(Person $person, User $actor): ?array
+    {
+        $poi = PersonOfInterest::query()->withCoordinates()->with(['lga', 'reviewer', 'person.lga', 'person.roles'])->where('person_id', $person->id)->first();
+
+        if ($poi === null || ! $actor->can('view', $poi)) {
+            return null;
+        }
+
+        $poi->recordAccess(context: 'poi');
+
+        return [
+            ...PoiPresenter::detail($poi),
+            'can' => [
+                'update' => $actor->can('update', $poi),
+                'clear' => $actor->can('clear', $poi),
+                'delete' => $actor->can('delete', $poi),
+            ],
+        ];
     }
 
     private function actor(Request $request): User

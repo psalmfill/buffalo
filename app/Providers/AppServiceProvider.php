@@ -16,6 +16,7 @@ use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\NullAccessGrantResolver;
 use App\Support\Jurisdiction\RestrictionType;
+use App\Support\Persons\ReferenceUsageChecks as PersonsReferenceUsageChecks;
 use App\Support\ReferenceData\Contracts\ReferenceUsage;
 use App\Support\ReferenceData\ReferenceTable;
 use App\Support\ReferenceData\ReferenceUsageRegistry;
@@ -45,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ReferenceUsageRegistry::class, function (): ReferenceUsageRegistry {
             $registry = new ReferenceUsageRegistry;
             ReferenceUsageChecks::register($registry);
+            PersonsReferenceUsageChecks::register($registry);
 
             return $registry;
         });

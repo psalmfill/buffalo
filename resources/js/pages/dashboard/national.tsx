@@ -2,6 +2,10 @@ import { Head } from '@inertiajs/react';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
+import {
+    GroupsByType,
+    PoiByPlaceTable,
+} from '@/components/dashboard/threat-figures';
 import EmptyState from '@/components/empty-state';
 import CompletenessBar from '@/components/local-government/completeness-bar';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +17,7 @@ export default function NationalDashboard({
     scope,
     completenessByState,
     securityNotesByState,
+    threats,
     map,
     placeholders,
 }: NationalDashboardProps) {
@@ -42,6 +47,16 @@ export default function NationalDashboard({
                         </div>
                     )}
                 </DashboardHeader>
+
+                <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+                    <PoiByPlaceTable
+                        title="Open persons of interest by state and risk"
+                        place="State"
+                        rows={threats.poisByState}
+                        riskLevels={threats.riskLevels}
+                    />
+                    <GroupsByType rows={threats.groupsByType} />
+                </div>
 
                 <PlaceholderCardGrid cards={placeholders} />
 
