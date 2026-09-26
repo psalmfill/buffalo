@@ -40,6 +40,24 @@ final class LgaPolicy
             && $this->jurisdiction->coversLga($actor, $lga);
     }
 
+    public function addReligiousInstitution(User $actor, Lga $lga): bool
+    {
+        return $actor->checkPermissionTo(Permission::ReligiousInstitutionsManage->value)
+            && $this->jurisdiction->coversLga($actor, $lga);
+    }
+
+    public function addVulnerableFigures(User $actor, Lga $lga): bool
+    {
+        return $actor->checkPermissionTo(Permission::VulnerableStatsManage->value)
+            && $this->jurisdiction->coversLga($actor, $lga);
+    }
+
+    public function addSecurityNote(User $actor, Lga $lga): bool
+    {
+        return $actor->checkPermissionTo(Permission::SecurityNotesManage->value)
+            && $this->jurisdiction->coversLga($actor, $lga);
+    }
+
     /** Open the import page at all (the LGA is chosen there). */
     public function importAnyCommunities(User $actor): bool
     {

@@ -32,6 +32,16 @@ class RolesAndPermissionsSeeder extends Seeder
     ];
 
     /**
+     * Who may delete intelligence records (always with a reason): "State
+     * Director and above" (not the deputy, not LGA chiefs).
+     */
+    private const DELETE_ROLES = [
+        Role::DirectorGeneral,
+        Role::DeputyDirectorGeneral,
+        Role::StateDirector,
+    ];
+
+    /**
      * Module => [permission => roles that hold it].
      *
      * Permissions only decide what a user may do. Which records they may do
@@ -105,12 +115,22 @@ class RolesAndPermissionsSeeder extends Seeder
                     Role::StateDirector,
                     Role::DeputyStateDirector,
                 ],
-                // "State Director and above" (not the deputy, not LGA chiefs).
-                Permission::CommunitiesDelete->value => [
-                    Role::DirectorGeneral,
-                    Role::DeputyDirectorGeneral,
-                    Role::StateDirector,
-                ],
+                Permission::CommunitiesDelete->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
+            // Phase 2C — Community information (never the super admin)
+            // ---------------------------------------------------------------
+            'community_information' => [
+                Permission::ReligiousInstitutionsView->value => self::INTELLIGENCE_ROLES,
+                Permission::ReligiousInstitutionsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::ReligiousInstitutionsDelete->value => self::DELETE_ROLES,
+                Permission::VulnerableStatsView->value => self::INTELLIGENCE_ROLES,
+                Permission::VulnerableStatsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::VulnerableStatsDelete->value => self::DELETE_ROLES,
+                Permission::SecurityNotesView->value => self::INTELLIGENCE_ROLES,
+                Permission::SecurityNotesManage->value => self::INTELLIGENCE_ROLES,
+                Permission::SecurityNotesDelete->value => self::DELETE_ROLES,
             ],
 
             // ---------------------------------------------------------------

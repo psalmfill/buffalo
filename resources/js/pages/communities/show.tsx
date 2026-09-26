@@ -3,6 +3,9 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
+import ReligiousInstitutionsPanel from '@/components/community-information/religious-institutions-panel';
+import SecurityNotesPanel from '@/components/community-information/security-notes-panel';
+import VulnerablePopulationPanel from '@/components/community-information/vulnerable-population-panel';
 import BuffaloMap from '@/components/map/BuffaloMap';
 import type { MapMarker } from '@/components/map/BuffaloMap';
 import Pagination from '@/components/pagination';
@@ -10,6 +13,13 @@ import { Button } from '@/components/ui/button';
 import ActivityTable from '@/components/users/activity-table';
 import ConfirmActionDialog from '@/components/users/confirm-action-dialog';
 import { cn } from '@/lib/utils';
+import type {
+    InformationCan,
+    InformationOptions,
+    InstitutionsTab,
+    NotesTab,
+    VulnerableTab,
+} from '@/types/community-information';
 import type { MapView } from '@/types/dashboard';
 import type { CommunityDetail } from '@/types/local-government';
 import type { Paginated } from '@/types/pagination';
@@ -19,9 +29,29 @@ type Props = {
     community: CommunityDetail;
     marker: MapMarker | null;
     map: MapView;
-    tab: 'details' | 'history';
+    tab: CommunityTab;
+    tabs: CommunityTab[];
+    options: InformationOptions;
+    religiousInstitutions: InstitutionsTab | null;
+    vulnerablePopulation: VulnerableTab | null;
+    securityNotes: NotesTab | null;
     history: Paginated<ActivityEntry> | null;
-    can: { update: boolean; delete: boolean };
+    can: InformationCan & { update: boolean; delete: boolean };
+};
+
+type CommunityTab =
+    | 'details'
+    | 'religious_institutions'
+    | 'vulnerable_population'
+    | 'security_notes'
+    | 'history';
+
+const TAB_LABELS: Record<CommunityTab, string> = {
+    details: 'Details',
+    religious_institutions: 'Religious institutions',
+    vulnerable_population: 'Vulnerable population',
+    security_notes: 'Security notes',
+    history: 'History',
 };
 
 function Fact({ label, value }: { label: string; value: string | null }) {
@@ -37,9 +67,16 @@ export default function CommunityShow({
     community,
     marker,
     tab,
+    tabs,
+    options,
+    religiousInstitutions,
+    vulnerablePopulation,
+    securityNotes,
     history,
     can,
 }: Props) {
+    const tabUrl = (name: CommunityTab) =>
+        CommunityController.show(community.ulid, { query: { tab: name } }).url;
     const [deleting, setDeleting] = useState(false);
 
     return (
@@ -91,7 +128,7 @@ export default function CommunityShow({
                     className="flex gap-1 border-b"
                     aria-label="Community sections"
                 >
-                    {(['details', 'history'] as const).map((name) => (
+                    {tabs.map((name) => (
                         <Link
                             key={name}
                             href={CommunityController.show(community.ulid, {
@@ -105,7 +142,7 @@ export default function CommunityShow({
                                     : 'border-transparent text-muted-foreground hover:text-foreground',
                             )}
                         >
-                            {name === 'details' ? 'Details' : 'History'}
+                            {TAB_LABELS[name]}
                         </Link>
                     ))}
                 </nav>
@@ -155,6 +192,36 @@ export default function CommunityShow({
                             </div>
                         )}
                     </div>
+                )}
+
+                {tab === 'religious_institutions' && religiousInstitutions && (
+                    <ReligiousInstitutionsPanel
+                        lgaUlid={community.lga.ulid}
+                        communityUlid={community.ulid}
+                        baseUrl={tabUrl(tab)}
+                        data={religiousInstitutions}
+                        options={options}
+                        can={can}
+                    />
+                )}
+                {tab === 'vulnerable_population' && vulnerablePopulation && (
+                    <VulnerablePopulationPanel
+                        lgaUlid={community.lga.ulid}
+                        communityUlid={community.ulid}
+                        baseUrl={tabUrl(tab)}
+                        data={vulnerablePopulation}
+                        can={can}
+                    />
+                )}
+                {tab === 'security_notes' && securityNotes && (
+                    <SecurityNotesPanel
+                        lgaUlid={community.lga.ulid}
+                        communityUlid={community.ulid}
+                        baseUrl={tabUrl(tab)}
+                        data={securityNotes}
+                        options={options}
+                        can={can}
+                    />
                 )}
 
                 {tab === 'history' && history && (

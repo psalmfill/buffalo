@@ -1,14 +1,19 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CheckCircle2, Plus, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import CommunityImportController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityImportController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import EmptyState from '@/components/empty-state';
 import { FilterBar, useFilters } from '@/components/filter-bar';
 import InputError from '@/components/input-error';
+import ReligiousInstitutionsPanel from '@/components/community-information/religious-institutions-panel';
+import SecurityNotesPanel from '@/components/community-information/security-notes-panel';
+import VulnerablePopulationPanel from '@/components/community-information/vulnerable-population-panel';
 import CompletenessBar from '@/components/local-government/completeness-bar';
 import BuffaloMap from '@/components/map/BuffaloMap';
+import type { MapMarker } from '@/components/map/BuffaloMap';
 import NativeSelect from '@/components/native-select';
 import Pagination from '@/components/pagination';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +26,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatDateTime } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type {
+    InformationCan,
+    InformationOptions,
+    InstitutionsTab,
+    NotesTab,
+    VulnerableTab,
+} from '@/types/community-information';
+import type {
     Completeness,
     LgaCommunitiesTab,
     LgaFacts,
@@ -28,7 +40,13 @@ import type {
     NamedRef,
 } from '@/types/local-government';
 
-type Tab = 'overview' | 'profile' | 'communities';
+type Tab =
+    | 'overview'
+    | 'profile'
+    | 'communities'
+    | 'religious_institutions'
+    | 'vulnerable_population'
+    | 'security_notes';
 
 type Props = {
     lga: LgaFacts;
@@ -37,21 +55,29 @@ type Props = {
     completeness: Completeness;
     communityCount: number;
     lastReviewed: { at: string | null; by: string | null };
-    can: {
+    can: InformationCan & {
         updateProfile: boolean;
         addCommunity: boolean;
         importCommunities: boolean;
     };
+    options: InformationOptions;
     overview: { chief: NamedRef | null } | null;
     profile: LgaProfileData | null;
-    communities: LgaCommunitiesTab | null;
+    communities:
+        (LgaCommunitiesTab & { institutionMarkers: MapMarker[] }) | null;
+    religiousInstitutions: InstitutionsTab | null;
+    vulnerablePopulation: VulnerableTab | null;
+    securityNotes: NotesTab | null;
 };
 
-// Phase 2C and later add their tabs here and in LgaController::TABS.
+// Later phases add their tabs here and in LgaController::TABS.
 const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
     profile: 'Profile',
     communities: 'Communities',
+    religious_institutions: 'Religious institutions',
+    vulnerable_population: 'Vulnerable population',
+    security_notes: 'Security notes',
 };
 
 export default function LgaShow(props: Props) {
@@ -116,9 +142,41 @@ export default function LgaShow(props: Props) {
                         can={props.can}
                     />
                 )}
+                {tab === 'religious_institutions' &&
+                    props.religiousInstitutions && (
+                        <ReligiousInstitutionsPanel
+                            lgaUlid={lga.ulid}
+                            baseUrl={tabUrl(lga.ulid, tab)}
+                            data={props.religiousInstitutions}
+                            options={props.options}
+                            can={props.can}
+                        />
+                    )}
+                {tab === 'vulnerable_population' &&
+                    props.vulnerablePopulation && (
+                        <VulnerablePopulationPanel
+                            lgaUlid={lga.ulid}
+                            baseUrl={tabUrl(lga.ulid, tab)}
+                            data={props.vulnerablePopulation}
+                            can={props.can}
+                        />
+                    )}
+                {tab === 'security_notes' && props.securityNotes && (
+                    <SecurityNotesPanel
+                        lgaUlid={lga.ulid}
+                        baseUrl={tabUrl(lga.ulid, tab)}
+                        data={props.securityNotes}
+                        options={props.options}
+                        can={props.can}
+                    />
+                )}
             </div>
         </>
     );
+}
+
+function tabUrl(ulid: string, tab: Tab): string {
+    return LgaController.show(ulid, { query: { tab } }).url;
 }
 
 function Fact({ label, value }: { label: string; value: string | null }) {
@@ -398,13 +456,14 @@ function CommunitiesTab({
     can,
 }: {
     lga: LgaFacts;
-    data: LgaCommunitiesTab;
+    data: LgaCommunitiesTab & { institutionMarkers: MapMarker[] };
     can: Props['can'];
 }) {
     const { values, setValues, apply, reset } = useFilters(
         LgaController.show(lga.ulid, { query: { tab: 'communities' } }).url,
         data.filters,
     );
+    const [showInstitutions, setShowInstitutions] = useState(false);
 
     return (
         <div className="space-y-4">
@@ -541,13 +600,35 @@ function CommunitiesTab({
                     <Pagination page={data.list} />
                 </div>
 
-                <BuffaloMap
-                    center={data.map.center ?? undefined}
-                    zoom={data.map.zoom}
-                    markers={data.markers}
-                    fitMarkers
-                    className="h-[480px] w-full rounded-lg border"
-                />
+                <div className="space-y-2">
+                    {data.institutionMarkers.length > 0 && (
+                        <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                                checked={showInstitutions}
+                                onCheckedChange={(checked) =>
+                                    setShowInstitutions(checked === true)
+                                }
+                            />
+                            Show religious institutions (
+                            {data.institutionMarkers.length})
+                            <span
+                                aria-hidden
+                                className="inline-block size-3 rounded-full border-2 border-white bg-violet-600 ring-1 ring-violet-900"
+                            />
+                        </label>
+                    )}
+                    <BuffaloMap
+                        center={data.map.center ?? undefined}
+                        zoom={data.map.zoom}
+                        markers={
+                            showInstitutions
+                                ? [...data.markers, ...data.institutionMarkers]
+                                : data.markers
+                        }
+                        fitMarkers
+                        className="h-[480px] w-full rounded-lg border"
+                    />
+                </div>
             </div>
         </div>
     );

@@ -33,4 +33,16 @@ enum Permission: string
     case CommunitiesManage = 'communities.manage';
     case CommunitiesImport = 'communities.import';
     case CommunitiesDelete = 'communities.delete';
+
+    // Community information (Phase 2C): jurisdiction-scoped; security notes
+    // are also classified. Deleting needs State Director or above.
+    case ReligiousInstitutionsView = 'religious_institutions.view';
+    case ReligiousInstitutionsManage = 'religious_institutions.manage';
+    case ReligiousInstitutionsDelete = 'religious_institutions.delete';
+    case VulnerableStatsView = 'vulnerable_stats.view';
+    case VulnerableStatsManage = 'vulnerable_stats.manage';
+    case VulnerableStatsDelete = 'vulnerable_stats.delete';
+    case SecurityNotesView = 'security_notes.view';
+    case SecurityNotesManage = 'security_notes.manage';
+    case SecurityNotesDelete = 'security_notes.delete';
 }

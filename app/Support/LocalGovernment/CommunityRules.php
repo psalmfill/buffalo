@@ -79,4 +79,14 @@ final class CommunityRules
             ? null
             : "The location is outside the boundary of {$lga->name} LGA.";
     }
+
+    /**
+     * The (non-deleted) community of the LGA with this ULID, if any.
+     */
+    public function communityOf(Lga $lga, mixed $ulid): ?Community
+    {
+        return is_string($ulid)
+            ? Community::query()->where('lga_id', $lga->id)->where('ulid', $ulid)->first()
+            : null;
+    }
 }

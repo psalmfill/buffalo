@@ -15,6 +15,8 @@ import type { StateDashboardProps } from '@/types/dashboard';
 export default function StateDashboard({
     state,
     lgas,
+    securityNotesByLga,
+    vulnerableTotals,
     map,
     placeholders,
 }: StateDashboardProps) {
@@ -37,6 +39,100 @@ export default function StateDashboard({
                 />
 
                 <PlaceholderCardGrid cards={placeholders} />
+
+                <div className="grid gap-4 xl:grid-cols-2">
+                    <section className="rounded-xl border bg-card">
+                        <h2 className="border-b px-4 py-3 text-sm font-medium">
+                            Active security notes by LGA
+                        </h2>
+                        {securityNotesByLga.length === 0 ? (
+                            <EmptyState
+                                title="No active security notes"
+                                description="None that you may see."
+                            />
+                        ) : (
+                            <ul className="divide-y text-sm">
+                                {securityNotesByLga.map((row) => (
+                                    <li
+                                        key={row.ulid}
+                                        className="flex items-center justify-between px-4 py-2"
+                                    >
+                                        <Link
+                                            href={LgaController.show(row.ulid, {
+                                                query: {
+                                                    tab: 'security_notes',
+                                                    status: 'active',
+                                                },
+                                            })}
+                                            className="hover:underline"
+                                        >
+                                            {row.name}
+                                        </Link>
+                                        <span className="font-medium tabular-nums">
+                                            {row.active}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+                    <section className="rounded-xl border bg-card">
+                        <h2 className="border-b px-4 py-3 text-sm font-medium">
+                            Vulnerable population (latest LGA-wide figures)
+                        </h2>
+                        {vulnerableTotals.length === 0 ? (
+                            <EmptyState
+                                title="No figures recorded"
+                                description="LGA-wide figures appear here once recorded."
+                            />
+                        ) : (
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted/50 text-left">
+                                    <tr>
+                                        <th className="px-4 py-2 font-medium">
+                                            Category
+                                        </th>
+                                        <th className="px-4 py-2 text-right font-medium">
+                                            Adults
+                                        </th>
+                                        <th className="px-4 py-2 text-right font-medium">
+                                            Children
+                                        </th>
+                                        <th className="px-4 py-2 text-right font-medium">
+                                            Total
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {vulnerableTotals.map((row) => (
+                                        <tr key={row.category}>
+                                            <td className="px-4 py-2">
+                                                {row.label}
+                                            </td>
+                                            <td className="px-4 py-2 text-right tabular-nums">
+                                                {(
+                                                    row.adult_male +
+                                                    row.adult_female
+                                                ).toLocaleString('en-NG')}
+                                            </td>
+                                            <td className="px-4 py-2 text-right tabular-nums">
+                                                {(
+                                                    row.child_male +
+                                                    row.child_female
+                                                ).toLocaleString('en-NG')}
+                                            </td>
+                                            <td className="px-4 py-2 text-right font-medium tabular-nums">
+                                                {row.total.toLocaleString(
+                                                    'en-NG',
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </section>
+                </div>
 
                 <div className="grid gap-4 xl:grid-cols-2">
                     <DashboardMap view={map} />

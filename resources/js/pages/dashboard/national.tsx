@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
+import EmptyState from '@/components/empty-state';
 import CompletenessBar from '@/components/local-government/completeness-bar';
 import { Badge } from '@/components/ui/badge';
 import { dashboard } from '@/routes';
@@ -11,6 +12,7 @@ import type { NationalDashboardProps } from '@/types/dashboard';
 export default function NationalDashboard({
     scope,
     completenessByState,
+    securityNotesByState,
     map,
     placeholders,
 }: NationalDashboardProps) {
@@ -42,6 +44,67 @@ export default function NationalDashboard({
                 </DashboardHeader>
 
                 <PlaceholderCardGrid cards={placeholders} />
+
+                <section className="rounded-xl border bg-card">
+                    <h2 className="border-b px-4 py-3 text-sm font-medium">
+                        Active security notes by state and category
+                    </h2>
+                    {securityNotesByState.rows.length === 0 ? (
+                        <EmptyState
+                            title="No active security notes"
+                            description="None that you may see."
+                        />
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted/50 text-left">
+                                    <tr>
+                                        <th className="px-4 py-2 font-medium">
+                                            State
+                                        </th>
+                                        {securityNotesByState.categories.map(
+                                            (category) => (
+                                                <th
+                                                    key={category.value}
+                                                    className="px-4 py-2 text-right font-medium"
+                                                >
+                                                    {category.label}
+                                                </th>
+                                            ),
+                                        )}
+                                        <th className="px-4 py-2 text-right font-medium">
+                                            Total
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {securityNotesByState.rows.map((row) => (
+                                        <tr key={row.state}>
+                                            <td className="px-4 py-2">
+                                                {row.state}
+                                            </td>
+                                            {securityNotesByState.categories.map(
+                                                (category) => (
+                                                    <td
+                                                        key={category.value}
+                                                        className="px-4 py-2 text-right tabular-nums"
+                                                    >
+                                                        {row.byCategory[
+                                                            category.value
+                                                        ] ?? '—'}
+                                                    </td>
+                                                ),
+                                            )}
+                                            <td className="px-4 py-2 text-right font-medium tabular-nums">
+                                                {row.total}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </section>
 
                 <div className="grid gap-4 xl:grid-cols-2">
                     <DashboardMap view={map} />

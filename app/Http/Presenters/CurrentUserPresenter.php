@@ -5,6 +5,7 @@ namespace App\Http\Presenters;
 use App\Enums\JurisdictionLevel;
 use App\Models\GeopoliticalZone;
 use App\Models\User;
+use App\Support\Classification\ClassificationGate;
 
 /**
  * The signed-in user as shared with every page (auth.user). ULIDs and names
@@ -25,6 +26,7 @@ final class CurrentUserPresenter
      *         zones: list<string>,
      *     },
      *     jurisdictionLabel: string,
+     *     maxClassification: string|null,
      * }
      */
     public static function present(User $user): array
@@ -47,6 +49,9 @@ final class CurrentUserPresenter
                 'zones' => $zones,
             ],
             'jurisdictionLabel' => $user->jurisdictionLabel(),
+            // Highest classification the user may see and assign (null: no
+            // intelligence access), for ClassificationSelect.
+            'maxClassification' => app(ClassificationGate::class)->maxLevelFor($user)?->value,
         ];
     }
 }

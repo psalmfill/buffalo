@@ -4,16 +4,22 @@ namespace App\Http\Controllers\LocalGovernment;
 
 use App\Actions\LocalGovernment\DeleteCommunity;
 use App\Actions\LocalGovernment\SaveCommunity;
+use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\CommunityInformationPresenter;
 use App\Http\Presenters\CommunityPresenter;
 use App\Http\Presenters\LgaPresenter;
 use App\Http\Requests\LocalGovernment\CommunityRequest;
-use App\Http\Requests\LocalGovernment\DeleteCommunityRequest;
+use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Models\Community;
+use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
+use App\Models\ReligiousInstitution;
 use App\Models\User;
+use App\Models\VulnerablePopulationStat;
 use App\Models\Ward;
+use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Database\Eloquent\Builder;
@@ -89,11 +95,15 @@ class CommunityController extends Controller
             ->with('toast', ['type' => 'success', 'message' => "Community \"{$community->name}\" added."]);
     }
 
-    public function show(Request $request, Community $community): Response
+    /** Tabs of a community page. */
+    public const TABS = ['details', 'religious_institutions', 'vulnerable_population', 'security_notes', 'history'];
+
+    public function show(Request $request, Community $community, TabData $data): Response
     {
         $this->authorize('view', $community);
         $user = $this->actor($request);
-        $tab = $request->query('tab') === 'history' ? 'history' : 'details';
+        $tab = in_array($request->query('tab'), self::TABS, true) ? $request->query('tab') : 'details';
+        $lga = $community->lga;
 
         $record = $this->withCoordinates($community);
 
@@ -102,6 +112,17 @@ class CommunityController extends Controller
             'marker' => CommunityPresenter::marker($record),
             'map' => MapView::for($record->lga),
             'tab' => $tab,
+            'tabs' => self::TABS,
+            'options' => CommunityInformationPresenter::options(),
+            'religiousInstitutions' => $tab === 'religious_institutions' && $user->can('viewAny', ReligiousInstitution::class)
+                ? [...$data->religiousInstitutions($lga, $community, $request), 'communities' => [], 'map' => MapView::for($lga)]
+                : null,
+            'vulnerablePopulation' => $tab === 'vulnerable_population' && $user->can('viewAny', VulnerablePopulationStat::class)
+                ? $data->vulnerablePopulation($lga, $community, $request)
+                : null,
+            'securityNotes' => $tab === 'security_notes' && $user->can('viewAny', CommunitySecurityNote::class)
+                ? $data->securityNotes($lga, $community, $request)
+                : null,
             'history' => $tab === 'history'
                 ? Activity::query()
                     ->with(['causer', 'subject'])
@@ -115,6 +136,15 @@ class CommunityController extends Controller
             'can' => [
                 'update' => $user->can('update', $community),
                 'delete' => $user->can('delete', $community),
+                'addReligiousInstitution' => $user->can('addReligiousInstitution', $lga),
+                'addVulnerableFigures' => $user->can('addVulnerableFigures', $lga),
+                'addSecurityNote' => $user->can('addSecurityNote', $lga),
+                'viewReligiousInstitutions' => $user->can('viewAny', ReligiousInstitution::class),
+                'viewVulnerableFigures' => $user->can('viewAny', VulnerablePopulationStat::class),
+                'viewSecurityNotes' => $user->can('viewAny', CommunitySecurityNote::class),
+                // For showing row actions; each action is authorised on the record.
+                'deleteReligiousInstitutions' => $user->checkPermissionTo(Permission::ReligiousInstitutionsDelete->value),
+                'deleteVulnerableFigures' => $user->checkPermissionTo(Permission::VulnerableStatsDelete->value),
             ],
         ]);
     }
@@ -136,7 +166,7 @@ class CommunityController extends Controller
             ->with('toast', ['type' => 'success', 'message' => 'Community saved.']);
     }
 
-    public function destroy(DeleteCommunityRequest $request, Community $community, DeleteCommunity $delete): RedirectResponse
+    public function destroy(DeleteRecordRequest $request, Community $community, DeleteCommunity $delete): RedirectResponse
     {
         $this->authorize('delete', $community);
 

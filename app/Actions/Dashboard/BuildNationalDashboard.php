@@ -3,6 +3,9 @@
 namespace App\Actions\Dashboard;
 
 use App\Enums\JurisdictionLevel;
+use App\Enums\SecurityNoteCategory;
+use App\Enums\SecurityNoteStatus;
+use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
 use App\Models\State;
 use App\Models\User;
@@ -44,6 +47,7 @@ final class BuildNationalDashboard
                 'states' => (clone $states)->count(),
                 'lgas' => Lga::query()->active()->whereIn('state_id', (clone $states)->select('id'))->count(),
             ],
+            'securityNotesByState' => $this->activeNotesByState(),
             'completenessByState' => $this->completenessByState((clone $states)->orderBy('name')->get()),
             'map' => MapView::for(null),
             'placeholders' => PlaceholderCards::for($label),
@@ -73,5 +77,36 @@ final class BuildNationalDashboard
             })
             ->sortBy([['average', 'asc'], ['state', 'asc']])
             ->all());
+    }
+
+    /**
+     * Active security notes by state and category (jurisdiction and
+     * classification scopes apply: a zoned DDG sees their zones only).
+     *
+     * @return array{categories: list<array{value: string, label: string}>, rows: list<array{state: string, total: int, byCategory: array<string, int>}>}
+     */
+    private function activeNotesByState(): array
+    {
+        $counts = CommunitySecurityNote::query()
+            ->join('states', 'states.id', '=', 'community_security_notes.state_id')
+            ->where('community_security_notes.status', SecurityNoteStatus::Active->value)
+            ->groupBy('states.name', 'community_security_notes.category')
+            ->selectRaw('states.name AS state, community_security_notes.category AS category, count(*) AS total')
+            ->toBase()
+            ->get();
+
+        $used = $counts->pluck('category')->unique();
+        $categories = array_values(array_map(
+            fn (SecurityNoteCategory $category): array => ['value' => $category->value, 'label' => $category->label()],
+            array_filter(SecurityNoteCategory::cases(), fn (SecurityNoteCategory $category): bool => $used->contains($category->value)),
+        ));
+
+        $rows = $counts->groupBy('state')->map(fn ($group, $state): array => [
+            'state' => (string) $state,
+            'total' => (int) $group->sum('total'),
+            'byCategory' => $group->mapWithKeys(fn (object $row): array => [(string) $row->category => (int) $row->total])->all(),
+        ])->sortBy([['total', 'desc'], ['state', 'asc']])->values()->all();
+
+        return ['categories' => $categories, 'rows' => array_values($rows)];
     }
 }

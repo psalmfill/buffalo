@@ -40,7 +40,18 @@ export type MapMarker = {
     /** Plain text (never HTML). */
     popup?: string;
     href?: string;
+    /** Marker style: the default pin, or a layer-specific symbol. */
+    kind?: 'default' | 'religious';
 };
+
+/** A small purple dot for religious institutions (no image assets). */
+const RELIGIOUS_ICON = L.divIcon({
+    className: '',
+    html: '<span style="display:block;width:14px;height:14px;border-radius:9999px;background:#7c3aed;border:2px solid #fff;box-shadow:0 0 0 1px #4c1d95"></span>',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+    popupAnchor: [0, -8],
+});
 
 /** Click-to-set, draggable point (MapPointPicker). */
 export type MapPicker = {
@@ -194,7 +205,12 @@ export default function BuffaloMap({
         layer.clearLayers();
 
         for (const marker of markers ?? []) {
-            L.marker(marker.position, { title: marker.title })
+            L.marker(marker.position, {
+                title: marker.title,
+                ...(marker.kind === 'religious'
+                    ? { icon: RELIGIOUS_ICON }
+                    : {}),
+            })
                 .bindPopup(popupContent(marker))
                 .addTo(layer);
         }

@@ -33,6 +33,14 @@ export type SystemDashboardProps = {
 export type NationalDashboardProps = {
     scope: { label: string; zones: string[]; states: number; lgas: number };
     completenessByState: { state: string; lgas: number; average: number }[];
+    securityNotesByState: {
+        categories: { value: string; label: string }[];
+        rows: {
+            state: string;
+            total: number;
+            byCategory: Record<string, number>;
+        }[];
+    };
     map: MapView;
     placeholders: PlaceholderCardData[];
 };
@@ -46,6 +54,16 @@ export type StateDashboardProps = {
         chief: { ulid: string; name: string } | null;
         completeness: number;
         last_reviewed_at: string | null;
+    }[];
+    securityNotesByLga: { ulid: string; name: string; active: number }[];
+    vulnerableTotals: {
+        category: string;
+        label: string;
+        adult_male: number;
+        adult_female: number;
+        child_male: number;
+        child_female: number;
+        total: number;
     }[];
     map: MapView;
     placeholders: PlaceholderCardData[];
@@ -62,6 +80,7 @@ export type LgaDashboardProps = {
         areaKm2: string | null;
         populationEstimate: number | null;
     };
+    information: { activeSecurityNotes: number; religiousInstitutions: number };
     profile: {
         completeness: number;
         missing: string[];

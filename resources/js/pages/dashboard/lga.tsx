@@ -23,6 +23,7 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 export default function LgaDashboard({
     lga,
     profile,
+    information,
     map,
     placeholders,
 }: LgaDashboardProps) {
@@ -67,6 +68,28 @@ export default function LgaDashboard({
                         </Button>
                     )}
                 </section>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <StatCard
+                        label="Active security notes"
+                        value={information.activeSecurityNotes}
+                        tone={
+                            information.activeSecurityNotes > 0
+                                ? 'warning'
+                                : 'default'
+                        }
+                        href={LgaController.show(lga.ulid, {
+                            query: { tab: 'security_notes', status: 'active' },
+                        })}
+                    />
+                    <StatCard
+                        label="Religious institutions"
+                        value={information.religiousInstitutions}
+                        href={LgaController.show(lga.ulid, {
+                            query: { tab: 'religious_institutions' },
+                        })}
+                    />
+                </div>
 
                 <PlaceholderCardGrid cards={placeholders} />
 

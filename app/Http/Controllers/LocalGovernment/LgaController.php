@@ -5,17 +5,23 @@ namespace App\Http\Controllers\LocalGovernment;
 use App\Actions\LocalGovernment\MarkLgaProfileReviewed;
 use App\Actions\LocalGovernment\UpdateLgaProfile;
 use App\Enums\JurisdictionLevel;
+use App\Enums\Permission;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Presenters\CommunityInformationPresenter;
 use App\Http\Presenters\CommunityPresenter;
 use App\Http\Presenters\LgaPresenter;
 use App\Http\Requests\LocalGovernment\LgaProfileRequest;
 use App\Models\Community;
+use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
 use App\Models\LgaProfile;
 use App\Models\OfficerPosting;
+use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
 use App\Models\User;
+use App\Models\VulnerablePopulationStat;
+use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\ProfileCompleteness;
@@ -36,7 +42,7 @@ class LgaController extends Controller
     /**
      * Tabs of an LGA page. Phase 2C and later phases add theirs here.
      */
-    public const TABS = ['overview', 'profile', 'communities'];
+    public const TABS = ['overview', 'profile', 'communities', 'religious_institutions', 'vulnerable_population', 'security_notes'];
 
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
@@ -92,7 +98,7 @@ class LgaController extends Controller
         ]);
     }
 
-    public function show(Request $request, Lga $lga): Response
+    public function show(Request $request, Lga $lga, TabData $data): Response
     {
         $this->authorize('view', $lga);
         $user = $this->actor($request);
@@ -117,13 +123,32 @@ class LgaController extends Controller
                 'updateProfile' => $user->can('updateProfile', $lga),
                 'addCommunity' => $user->can('addCommunity', $lga),
                 'importCommunities' => $user->can('importCommunities', $lga),
+                'addReligiousInstitution' => $user->can('addReligiousInstitution', $lga),
+                'addVulnerableFigures' => $user->can('addVulnerableFigures', $lga),
+                'addSecurityNote' => $user->can('addSecurityNote', $lga),
+                'viewReligiousInstitutions' => $user->can('viewAny', ReligiousInstitution::class),
+                'viewVulnerableFigures' => $user->can('viewAny', VulnerablePopulationStat::class),
+                'viewSecurityNotes' => $user->can('viewAny', CommunitySecurityNote::class),
+                // For showing row actions; each action is authorised on the record.
+                'deleteReligiousInstitutions' => $user->checkPermissionTo(Permission::ReligiousInstitutionsDelete->value),
+                'deleteVulnerableFigures' => $user->checkPermissionTo(Permission::VulnerableStatsDelete->value),
             ],
+            'options' => CommunityInformationPresenter::options(),
             'overview' => $tab === 'overview' ? ['chief' => $this->chief($lga)] : null,
             'profile' => $tab === 'profile' ? [
                 ...LgaPresenter::profile($profile),
                 'terrainOptions' => LgaPresenter::terrainOptions(),
             ] : null,
-            'communities' => $tab === 'communities' ? $this->communities($request, $lga) : null,
+            'communities' => $tab === 'communities' ? [...$this->communities($request, $lga), 'institutionMarkers' => $user->can('viewAny', ReligiousInstitution::class) ? $data->institutionMarkers($lga) : []] : null,
+            'religiousInstitutions' => $tab === 'religious_institutions' && $user->can('viewAny', ReligiousInstitution::class)
+                ? [...$data->religiousInstitutions($lga, null, $request), 'communities' => $this->communityOptions($lga), 'map' => MapView::for($lga)]
+                : null,
+            'vulnerablePopulation' => $tab === 'vulnerable_population' && $user->can('viewAny', VulnerablePopulationStat::class)
+                ? $data->vulnerablePopulation($lga, null, $request)
+                : null,
+            'securityNotes' => $tab === 'security_notes' && $user->can('viewAny', CommunitySecurityNote::class)
+                ? $data->securityNotes($lga, null, $request)
+                : null,
         ]);
     }
 
@@ -193,6 +218,16 @@ class LgaController extends Controller
                 ->values(),
             'map' => MapView::for($lga),
         ];
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function communityOptions(Lga $lga): array
+    {
+        return array_values(Community::query()->where('lga_id', $lga->id)->orderBy('name')->get(['ulid', 'name'])
+            ->map(fn (Community $community): array => ['value' => $community->ulid, 'label' => $community->name])
+            ->all());
     }
 
     private function actor(Request $request): User

@@ -20,6 +20,15 @@ export const PERMISSIONS = [
     'communities.manage',
     'communities.import',
     'communities.delete',
+    'religious_institutions.view',
+    'religious_institutions.manage',
+    'religious_institutions.delete',
+    'vulnerable_stats.view',
+    'vulnerable_stats.manage',
+    'vulnerable_stats.delete',
+    'security_notes.view',
+    'security_notes.manage',
+    'security_notes.delete',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -56,7 +65,11 @@ export type User = {
     jurisdiction: Jurisdiction;
     /** e.g. "National", "North West Zone", "Lagos State", "Ikeja LGA, Lagos State". */
     jurisdictionLabel: string;
+    /** Highest classification the user may see and assign; null: none. */
+    maxClassification: ClassificationLevel | null;
 };
+
+export type ClassificationLevel = 'restricted' | 'confidential' | 'secret';
 
 export type Auth = {
     /** Null on guest pages (sign-in, account setup, error pages). */

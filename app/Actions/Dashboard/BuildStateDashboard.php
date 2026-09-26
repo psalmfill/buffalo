@@ -3,14 +3,20 @@
 namespace App\Actions\Dashboard;
 
 use App\Enums\Role;
+use App\Enums\SecurityNoteStatus;
+use App\Enums\VulnerableCategory;
+use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
 use App\Models\OfficerPosting;
 use App\Models\State;
 use App\Models\User;
+use App\Models\VulnerablePopulationStat;
+use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Jurisdiction\JurisdictionLabel;
 use App\Support\LocalGovernment\ProfileCompleteness;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * State Director and Deputy State Director dashboard: the state's LGAs with
@@ -64,8 +70,64 @@ final class BuildStateDashboard
                     'last_reviewed_at' => ($lgaStats['last_reviewed_at'] ?? null)?->toIso8601String(),
                 ];
             })->sortBy([['completeness', 'asc'], ['name', 'asc']])->values()->all(),
+            'securityNotesByLga' => $this->activeNotesByLga($lgas),
+            'vulnerableTotals' => $this->vulnerableTotals($state),
             'map' => MapView::for($state),
             'placeholders' => PlaceholderCards::for($label),
         ];
+    }
+
+    /**
+     * Active security notes per LGA, most first (jurisdiction and
+     * classification scopes apply).
+     *
+     * @param  Collection<int, Lga>  $lgas
+     * @return list<array{ulid: string, name: string, active: int}>
+     */
+    private function activeNotesByLga(Collection $lgas): array
+    {
+        /** @var \Illuminate\Support\Collection<int, int> $counts */
+        $counts = CommunitySecurityNote::query()
+            ->whereIn('lga_id', $lgas->modelKeys())
+            ->where('status', SecurityNoteStatus::Active->value)
+            ->groupBy('lga_id')
+            ->selectRaw('lga_id, count(*) AS total')
+            ->pluck('total', 'lga_id')
+            ->map(fn (mixed $total): int => (int) $total);
+
+        return array_values($lgas
+            ->filter(fn (Lga $lga): bool => $counts->has($lga->id))
+            ->map(fn (Lga $lga): array => ['ulid' => $lga->ulid, 'name' => $lga->name, 'active' => $counts->get($lga->id, 0)])
+            ->sortBy([['active', 'desc'], ['name', 'asc']])
+            ->all());
+    }
+
+    /**
+     * Vulnerable population totals by category for the state: the sum of
+     * each LGA's latest LGA-wide figure (community figures are breakdowns
+     * and are not added again).
+     *
+     * @return list<array{category: string, label: string, adult_male: int, adult_female: int, child_male: int, child_female: int, total: int}>
+     */
+    private function vulnerableTotals(State $state): array
+    {
+        $latest = VulnerablePopulationStat::query()->latestPerSeries()
+            ->where('vulnerable_population_stats.state_id', $state->id)
+            ->whereNull('vulnerable_population_stats.community_id')
+            ->get()
+            ->groupBy(fn (VulnerablePopulationStat $figure): string => $figure->category->value);
+
+        $rows = [];
+        foreach (VulnerableCategory::cases() as $category) {
+            $figures = $latest->get($category->value);
+
+            if ($figures === null) {
+                continue;
+            }
+
+            $rows[] = ['category' => $category->value, 'label' => $category->label(), ...TabData::totals($figures)];
+        }
+
+        return $rows;
     }
 }

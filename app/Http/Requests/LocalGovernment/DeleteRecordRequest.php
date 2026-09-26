@@ -5,10 +5,11 @@ namespace App\Http\Requests\LocalGovernment;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The required reason for deleting a community (recorded in the audit
- * log). Authorisation is in the controller (CommunityPolicy::delete).
+ * The required reason for deleting an intelligence record (communities,
+ * religious institutions, figures, security notes), recorded in the audit
+ * log. Authorisation is in the controller (the model's policy).
  */
-class DeleteCommunityRequest extends FormRequest
+class DeleteRecordRequest extends FormRequest
 {
     public function authorize(): bool
     {

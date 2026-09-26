@@ -2,9 +2,12 @@
 
 namespace App\Actions\Dashboard;
 
+use App\Enums\SecurityNoteStatus;
 use App\Models\Community;
+use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
 use App\Models\LgaProfile;
+use App\Models\ReligiousInstitution;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
@@ -37,6 +40,11 @@ final class BuildLgaDashboard
                 'populationEstimate' => $lga->population_estimate,
             ],
             'profile' => $this->profile($lga),
+            // Through the jurisdiction and classification scopes.
+            'information' => [
+                'activeSecurityNotes' => CommunitySecurityNote::query()->where('lga_id', $lga->id)->where('status', SecurityNoteStatus::Active->value)->count(),
+                'religiousInstitutions' => ReligiousInstitution::query()->where('lga_id', $lga->id)->count(),
+            ],
             'map' => MapView::for($lga),
             'placeholders' => PlaceholderCards::for($label),
         ];
