@@ -7,6 +7,7 @@ use App\Models\Lga;
 use App\Models\ReligiousInstitution;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
+use App\Support\Persons\LinkedPerson;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 final class SaveReligiousInstitution
 {
     /**
-     * @param  array{community: Community, religion_id: int, denomination_id: int|null, name: string, type: string, estimated_congregation: int|null, latitude: float|null, longitude: float|null, notes: string|null}  $data
+     * @param  array{community: Community, religion_id: int, denomination_id: int|null, name: string, type: string, estimated_congregation: int|null, latitude: float|null, longitude: float|null, notes: string|null, leader_person_id?: int|null}  $data
      */
     public function create(Lga $lga, array $data, User $actor): ReligiousInstitution
     {
@@ -32,13 +33,14 @@ final class SaveReligiousInstitution
             ])->save();
 
             $this->logLocation($institution, null, self::coordinates($data), $actor);
+            LinkedPerson::logChange($institution, 'leader_changed', "Leader of {$institution->name} set", null, $institution->leader_person_id, $actor);
 
             return $institution;
         });
     }
 
     /**
-     * @param  array{community: Community, religion_id: int, denomination_id: int|null, name: string, type: string, estimated_congregation: int|null, latitude: float|null, longitude: float|null, notes: string|null}  $data
+     * @param  array{community: Community, religion_id: int, denomination_id: int|null, name: string, type: string, estimated_congregation: int|null, latitude: float|null, longitude: float|null, notes: string|null, leader_person_id?: int|null}  $data
      */
     public function update(ReligiousInstitution $institution, array $data, User $actor): void
     {
@@ -46,6 +48,7 @@ final class SaveReligiousInstitution
             $row = ReligiousInstitution::query()->withCoordinates()->whereKey($institution->id)->first();
             $before = $row?->latitude === null ? null : ['latitude' => round($row->latitude, 6), 'longitude' => round((float) $row->longitude, 6)];
             $after = self::coordinates($data);
+            $leaderBefore = $institution->leader_person_id;
 
             $attributes = self::attributes($data);
             if ($before === $after) {
@@ -59,6 +62,7 @@ final class SaveReligiousInstitution
             }
 
             $this->logLocation($institution, $before, $after, $actor);
+            LinkedPerson::logChange($institution, 'leader_changed', "Leader of {$institution->name} changed", $leaderBefore, $institution->leader_person_id, $actor);
         });
     }
 
@@ -81,6 +85,8 @@ final class SaveReligiousInstitution
             'estimated_congregation' => $data['estimated_congregation'],
             'notes' => $data['notes'],
             'location' => ReligiousInstitution::pointFrom($coordinates['latitude'] ?? null, $coordinates['longitude'] ?? null),
+            // Absent: unchanged.
+            ...(array_key_exists('leader_person_id', $data) ? ['leader_person_id' => $data['leader_person_id']] : []),
         ];
     }
 

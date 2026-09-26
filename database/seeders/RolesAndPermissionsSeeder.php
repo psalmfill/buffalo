@@ -134,6 +134,15 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 3A — Persons (never the super admin)
+            // ---------------------------------------------------------------
+            'persons' => [
+                Permission::PersonsView->value => self::INTELLIGENCE_ROLES,
+                Permission::PersonsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::PersonsDelete->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

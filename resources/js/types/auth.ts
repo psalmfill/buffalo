@@ -29,6 +29,9 @@ export const PERMISSIONS = [
     'security_notes.view',
     'security_notes.manage',
     'security_notes.delete',
+    'persons.view',
+    'persons.manage',
+    'persons.delete',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

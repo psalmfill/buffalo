@@ -45,6 +45,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'religious_institutions.delete',
         'vulnerable_stats.delete',
         'security_notes.delete',
+        'persons.view',
+        'persons.manage',
+        'persons.delete',
     ],
     deputy_director_general: [
         'users.view',
@@ -63,6 +66,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'religious_institutions.delete',
         'vulnerable_stats.delete',
         'security_notes.delete',
+        'persons.view',
+        'persons.manage',
+        'persons.delete',
     ],
     state_director: [
         'users.view',
@@ -82,6 +88,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'religious_institutions.delete',
         'vulnerable_stats.delete',
         'security_notes.delete',
+        'persons.view',
+        'persons.manage',
+        'persons.delete',
     ],
     deputy_state_director: [
         'users.view',
@@ -97,6 +106,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'vulnerable_stats.manage',
         'security_notes.view',
         'security_notes.manage',
+        'persons.view',
+        'persons.manage',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -110,6 +121,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'vulnerable_stats.manage',
         'security_notes.view',
         'security_notes.manage',
+        'persons.view',
+        'persons.manage',
     ],
 };
 
@@ -163,26 +176,31 @@ describe('navigation', () => {
             director_general: {
                 Overview: ['Dashboard'],
                 'Local Government': ['LGAs', 'Communities'],
+                Intelligence: ['Persons'],
                 Administration: ['Users', 'Reference data', 'Audit log'],
             },
             deputy_director_general: {
                 Overview: ['Dashboard'],
                 'Local Government': ['LGAs', 'Communities'],
+                Intelligence: ['Persons'],
                 Administration: ['Users', 'Reference data'],
             },
             state_director: {
                 Overview: ['Dashboard'],
                 'Local Government': ['LGAs', 'Communities'],
+                Intelligence: ['Persons'],
                 Administration: ['Users', 'Reference data'],
             },
             deputy_state_director: {
                 Overview: ['Dashboard'],
                 'Local Government': ['LGAs', 'Communities'],
+                Intelligence: ['Persons'],
                 Administration: ['Users', 'Reference data'],
             },
             lga_security_chief: {
                 Overview: ['Dashboard'],
                 'Local Government': ['LGAs', 'Communities'],
+                Intelligence: ['Persons'],
                 Administration: ['Reference data'],
             },
         });

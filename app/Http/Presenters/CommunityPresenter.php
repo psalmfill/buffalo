@@ -4,6 +4,7 @@ namespace App\Http\Presenters;
 
 use App\Enums\CommunityType;
 use App\Models\Community;
+use App\Support\Persons\LinkedPerson;
 
 /**
  * Communities for the browser: ULIDs and labels, never ids. Coordinates
@@ -40,6 +41,7 @@ final class CommunityPresenter
             'latitude' => $community->latitude,
             'longitude' => $community->longitude,
             'notes' => $community->notes,
+            'traditional_ruler' => LinkedPerson::present($community->traditional_ruler_id, $community->traditionalRuler),
             'created_at' => $community->created_at?->toIso8601String(),
             'updated_at' => $community->updated_at?->toIso8601String(),
         ];

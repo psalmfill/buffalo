@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
 import ReligiousInstitutionController from '@/actions/App/Http/Controllers/CommunityInformation/ReligiousInstitutionController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import Heading from '@/components/heading';
@@ -8,6 +9,7 @@ import MapPointPicker, {
     coordinatesProblem,
 } from '@/components/map/MapPointPicker';
 import NativeSelect from '@/components/native-select';
+import LinkedPersonField from '@/components/persons/linked-person-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +17,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import type { InstitutionRow } from '@/types/community-information';
 import type { MapView } from '@/types/dashboard';
-import type { LgaFacts, Option } from '@/types/local-government';
+import type { LgaFacts, NamedRef, Option } from '@/types/local-government';
 
 type Props = {
     lga: LgaFacts;
@@ -50,6 +52,12 @@ export default function ReligiousInstitutionForm({
         longitude: institution?.longitude?.toString() ?? '',
         notes: institution?.notes ?? '',
     });
+    // undefined: unchanged (a leader the user cannot see is kept).
+    const [leader, setLeader] = useState<NamedRef | null | undefined>(
+        institution?.leader.hidden
+            ? undefined
+            : (institution?.leader.person ?? null),
+    );
 
     const denominations =
         religions.find((religion) => religion.value === form.data.religion)
@@ -70,6 +78,7 @@ export default function ReligiousInstitutionForm({
         form.transform((data) => ({
             ...data,
             denomination: data.denomination === '' ? null : data.denomination,
+            ...(leader !== undefined ? { leader: leader?.ulid ?? null } : {}),
         }));
 
         if (editing) {
@@ -197,6 +206,18 @@ export default function ReligiousInstitutionForm({
                             />
                             <InputError message={form.errors.notes} />
                         </div>
+                        <LinkedPersonField
+                            id="leader"
+                            label="Leader"
+                            role="religious_leader"
+                            roleLabel="religious leader"
+                            current={institution?.leader ?? null}
+                            value={leader}
+                            onChange={setLeader}
+                            error={
+                                (form.errors as Record<string, string>).leader
+                            }
+                        />
                     </section>
 
                     <section className="space-y-2">

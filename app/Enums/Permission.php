@@ -45,4 +45,11 @@ enum Permission: string
     case SecurityNotesView = 'security_notes.view';
     case SecurityNotesManage = 'security_notes.manage';
     case SecurityNotesDelete = 'security_notes.delete';
+
+    // Persons (Phase 3A): jurisdiction-scoped and classified; encrypted
+    // fields; every view access-logged. Deleting needs State Director or
+    // above.
+    case PersonsView = 'persons.view';
+    case PersonsManage = 'persons.manage';
+    case PersonsDelete = 'persons.delete';
 }

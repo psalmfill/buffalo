@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Http\Requests\Persons;
+
+use App\Enums\Classification;
+use App\Enums\Gender;
+use App\Enums\PersonRoleType;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+/**
+ * The persons search (POST, so names, NINs and phone numbers never appear
+ * in URLs, access logs or browser history). State and LGA filters are
+ * checked against the user's jurisdiction by the controller.
+ */
+class PersonSearchRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'q' => ['nullable', 'string', 'max:100'],
+            'role' => ['nullable', Rule::enum(PersonRoleType::class)],
+            'state' => ['nullable', 'string', 'size:26'],
+            'lga' => ['nullable', 'string', 'size:26'],
+            'gender' => ['nullable', Rule::enum(Gender::class)],
+            'classification' => ['nullable', Rule::enum(Classification::class)],
+        ];
+    }
+
+    /**
+     * @return array{q: string, role: string, state: string, lga: string, gender: string, classification: string}
+     */
+    public function filters(): array
+    {
+        $data = $this->validated();
+
+        return [
+            'q' => trim((string) ($data['q'] ?? '')),
+            'role' => (string) ($data['role'] ?? ''),
+            'state' => (string) ($data['state'] ?? ''),
+            'lga' => (string) ($data['lga'] ?? ''),
+            'gender' => (string) ($data['gender'] ?? ''),
+            'classification' => (string) ($data['classification'] ?? ''),
+        ];
+    }
+}

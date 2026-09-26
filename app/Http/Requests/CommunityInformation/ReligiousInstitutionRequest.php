@@ -2,14 +2,17 @@
 
 namespace App\Http\Requests\CommunityInformation;
 
+use App\Enums\PersonRoleType;
 use App\Enums\ReligiousInstitutionType;
 use App\Models\Community;
 use App\Models\Denomination;
 use App\Models\Religion;
 use App\Models\ReligiousInstitution;
 use App\Rules\ActiveOption;
+use App\Rules\PersonWithRole;
 use App\Support\LocalGovernment\CommunityRules;
 use App\Support\LocalGovernment\Nigeria;
+use App\Support\Persons\LinkedPerson;
 use Closure;
 use Illuminate\Validation\Rule;
 
@@ -56,11 +59,13 @@ class ReligiousInstitutionRequest extends LgaRecordRequest
                 }
             }],
             'notes' => ['nullable', 'string', 'max:5000'],
+            // Absent: unchanged (e.g. a leader the user cannot see).
+            'leader' => ['sometimes', 'nullable', 'string', new PersonWithRole(PersonRoleType::ReligiousLeader, $current?->leader?->ulid)],
         ];
     }
 
     /**
-     * @return array{community: Community, religion_id: int, denomination_id: int|null, name: string, type: string, estimated_congregation: int|null, latitude: float|null, longitude: float|null, notes: string|null}
+     * @return array{community: Community, religion_id: int, denomination_id: int|null, name: string, type: string, estimated_congregation: int|null, latitude: float|null, longitude: float|null, notes: string|null, leader_person_id?: int|null}
      */
     public function values(): array
     {
@@ -78,6 +83,7 @@ class ReligiousInstitutionRequest extends LgaRecordRequest
             'latitude' => isset($data['latitude']) ? (float) $data['latitude'] : null,
             'longitude' => isset($data['longitude']) ? (float) $data['longitude'] : null,
             'notes' => $data['notes'] ?? null,
+            ...($this->has('leader') ? ['leader_person_id' => LinkedPerson::id(isset($data['leader']) ? (string) $data['leader'] : null)] : []),
         ];
     }
 }

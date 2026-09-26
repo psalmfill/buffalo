@@ -10,6 +10,7 @@ use App\Enums\VulnerableCategory;
 use App\Models\CommunitySecurityNote;
 use App\Models\ReligiousInstitution;
 use App\Models\VulnerablePopulationStat;
+use App\Support\Persons\LinkedPerson;
 use BackedEnum;
 
 /**
@@ -34,6 +35,7 @@ final class CommunityInformationPresenter
             'latitude' => $institution->latitude,
             'longitude' => $institution->longitude,
             'notes' => $institution->notes,
+            'leader' => LinkedPerson::present($institution->leader_person_id, $institution->leader),
         ];
     }
 

@@ -8,12 +8,14 @@ import {
     Library,
     MapPinned,
     ScrollText,
+    UserSearch,
     Users,
 } from 'lucide-react';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import LoginHistoryController from '@/actions/App/Http/Controllers/Audit/LoginHistoryController';
+import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
 import ReferenceDataController from '@/actions/App/Http/Controllers/ReferenceData/ReferenceDataController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import { can } from '@/lib/permissions';
@@ -57,6 +59,12 @@ export const NAVIGATION: NavSection[] = [
         items: [
             { title: 'LGAs', icon: Landmark, href: LgaController.index(), permission: 'lgas.view' },
             { title: 'Communities', icon: MapPinned, href: CommunityController.index(), permission: 'communities.view' },
+        ],
+    },
+    {
+        title: 'Intelligence',
+        items: [
+            { title: 'Persons', icon: UserSearch, href: PersonController.index(), permission: 'persons.view' },
         ],
     },
     {

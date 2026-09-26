@@ -42,7 +42,7 @@ final class TabData
             ->when($community, fn (Builder $query) => $query->where('religious_institutions.community_id', $community?->id));
 
         $list = $base()
-            ->with(['religion', 'denomination', 'community'])
+            ->with(['religion', 'denomination', 'community', 'leader'])
             ->withCoordinates()
             ->when($filters['religion'] ?? null, fn (Builder $query, string $religion) => $query->whereHas('religion', fn (Builder $q) => $q->where('ulid', $religion)))
             ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('religious_institutions.type', $type))

@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $community_id
  * @property int $religion_id
  * @property int|null $denomination_id
+ * @property int|null $leader_person_id a person holding the religious_leader role (Phase 3A)
  * @property string $name
  * @property ReligiousInstitutionType $type
  * @property int|null $estimated_congregation
@@ -39,6 +40,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read Community $community
  * @property-read Religion $religion
  * @property-read Denomination|null $denomination
+ * @property-read Person|null $leader null when not visible to the current user
  */
 class ReligiousInstitution extends Model implements JurisdictionScoped
 {
@@ -52,7 +54,7 @@ class ReligiousInstitution extends Model implements JurisdictionScoped
 
     protected $fillable = ['name', 'type', 'estimated_congregation', 'notes'];
 
-    protected $hidden = ['id', 'state_id', 'lga_id', 'community_id', 'religion_id', 'denomination_id', 'location', 'created_by', 'updated_by'];
+    protected $hidden = ['id', 'state_id', 'lga_id', 'community_id', 'religion_id', 'denomination_id', 'leader_person_id', 'location', 'created_by', 'updated_by'];
 
     protected function casts(): array
     {
@@ -120,5 +122,16 @@ class ReligiousInstitution extends Model implements JurisdictionScoped
     public function denomination(): BelongsTo
     {
         return $this->belongsTo(Denomination::class);
+    }
+
+    /**
+     * Loaded through the person scopes: null when the leader is not visible
+     * to the current user.
+     *
+     * @return BelongsTo<Person, $this>
+     */
+    public function leader(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'leader_person_id');
     }
 }

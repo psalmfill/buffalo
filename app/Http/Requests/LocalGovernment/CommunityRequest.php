@@ -3,12 +3,15 @@
 namespace App\Http\Requests\LocalGovernment;
 
 use App\Enums\CommunityType;
+use App\Enums\PersonRoleType;
 use App\Models\Community;
 use App\Models\Lga;
 use App\Models\Ward;
 use App\Rules\ActiveOption;
+use App\Rules\PersonWithRole;
 use App\Support\LocalGovernment\CommunityRules;
 use App\Support\LocalGovernment\Nigeria;
+use App\Support\Persons\LinkedPerson;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -80,6 +83,8 @@ class CommunityRequest extends FormRequest
             }],
             'population_estimate' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            // Absent: unchanged (e.g. a ruler the user cannot see).
+            'traditional_ruler' => ['sometimes', 'nullable', 'string', new PersonWithRole(PersonRoleType::TraditionalRuler, $community?->traditionalRuler?->ulid)],
         ];
     }
 
@@ -97,7 +102,7 @@ class CommunityRequest extends FormRequest
     /**
      * Validated values for SaveCommunity (ward ULID resolved).
      *
-     * @return array{name: string, other_names: list<string>, type: string, ward_id: int|null, latitude: float|null, longitude: float|null, population_estimate: int|null, notes: string|null}
+     * @return array{name: string, other_names: list<string>, type: string, ward_id: int|null, latitude: float|null, longitude: float|null, population_estimate: int|null, notes: string|null, traditional_ruler_id?: int|null}
      */
     public function values(): array
     {
@@ -115,6 +120,7 @@ class CommunityRequest extends FormRequest
             'longitude' => isset($data['longitude']) ? (float) $data['longitude'] : null,
             'population_estimate' => isset($data['population_estimate']) ? (int) $data['population_estimate'] : null,
             'notes' => $data['notes'] ?? null,
+            ...($this->has('traditional_ruler') ? ['traditional_ruler_id' => LinkedPerson::id(isset($data['traditional_ruler']) ? (string) $data['traditional_ruler'] : null)] : []),
         ];
     }
 }

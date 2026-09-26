@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\DisabledCipherSweetGenerateKeyCommand;
 use App\Console\Commands\DisabledCleanActivitylogCommand;
 use App\Models\User;
 use App\Policies\ReferenceDataPolicy;
 use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
+use App\Support\CommunityInformation\ReferenceUsageChecks;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
 use App\Support\Jurisdiction\ContextMode;
 use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
@@ -15,8 +17,8 @@ use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\NullAccessGrantResolver;
 use App\Support\Jurisdiction\RestrictionType;
 use App\Support\ReferenceData\Contracts\ReferenceUsage;
-use App\Support\ReferenceData\NoReferenceUsage;
 use App\Support\ReferenceData\ReferenceTable;
+use App\Support\ReferenceData\ReferenceUsageRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Hashing\Hasher;
@@ -26,7 +28,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use ParagonIE\CipherSweet\CipherSweet;
+use RuntimeException;
 use Spatie\Activitylog\Commands\CleanActivitylogCommand;
+use Spatie\LaravelCipherSweet\Commands\GenerateKeyCommand;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -35,8 +40,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // No module references lookup values yet; later phases bind a real check.
-        $this->app->bind(ReferenceUsage::class, NoReferenceUsage::class);
+        // Whether a lookup value is in use: each module registers its checks
+        // (e.g. App\Support\CommunityInformation\ReferenceUsageChecks).
+        $this->app->singleton(ReferenceUsageRegistry::class, function (): ReferenceUsageRegistry {
+            $registry = new ReferenceUsageRegistry;
+            ReferenceUsageChecks::register($registry);
+
+            return $registry;
+        });
+        $this->app->bind(ReferenceUsage::class, ReferenceUsageRegistry::class);
 
         // Fresh per HTTP request and per queued job. HTTP requests start in
         // `none` (SetJurisdictionContext sets the user); the console and
@@ -47,6 +59,17 @@ class AppServiceProvider extends ServiceProvider
 
         // Audit records are never deleted: the package's clean command refuses.
         $this->app->bind(CleanActivitylogCommand::class, DisabledCleanActivitylogCommand::class);
+
+        // The package's key command overwrites an existing key outside
+        // production; buffalo:encryption-key only creates one.
+        $this->app->bind(GenerateKeyCommand::class, DisabledCipherSweetGenerateKeyCommand::class);
+
+        // Fail clearly, before any encryption, when the key is missing.
+        $this->app->beforeResolving(CipherSweet::class, function (): void {
+            if (config('ciphersweet.provider') === 'string' && blank(config('ciphersweet.providers.string.key'))) {
+                throw new RuntimeException('CIPHERSWEET_KEY is not set. Encrypted person fields cannot be read or written. For a new installation run `php artisan buffalo:encryption-key`; otherwise restore the existing key from its backup (docs/security/encryption-keys.md).');
+            }
+        });
 
         // Cross-jurisdiction access grants arrive in Phase 3.
         $this->app->bind(AccessGrantResolver::class, NullAccessGrantResolver::class);

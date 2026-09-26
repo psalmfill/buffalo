@@ -31,6 +31,10 @@ if ! grep -Eq '^APP_KEY=.+' .env; then
     php artisan key:generate --no-interaction
 fi
 
+if ! grep -Eq '^CIPHERSWEET_KEY=.+' .env; then
+    php artisan buffalo:encryption-key --no-interaction
+fi
+
 step "npm install"
 npm ci --no-audit --no-fund
 

@@ -1,0 +1,360 @@
+<?php
+
+namespace App\Http\Controllers\Persons;
+
+use App\Actions\CommunityInformation\DeleteWithReason;
+use App\Actions\Persons\AddPersonPhoto;
+use App\Actions\Persons\SavePerson;
+use App\Http\Controllers\Controller;
+use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\PersonPresenter;
+use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
+use App\Http\Requests\Persons\PersonRequest;
+use App\Http\Requests\Persons\PersonSearchRequest;
+use App\Models\Community;
+use App\Models\Lga;
+use App\Models\Media;
+use App\Models\Person;
+use App\Models\PersonAlias;
+use App\Models\PersonAssociation;
+use App\Models\PersonRole;
+use App\Models\User;
+use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Persons\PersonSearch;
+use App\Support\Persons\PhoneNumber;
+use App\Support\Persons\SearchTerm;
+use App\Support\Persons\SimilarPersons;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
+use Spatie\Activitylog\Models\Activity;
+
+/**
+ * Persons (Phase 3A): search, create (with a duplicate check), the person
+ * page, edit and soft delete with a reason.
+ *
+ * {person} is bound through the jurisdiction and classification scopes, so
+ * anything else is 404. Every person page view is access-logged. Pages
+ * showing persons use Inertia's encrypted history, so names and protected
+ * fields are not left readable in the browser's history state. Searches are
+ * POSTed: names, NINs and phone numbers never appear in URLs.
+ */
+class PersonController extends Controller
+{
+    /** Tabs of the person page (3B adds political offices, POI details and group memberships; Phase 5 linked incidents). */
+    public const TABS = ['profile', 'aliases', 'associations', 'photos', 'history'];
+
+    /** Search results shown at most. */
+    public const RESULT_LIMIT = 50;
+
+    /** Persons shown for an empty search. */
+    public const RECENT_LIMIT = 20;
+
+    public function index(Request $request, JurisdictionOptions $options): Response
+    {
+        $this->authorize('viewAny', Person::class);
+
+        return $this->searchPage($this->actor($request), $options, ['q' => '', 'role' => '', 'state' => '', 'lga' => '', 'gender' => '', 'classification' => '']);
+    }
+
+    public function search(PersonSearchRequest $request, JurisdictionOptions $options): Response
+    {
+        $this->authorize('viewAny', Person::class);
+
+        return $this->searchPage($this->actor($request), $options, $request->filters());
+    }
+
+    public function create(Request $request, JurisdictionOptions $options): Response
+    {
+        $this->authorize('create', Person::class);
+
+        return $this->form($this->actor($request), $options, null, $request->query('lga'));
+    }
+
+    /**
+     * Possible duplicates of the person being created, among those the user
+     * can see (JSON, POSTed: the values include NIN and phone).
+     */
+    public function similar(Request $request, SimilarPersons $similar): JsonResponse
+    {
+        $this->authorize('create', Person::class);
+
+        $data = $request->validate([
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'other_names' => ['nullable', 'string', 'max:150'],
+            'nin' => ['nullable', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'date_of_birth' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        return response()->json(['matches' => $this->similarMatches($similar, $data)])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
+    public function store(PersonRequest $request, SavePerson $save, AddPersonPhoto $addPhoto, SimilarPersons $similar): RedirectResponse
+    {
+        $this->authorize('create', Person::class);
+        $actor = $this->actor($request);
+        $values = $request->values();
+
+        if (! $request->boolean('confirm_new') && $this->similarMatches($similar, $values) !== []) {
+            throw ValidationException::withMessages([
+                'confirm_new' => 'Possible duplicates were found. Review them before creating a new record.',
+            ]);
+        }
+
+        /** @var Lga $lga */
+        $lga = $request->lga();
+        $photo = $request->file('photo');
+
+        $person = DB::transaction(function () use ($save, $addPhoto, $lga, $request, $values, $actor, $photo): Person {
+            $person = $save->create($lga, $request->community(), $values, $request->roles(), $actor);
+
+            if ($photo instanceof UploadedFile) {
+                $addPhoto($person, $photo, $actor);
+            }
+
+            return $person;
+        });
+
+        return redirect()->route('persons.show', $person)
+            ->with('toast', ['type' => 'success', 'message' => "{$person->name} added."]);
+    }
+
+    public function show(Request $request, Person $person): Response
+    {
+        $this->authorize('view', $person);
+        $actor = $this->actor($request);
+        $tab = in_array($request->query('tab'), self::TABS, true) ? (string) $request->query('tab') : 'profile';
+
+        // Every view of a person is access-logged (CLAUDE.md section 6).
+        $person->recordAccess(context: "tab:{$tab}");
+
+        Inertia::encryptHistory();
+
+        $person->load(['lga.state', 'state', 'community', 'roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)]);
+        /** @var \Illuminate\Support\Collection<int, Media> $photos */
+        $photos = $person->media->sortByDesc('id')->values();
+        $current = $photos->first();
+
+        return Inertia::render('persons/show', [
+            'person' => PersonPresenter::detail($person),
+            'photo' => $current instanceof Media ? PersonPresenter::photo($person, $current, true) : null,
+            'tab' => $tab,
+            'tabs' => self::TABS,
+            'options' => PersonPresenter::options(),
+            'aliases' => $tab === 'aliases' || $tab === 'profile'
+                ? $person->aliases()->orderBy('alias')->get()->map(fn (PersonAlias $alias) => PersonPresenter::alias($alias))->all()
+                : null,
+            'associations' => $tab === 'associations' ? $this->associations($person) : null,
+            'photos' => $tab === 'photos'
+                ? $photos->map(fn (Media $media) => PersonPresenter::photo($person, $media, $media->is($current)))->all()
+                : null,
+            'history' => $tab === 'history' ? $this->history($person) : null,
+            'can' => [
+                'update' => $actor->can('update', $person),
+                'delete' => $actor->can('delete', $person),
+            ],
+        ]);
+    }
+
+    public function edit(Request $request, Person $person, JurisdictionOptions $options): Response
+    {
+        $this->authorize('update', $person);
+
+        return $this->form($this->actor($request), $options, $person, null);
+    }
+
+    public function update(PersonRequest $request, Person $person, SavePerson $save): RedirectResponse
+    {
+        $this->authorize('update', $person);
+
+        $save->update($person, $request->community(), $request->values(), $request->roles(), $this->actor($request));
+
+        return redirect()->route('persons.show', $person)
+            ->with('toast', ['type' => 'success', 'message' => 'Person saved.']);
+    }
+
+    public function destroy(DeleteRecordRequest $request, Person $person, DeleteWithReason $delete): RedirectResponse
+    {
+        $this->authorize('delete', $person);
+
+        $name = $person->name;
+        $delete($person, 'person', (string) $request->validated('reason'), $this->actor($request));
+
+        return redirect()->route('persons.index')
+            ->with('toast', ['type' => 'success', 'message' => "{$name} deleted."]);
+    }
+
+    /**
+     * @param  array{q: string, role: string, state: string, lga: string, gender: string, classification: string}  $filters
+     */
+    private function searchPage(User $actor, JurisdictionOptions $options, array $filters): Response
+    {
+        $states = $options->states($actor);
+        $state = $filters['state'] !== '' ? $states->firstWhere('ulid', $filters['state']) : null;
+        $lgas = $options->lgas($actor, $state);
+        $lga = $filters['lga'] !== '' ? $lgas->firstWhere('ulid', $filters['lga']) : null;
+        $term = SearchTerm::parse($filters['q']);
+        $filtered = $state !== null || $lga !== null || $filters['role'] !== '' || $filters['gender'] !== '' || $filters['classification'] !== '';
+
+        $query = Person::query()
+            ->with(['lga', 'state', 'roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)])
+            ->when($state, fn (Builder $q) => $q->where('persons.state_id', $state?->id))
+            ->when($lga, fn (Builder $q) => $q->where('persons.lga_id', $lga?->id))
+            ->when($filters['role'], fn (Builder $q, string $role) => $q->whereHas('roles', fn (Builder $r) => $r->where('role', $role)->where('is_active', true)))
+            ->when($filters['gender'], fn (Builder $q, string $gender) => $q->where('persons.gender', $gender))
+            ->when($filters['classification'], fn (Builder $q, string $level) => $q->where('persons.classification', $level));
+
+        [$mode, $limit] = match (true) {
+            $term->isEmpty() && ! $filtered => ['recent', self::RECENT_LIMIT],
+            $term->isEmpty() => ['filtered', self::RESULT_LIMIT],
+            $term->isNumber() => ['number', self::RESULT_LIMIT],
+            default => ['name', self::RESULT_LIMIT],
+        };
+
+        /** @var Collection<int, Person> $results */
+        $results = match ($mode) {
+            'recent' => $query->orderByDesc('persons.updated_at')->limit($limit)->get(),
+            'filtered' => $query->orderBy('persons.last_name')->orderBy('persons.first_name')->limit($limit + 1)->get(),
+            'number' => PersonSearch::byNumber($query, $term)->limit($limit + 1)->get(),
+            default => PersonSearch::withThresholds(PersonSearch::SIMILARITY, PersonSearch::WORD_SIMILARITY, fn () => PersonSearch::byName($query, $term->raw)->limit($limit + 1)->get()),
+        };
+
+        Inertia::encryptHistory();
+
+        return Inertia::render('persons/index', [
+            'results' => $results->take($limit)->map(fn (Person $person) => PersonPresenter::row($person))->values(),
+            'truncated' => $results->count() > $limit,
+            'mode' => $mode,
+            'kind' => $term->kind(),
+            'filters' => $filters,
+            'options' => PersonPresenter::options(),
+            'states' => $states->count() > 1 ? $states->map(fn ($s) => ['ulid' => $s->ulid, 'name' => $s->name])->values() : [],
+            'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['ulid' => $l->ulid, 'name' => $l->name])->values() : [],
+            'can' => ['create' => $actor->can('create', Person::class)],
+        ]);
+    }
+
+    private function form(User $actor, JurisdictionOptions $options, ?Person $person, mixed $lgaUlid): Response
+    {
+        $lgas = $person === null ? $options->lgas($actor)->load('state:id,ulid,name') : new Collection;
+        $lga = $person !== null ? $person->lga : (is_string($lgaUlid) ? $lgas->firstWhere('ulid', $lgaUlid) : null) ?? ($lgas->count() === 1 ? $lgas->first() : null);
+
+        if ($person !== null) {
+            Inertia::encryptHistory();
+        }
+
+        return Inertia::render('persons/form', [
+            'person' => $person === null ? null : PersonPresenter::detail($person),
+            'lgas' => $lgas->map(fn (Lga $l) => ['ulid' => $l->ulid, 'name' => $l->name, 'state' => $l->state->name])->values(),
+            'selectedLga' => $lga?->ulid,
+            'communities' => $lga === null ? [] : Community::query()
+                ->where('lga_id', $lga->id)
+                ->orderBy('name')
+                ->get(['ulid', 'name'])
+                ->map(fn (Community $c) => ['value' => $c->ulid, 'label' => $c->name]),
+            'options' => PersonPresenter::options(),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return list<array<string, mixed>>
+     */
+    private function similarMatches(SimilarPersons $similar, array $data): array
+    {
+        $candidate = [
+            'first_name' => (string) ($data['first_name'] ?? ''),
+            'last_name' => (string) ($data['last_name'] ?? ''),
+            'other_names' => isset($data['other_names']) ? (string) $data['other_names'] : null,
+            'nin' => isset($data['nin']) ? (preg_replace('/\s+/', '', (string) $data['nin']) ?: null) : null,
+            'phone' => isset($data['phone']) ? PhoneNumber::normalise((string) $data['phone']) : null,
+            'date_of_birth' => isset($data['date_of_birth']) ? (string) $data['date_of_birth'] : null,
+        ];
+
+        if (trim($candidate['first_name'].$candidate['last_name']) === '') {
+            return [];
+        }
+
+        return array_map(fn (array $match) => [
+            ...PersonPresenter::row($match['person']),
+            'reasons' => $match['reasons'],
+        ], $similar->find($candidate));
+    }
+
+    /**
+     * Associations from both sides, only with persons the user can see.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function associations(Person $person): array
+    {
+        $links = PersonAssociation::query()
+            ->where(fn ($q) => $q->where('person_id', $person->id)->orWhere('associated_person_id', $person->id))
+            ->latest('id')
+            ->get();
+
+        $others = Person::query()
+            ->with(['lga', 'roles'])
+            ->whereIn('id', $links->map(fn (PersonAssociation $link) => $link->otherPersonId($person)))
+            ->get()
+            ->keyBy('id');
+
+        $rows = [];
+
+        foreach ($links as $link) {
+            $other = $others->get($link->otherPersonId($person));
+
+            if (! $other instanceof Person) {
+                continue;
+            }
+
+            $rows[] = [
+                'ulid' => $link->ulid,
+                'person' => PersonPresenter::row($other),
+                'relationship' => PersonPresenter::option($link->relationshipFor($person)),
+                'notes' => $link->notes,
+                'added_at' => $link->created_at?->toIso8601String(),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The person's audit history, including their roles and aliases.
+     *
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    private function history(Person $person): LengthAwarePaginator
+    {
+        return Activity::query()
+            ->with(['causer', 'subject'])
+            ->where(fn (Builder $q) => $q
+                ->where(fn (Builder $s) => $s->where('subject_type', $person->getMorphClass())->where('subject_id', $person->id))
+                ->orWhere(fn (Builder $s) => $s->where('subject_type', (new PersonRole)->getMorphClass())
+                    ->whereIn('subject_id', PersonRole::query()->where('person_id', $person->id)->select('id')))
+                ->orWhere(fn (Builder $s) => $s->where('subject_type', (new PersonAlias)->getMorphClass())
+                    ->whereIn('subject_id', PersonAlias::withTrashed()->where('person_id', $person->id)->select('id'))))
+            ->latest('id')
+            ->paginate(25, pageName: 'history_page')
+            ->withQueryString()
+            ->through(fn (Activity $activity) => ActivityPresenter::present($activity));
+    }
+
+    private function actor(Request $request): User
+    {
+        /** @var User */
+        return $request->user();
+    }
+}

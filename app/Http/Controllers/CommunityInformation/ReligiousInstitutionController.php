@@ -49,7 +49,7 @@ class ReligiousInstitutionController extends Controller
     {
         $this->authorize('update', $institution);
 
-        $record = ReligiousInstitution::query()->withCoordinates()->with(['religion', 'denomination', 'community', 'lga'])->whereKey($institution->id)->firstOrFail();
+        $record = ReligiousInstitution::query()->withCoordinates()->with(['religion', 'denomination', 'community', 'lga', 'leader'])->whereKey($institution->id)->firstOrFail();
 
         return $this->form($record->lga, $record, '');
     }

@@ -1,3 +1,4 @@
+import type { LinkedPerson } from '@/types/persons';
 import type { MapMarker } from '@/components/map/BuffaloMap';
 import type { MapView } from '@/types/dashboard';
 import type { Paginated } from '@/types/pagination';
@@ -61,6 +62,8 @@ export type CommunityDetail = CommunityRow & {
     latitude: number | null;
     longitude: number | null;
     notes: string | null;
+    /** A person holding the traditional ruler role (Phase 3A). */
+    traditional_ruler: LinkedPerson;
     created_at: string | null;
     updated_at: string | null;
 };

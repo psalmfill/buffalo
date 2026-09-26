@@ -6,6 +6,7 @@ use App\Models\Community;
 use App\Models\Lga;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
+use App\Support\Persons\LinkedPerson;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 final class SaveCommunity
 {
     /**
-     * @param  array{name: string, other_names?: list<string>, type: string, ward_id?: int|null, latitude?: float|null, longitude?: float|null, population_estimate?: int|null, notes?: string|null}  $data
+     * @param  array{name: string, other_names?: list<string>, type: string, ward_id?: int|null, latitude?: float|null, longitude?: float|null, population_estimate?: int|null, notes?: string|null, traditional_ruler_id?: int|null}  $data
      */
     public function create(Lga $lga, array $data, User $actor): Community
     {
@@ -32,19 +33,21 @@ final class SaveCommunity
             ])->save();
 
             $this->logLocation($community, null, self::coordinates($data), $actor);
+            LinkedPerson::logChange($community, 'traditional_ruler_changed', "Traditional ruler of {$community->name} set", null, $community->traditional_ruler_id, $actor);
 
             return $community;
         });
     }
 
     /**
-     * @param  array{name: string, other_names?: list<string>, type: string, ward_id?: int|null, latitude?: float|null, longitude?: float|null, population_estimate?: int|null, notes?: string|null}  $data
+     * @param  array{name: string, other_names?: list<string>, type: string, ward_id?: int|null, latitude?: float|null, longitude?: float|null, population_estimate?: int|null, notes?: string|null, traditional_ruler_id?: int|null}  $data
      */
     public function update(Community $community, array $data, User $actor): Community
     {
         return DB::transaction(function () use ($community, $data, $actor): Community {
             $before = self::currentCoordinates($community);
             $after = self::coordinates($data);
+            $rulerBefore = $community->traditional_ruler_id;
 
             $attributes = self::attributes($data);
 
@@ -61,6 +64,8 @@ final class SaveCommunity
             if ($before !== $after) {
                 $this->logLocation($community, $before, $after, $actor);
             }
+
+            LinkedPerson::logChange($community, 'traditional_ruler_changed', "Traditional ruler of {$community->name} changed", $rulerBefore, $community->traditional_ruler_id, $actor);
 
             return $community;
         });
@@ -82,6 +87,8 @@ final class SaveCommunity
             'population_estimate' => $data['population_estimate'] ?? null,
             'notes' => $data['notes'] ?? null,
             'location' => Community::pointFrom($coordinates['latitude'] ?? null, $coordinates['longitude'] ?? null),
+            // Absent: unchanged.
+            ...(array_key_exists('traditional_ruler_id', $data) ? ['traditional_ruler_id' => $data['traditional_ruler_id']] : []),
         ];
     }
 

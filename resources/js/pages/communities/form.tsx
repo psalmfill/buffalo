@@ -1,10 +1,12 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { FormEvent } from 'react';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import LinkedPersonField from '@/components/persons/linked-person-field';
 import MapPointPicker, {
     coordinatesProblem,
 } from '@/components/map/MapPointPicker';
@@ -49,6 +51,12 @@ export default function CommunityForm({
         population_estimate: community?.population_estimate?.toString() ?? '',
         notes: community?.notes ?? '',
     });
+    // undefined: unchanged (a ruler the user cannot see is kept).
+    const [ruler, setRuler] = useState<NamedRef | null | undefined>(
+        community?.traditional_ruler.hidden
+            ? undefined
+            : (community?.traditional_ruler.person ?? null),
+    );
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
@@ -66,6 +74,9 @@ export default function CommunityForm({
             ...data,
             ward: data.ward === '' ? null : data.ward,
             other_names: data.other_names.filter((name) => name.trim() !== ''),
+            ...(ruler !== undefined
+                ? { traditional_ruler: ruler?.ulid ?? null }
+                : {}),
         }));
 
         if (editing) {
@@ -252,6 +263,17 @@ export default function CommunityForm({
                             />
                             <InputError message={form.errors.notes} />
                         </div>
+
+                        <LinkedPersonField
+                            id="traditional_ruler"
+                            label="Traditional ruler"
+                            role="traditional_ruler"
+                            roleLabel="traditional ruler"
+                            current={community?.traditional_ruler ?? null}
+                            value={ruler}
+                            onChange={setRuler}
+                            error={errors.traditional_ruler}
+                        />
                     </section>
 
                     <section className="space-y-2">

@@ -26,6 +26,7 @@ setup: ## First-time setup: .env, images, dependencies, app key, migrations, see
 	$(PHP_ND) composer install --no-interaction
 	$(NODE) npm ci --no-audit --no-fund
 	@grep -Eq '^APP_KEY=.+' .env || $(PHP_ND) php artisan key:generate --no-interaction
+	@grep -Eq '^CIPHERSWEET_KEY=.+' .env || $(PHP_ND) php artisan buffalo:encryption-key --no-interaction
 	$(MAKE) wayfinder
 	$(COMPOSE) up -d --wait
 	$(COMPOSE) exec app php artisan migrate --force

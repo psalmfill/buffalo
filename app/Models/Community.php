@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\DB;
  * @property int $state_id
  * @property int $lga_id
  * @property int|null $ward_id
+ * @property int|null $traditional_ruler_id a person holding the traditional_ruler role (Phase 3A)
  * @property string $name
  * @property list<string> $other_names
  * @property CommunityType $type
@@ -40,6 +41,7 @@ use Illuminate\Support\Facades\DB;
  * @property-read Lga $lga
  * @property-read State $state
  * @property-read Ward|null $ward
+ * @property-read Person|null $traditionalRuler null when not visible to the current user
  */
 class Community extends Model implements JurisdictionScoped
 {
@@ -56,7 +58,7 @@ class Community extends Model implements JurisdictionScoped
 
     protected $fillable = ['name', 'other_names', 'type', 'population_estimate', 'notes'];
 
-    protected $hidden = ['id', 'state_id', 'lga_id', 'ward_id', 'location', 'search_names', 'created_by', 'updated_by'];
+    protected $hidden = ['id', 'state_id', 'lga_id', 'ward_id', 'traditional_ruler_id', 'location', 'search_names', 'created_by', 'updated_by'];
 
     protected function casts(): array
     {
@@ -148,5 +150,16 @@ class Community extends Model implements JurisdictionScoped
     public function ward(): BelongsTo
     {
         return $this->belongsTo(Ward::class);
+    }
+
+    /**
+     * Loaded through the person scopes: null when the ruler is not visible
+     * to the current user.
+     *
+     * @return BelongsTo<Person, $this>
+     */
+    public function traditionalRuler(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'traditional_ruler_id');
     }
 }

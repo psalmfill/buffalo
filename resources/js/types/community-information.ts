@@ -1,3 +1,4 @@
+import type { LinkedPerson } from '@/types/persons';
 import type { MapMarker } from '@/components/map/BuffaloMap';
 import type { ClassificationLevel } from '@/types/auth';
 import type { MapView } from '@/types/dashboard';
@@ -23,6 +24,8 @@ export type InstitutionRow = {
     latitude: number | null;
     longitude: number | null;
     notes: string | null;
+    /** A person holding the religious leader role (Phase 3A). */
+    leader: LinkedPerson;
 };
 
 export type InstitutionsTab = {

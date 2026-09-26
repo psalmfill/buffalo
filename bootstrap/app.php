@@ -41,6 +41,14 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Never flash these into the session (stored in Valkey) on a
+        // validation error: passwords, and person fields that are encrypted
+        // at rest (Phase 3A).
+        $exceptions->dontFlash([
+            'current_password', 'password', 'password_confirmation',
+            'nin', 'phone', 'address', 'date_of_birth',
+        ]);
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
