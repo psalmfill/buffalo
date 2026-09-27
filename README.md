@@ -191,6 +191,19 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - Only persons the user can see can be added as members.
 - **Views are access-logged:** POI details (context `poi`) and criminal groups.
 
+## Cross-jurisdiction records (Phase 3C)
+
+- **Hits:** a search or a new-person form that matches a person held by another jurisdiction shows a **hit**: only the owning state, "Person of interest" or "Person record", and "Record found" (same NIN or phone) or "Likely match" (similar name and the same date of birth). National users never get hits.
+- **Classification:** records above the searcher's clearance never produce a hit. For `confidential` records the owning State Director is told, and for `secret` records the DG and covering DDGs.
+- **Limits:** each officer has a soft limit of 20 hits a day, which notifies national oversight, and a hard limit of 50, which stops hits for the day.
+- **Access requests** (Intelligence → Access requests) are made from a hit:
+  - the owning State Director decides, or a Deputy State Director while delegated;
+  - urgent requests escalate to national oversight after 2 hours, normal ones after 48 hours; escalated requests expire after 7 days.
+- **Grants** are read-only, temporary (7, 14 or 30 days), revocable, and never override classification.
+  - `profile` shows the basic profile; `full` adds NIN, phone, address, POI details, offices, group memberships and associations (names only).
+  - Every view is logged with context `grant`.
+- **Scheduled jobs:** `buffalo:escalate-access-requests` (every 5 minutes), `buffalo:expire-access-grants` (every 15 minutes) and `buffalo:match-digest` (daily, owners' summary). Settings: `BUFFALO_MATCH_*` and `BUFFALO_ESCALATE_*` in `config/buffalo.php`.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
