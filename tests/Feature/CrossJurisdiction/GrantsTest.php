@@ -12,6 +12,7 @@ use App\Models\PoliticalOffice;
 use App\Models\RecordAccessGrant;
 use App\Models\RecordAccessLog;
 use App\Notifications\AccessGrantChanged;
+use App\Support\Jurisdiction\JurisdictionContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
@@ -210,4 +211,20 @@ test('super admin has no access to requests, grants or persons', function () {
 
     CrossFixtures::system();
     expect(RecordAccessGrant::query()->active()->count())->toBe(1);
+});
+
+test('a grant shows linked records only on the person page, never through their own scopes', function () {
+    CrossFixtures::system();
+    $poi = PersonOfInterest::factory()->forPerson($this->person)->create();
+    $office = PoliticalOffice::factory()->forPerson($this->person)->create();
+    CrossFixtures::grant($this->chief, $this->owner, GrantScope::Full);
+
+    $visible = app(JurisdictionContext::class)->actingAs($this->chief, fn () => [
+        PersonOfInterest::query()->count(),
+        PoliticalOffice::query()->count(),
+    ]);
+
+    expect($visible)->toBe([0, 0])
+        ->and($this->chief->can('update', $poi))->toBeFalse()
+        ->and($this->chief->can('update', $office))->toBeFalse();
 });

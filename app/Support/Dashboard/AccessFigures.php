@@ -10,6 +10,7 @@ use App\Models\RecordAccessRequest;
 use App\Models\RecordMatchEvent;
 use App\Models\User;
 use App\Support\Jurisdiction\AccessRequestApprovers;
+use App\Support\Jurisdiction\AccessRequestParties;
 use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\RestrictionType;
 use Carbon\CarbonImmutable;
@@ -59,7 +60,8 @@ final class AccessFigures
 
             $over = $reach(RecordMatchEvent::query())->where('suppressed', false)->where('created_at', '>=', $today)
                 ->groupBy('user_id')->havingRaw('count(*) > ?', [$soft])->selectRaw('user_id, count(*) AS total')->toBase()->get();
-            $names = User::query()->whereKey($over->pluck('user_id'))->pluck('name', 'id');
+            // Officers may be outside the viewer's user scope (a zoned DDG).
+            $names = AccessRequestParties::users($over->pluck('user_id')->map(fn ($id) => (int) $id)->all())->map(fn (User $u) => $u->name);
 
             $figures['oversight'] = [
                 'escalated' => $reach(RecordAccessRequest::query())->where('status', AccessRequestStatus::Escalated->value)->count(),
