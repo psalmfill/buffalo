@@ -128,6 +128,7 @@ class PersonRequest extends FormRequest
             'roles.*.notes' => ['nullable', 'string', 'max:1000'],
             'photo' => $creating ? ['nullable', 'file', 'max:10240', 'mimetypes:image/jpeg,image/png,image/webp', new PersonPhoto] : ['prohibited'],
             'confirm_new' => $creating ? ['boolean'] : ['prohibited'],
+            'hit_justification' => $creating ? ['nullable', 'string', 'min:10', 'max:1000'] : ['prohibited'],
         ];
     }
 
@@ -161,7 +162,7 @@ class PersonRequest extends FormRequest
      */
     public function values(): array
     {
-        $data = $this->safe()->except(['lga', 'community', 'roles', 'photo', 'confirm_new']);
+        $data = $this->safe()->except(['lga', 'community', 'roles', 'photo', 'confirm_new', 'hit_justification']);
 
         if (isset($data['phone']) && is_string($data['phone'])) {
             $data['phone'] = PhoneNumber::normalise($data['phone']);

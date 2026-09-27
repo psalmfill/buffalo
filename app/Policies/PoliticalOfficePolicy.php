@@ -31,7 +31,7 @@ final class PoliticalOfficePolicy
     /** Record an office for $person. */
     public function create(User $actor, Person $person): bool
     {
-        return $actor->checkPermissionTo(Permission::PoliticalManage->value) && $actor->can('view', $person);
+        return $actor->checkPermissionTo(Permission::PoliticalManage->value) && $actor->can('update', $person);
     }
 
     public function update(User $actor, PoliticalOffice $office): bool

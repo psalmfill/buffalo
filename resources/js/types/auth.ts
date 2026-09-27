@@ -42,6 +42,10 @@ export const PERMISSIONS = [
     'criminal_groups.view',
     'criminal_groups.manage',
     'criminal_groups.delete',
+    'access_requests.create',
+    'access_requests.decide',
+    'access_requests.oversee',
+    'delegations.manage',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

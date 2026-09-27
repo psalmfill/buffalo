@@ -2,6 +2,7 @@ import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
     Crosshair,
+    KeyRound,
     Gauge,
     History,
     LayoutGrid,
@@ -14,6 +15,7 @@ import {
     UserSearch,
     Users,
 } from 'lucide-react';
+import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
@@ -41,7 +43,8 @@ export type NavItem = {
     title: string;
     icon: LucideIcon;
     href: NonNullable<InertiaLinkProps['href']>;
-    permission: Permission | null;
+    /** null: everyone; a list: any one of them. */
+    permission: Permission | readonly Permission[] | null;
     /** Not an Inertia page: opens in a new tab (e.g. Horizon). */
     external?: boolean;
 };
@@ -74,6 +77,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Persons', icon: UserSearch, href: PersonController.index(), permission: 'persons.view' },
             { title: 'Persons of interest', icon: Crosshair, href: PersonOfInterestController.index(), permission: 'poi.view' },
             { title: 'Criminal groups', icon: Network, href: CriminalGroupController.index(), permission: 'criminal_groups.view' },
+            { title: 'Access requests', icon: KeyRound, href: AccessRequestController.index(), permission: ['access_requests.create', 'access_requests.decide', 'access_requests.oversee'] },
         ],
     },
     {
@@ -100,7 +104,9 @@ export function visibleNavigation(
         .map((section) => ({
             ...section,
             items: section.items.filter((item) =>
-                can(permissions, item.permission),
+                Array.isArray(item.permission)
+                    ? item.permission.some((p) => can(permissions, p))
+                    : can(permissions, item.permission as Permission | null),
             ),
         }))
         .filter((section) => section.items.length > 0);

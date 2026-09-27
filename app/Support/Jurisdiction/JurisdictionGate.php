@@ -29,13 +29,34 @@ final class JurisdictionGate
             throw new InvalidArgumentException($record::class.' is not jurisdiction-scoped.');
         }
 
-        $restriction = $this->rules->restrictionFor($user, $record->isVisibleToSuperAdmin());
-
-        if ($this->withinJurisdiction($restriction, $record)) {
+        if ($this->canAccessOwn($user, $record)) {
             return true;
         }
 
         return ! $user->isAccessBlocked() && $this->grants->hasGrant($user, $record);
+    }
+
+    /**
+     * Within the user's OWN jurisdiction, ignoring access grants. Grants
+     * are read-only (CLAUDE.md section 4 rule 8): every write ability must
+     * use this, not canAccess().
+     */
+    public function canAccessOwn(User $user, Model $record): bool
+    {
+        if (! $record instanceof JurisdictionScoped) {
+            throw new InvalidArgumentException($record::class.' is not jurisdiction-scoped.');
+        }
+
+        return $this->withinJurisdiction($this->rules->restrictionFor($user, $record->isVisibleToSuperAdmin()), $record);
+    }
+
+    /** Access comes from a grant only (not the user's own jurisdiction). */
+    public function viaGrantOnly(User $user, Model $record): bool
+    {
+        return $record instanceof JurisdictionScoped
+            && ! $this->canAccessOwn($user, $record)
+            && ! $user->isAccessBlocked()
+            && $this->grants->hasGrant($user, $record);
     }
 
     private function withinJurisdiction(JurisdictionRestriction $restriction, Model&JurisdictionScoped $record): bool

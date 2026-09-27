@@ -58,6 +58,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'criminal_groups.view',
         'criminal_groups.manage',
         'criminal_groups.delete',
+        'access_requests.oversee',
     ],
     deputy_director_general: [
         'users.view',
@@ -89,6 +90,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'criminal_groups.view',
         'criminal_groups.manage',
         'criminal_groups.delete',
+        'access_requests.oversee',
     ],
     state_director: [
         'users.view',
@@ -121,6 +123,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'criminal_groups.view',
         'criminal_groups.manage',
         'criminal_groups.delete',
+        'access_requests.create',
+        'access_requests.decide',
+        'delegations.manage',
     ],
     deputy_state_director: [
         'users.view',
@@ -144,6 +149,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'poi.manage',
         'criminal_groups.view',
         'criminal_groups.manage',
+        'access_requests.create',
+        'access_requests.decide',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -165,6 +172,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'poi.manage',
         'criminal_groups.view',
         'criminal_groups.manage',
+        'access_requests.create',
     ],
 };
 
@@ -182,16 +190,25 @@ describe('navigation', () => {
                     continue;
                 }
 
+                // A list: any one of them shows the item; none hides it.
+                const required: readonly Permission[] = Array.isArray(
+                    item.permission,
+                )
+                    ? item.permission
+                    : [item.permission as Permission];
                 const others = PERMISSIONS.filter(
-                    (permission) => permission !== item.permission,
+                    (permission) => !required.includes(permission),
                 );
 
                 expect(
                     titles(visibleNavigation(others))[section.title] ?? [],
                 ).not.toContain(item.title);
-                expect(
-                    titles(visibleNavigation([item.permission]))[section.title],
-                ).toContain(item.title);
+
+                for (const permission of required) {
+                    expect(
+                        titles(visibleNavigation([permission]))[section.title],
+                    ).toContain(item.title);
+                }
             }
         }
     });
@@ -226,6 +243,7 @@ describe('navigation', () => {
                     'Persons',
                     'Persons of interest',
                     'Criminal groups',
+                    'Access requests',
                 ],
                 Administration: ['Users', 'Reference data', 'Audit log'],
             },
@@ -240,6 +258,7 @@ describe('navigation', () => {
                     'Persons',
                     'Persons of interest',
                     'Criminal groups',
+                    'Access requests',
                 ],
                 Administration: ['Users', 'Reference data'],
             },
@@ -254,6 +273,7 @@ describe('navigation', () => {
                     'Persons',
                     'Persons of interest',
                     'Criminal groups',
+                    'Access requests',
                 ],
                 Administration: ['Users', 'Reference data'],
             },
@@ -268,6 +288,7 @@ describe('navigation', () => {
                     'Persons',
                     'Persons of interest',
                     'Criminal groups',
+                    'Access requests',
                 ],
                 Administration: ['Users', 'Reference data'],
             },
@@ -282,6 +303,7 @@ describe('navigation', () => {
                     'Persons',
                     'Persons of interest',
                     'Criminal groups',
+                    'Access requests',
                 ],
                 Administration: ['Reference data'],
             },
@@ -298,8 +320,15 @@ describe('navigation', () => {
 
     it('uses only known permissions', () => {
         for (const item of NAVIGATION.flatMap((section) => section.items)) {
-            if (item.permission !== null) {
-                expect(PERMISSIONS).toContain(item.permission);
+            const listed: readonly Permission[] =
+                item.permission === null
+                    ? []
+                    : Array.isArray(item.permission)
+                      ? item.permission
+                      : [item.permission as Permission];
+
+            for (const permission of listed) {
+                expect(PERMISSIONS).toContain(permission);
             }
         }
     });

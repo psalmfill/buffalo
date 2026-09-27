@@ -19,6 +19,34 @@ return [
     'poi_review_months' => (int) env('BUFFALO_POI_REVIEW_MONTHS', 12),
     'poi_cleared_review_days' => 30,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cross-jurisdiction matching, requests and grants (Phase 3C)
+    |--------------------------------------------------------------------------
+    */
+    'cross_jurisdiction' => [
+        // Trigram similarity of name or alias. strong: at least this AND
+        // the same date of birth. possible: at least this (never shown
+        // across jurisdictions).
+        'strong_similarity' => (float) env('BUFFALO_MATCH_STRONG_SIMILARITY', 0.75),
+        'possible_similarity' => (float) env('BUFFALO_MATCH_POSSIBLE_SIMILARITY', 0.6),
+        'max_hits' => 10,
+        // Hits shown per user per day: above the soft limit the DG and the
+        // DDGs covering the user's state are told (once a day); at the hard
+        // limit no further hits are shown that day.
+        'soft_daily_limit' => (int) env('BUFFALO_MATCH_SOFT_LIMIT', 20),
+        'hard_daily_limit' => (int) env('BUFFALO_MATCH_HARD_LIMIT', 50),
+        // Lifetime of a hit token (request access within this time).
+        'token_minutes' => 120,
+        // Pending requests escalate after this many minutes.
+        'escalate_urgent_minutes' => (int) env('BUFFALO_ESCALATE_URGENT_MINUTES', 120),
+        'escalate_normal_minutes' => (int) env('BUFFALO_ESCALATE_NORMAL_MINUTES', 48 * 60),
+        // Escalated requests expire after this many days.
+        'expire_escalated_days' => 7,
+        // Grant holders are reminded this many hours before expiry.
+        'grant_reminder_hours' => 24,
+    ],
+
     'banner' => [
         'text' => env('BUFFALO_BANNER_TEXT'),
         'level' => env('BUFFALO_BANNER_LEVEL', 'info'),

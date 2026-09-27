@@ -3,6 +3,7 @@ import { ShieldAlert } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
+import HitsPanel from '@/components/access-requests/hits-panel';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import ClassificationSelect from '@/components/community-information/classification-select';
 import Heading from '@/components/heading';
@@ -25,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { postJson } from '@/lib/http';
+import type { AccessRequestOptions, Hit } from '@/types/access-requests';
 import type { ClassificationLevel } from '@/types/auth';
 import type { Option } from '@/types/local-government';
 import type {
@@ -95,7 +97,15 @@ export default function PersonForm({
     });
 
     const [similar, setSimilar] = useState<SimilarPerson[] | null>(null);
+    // Records in other jurisdictions (Phase 3C): minimal hits only.
+    const [cross, setCross] = useState<{
+        hits: Hit[];
+        limitReached: boolean;
+        options: AccessRequestOptions;
+    } | null>(null);
+    const [justification, setJustification] = useState('');
     const [checking, setChecking] = useState(false);
+    const hitCount = cross?.hits.length ?? 0;
 
     const save = (confirmNew: boolean) => {
         form.transform((data) => {
@@ -112,6 +122,8 @@ export default function PersonForm({
                       lga,
                       roles,
                       confirm_new: confirmNew,
+                      hit_justification:
+                          hitCount > 0 ? justification.trim() : null,
                       ...(photo ? { photo } : {}),
                   };
         });
@@ -137,19 +149,28 @@ export default function PersonForm({
         setChecking(true);
 
         try {
-            const { matches } = await postJson<{ matches: SimilarPerson[] }>(
-                PersonController.similar().url,
-                {
+            const { matches, hits, hitLimitReached, accessOptions } =
+                await postJson<{
+                    matches: SimilarPerson[];
+                    hits: Hit[];
+                    hitLimitReached: boolean;
+                    accessOptions: AccessRequestOptions;
+                }>(PersonController.similar().url, {
                     first_name: form.data.first_name,
                     last_name: form.data.last_name,
                     other_names: form.data.other_names || null,
                     nin: form.data.nin || null,
                     phone: form.data.phone || null,
                     date_of_birth: form.data.date_of_birth || null,
-                },
-            );
+                });
 
-            if (matches.length > 0) {
+            setCross({
+                hits,
+                limitReached: hitLimitReached,
+                options: accessOptions,
+            });
+
+            if (matches.length > 0 || hits.length > 0) {
                 setSimilar(matches);
             } else {
                 save(false);
@@ -214,7 +235,7 @@ export default function PersonForm({
                     title={title}
                     description={
                         editing
-                            ? `${person.lga.name} LGA, ${person.state.name} State`
+                            ? `${person.lga?.name ?? ''} LGA, ${person.state?.name ?? ''} State`
                             : 'The record belongs to the LGA you choose; it cannot be moved later.'
                     }
                 />
@@ -509,45 +530,86 @@ export default function PersonForm({
                     <DialogHeader>
                         <DialogTitle>Possible duplicates</DialogTitle>
                         <DialogDescription>
-                            These persons in your jurisdiction may be the same
-                            person. Open the existing record if so.
+                            This person may already be on record. Open the
+                            existing record, or request access to one held
+                            elsewhere, before creating a new one.
                         </DialogDescription>
                     </DialogHeader>
-                    <ul className="max-h-96 divide-y overflow-y-auto rounded-md border">
-                        {similar?.map((match) => (
-                            <li
-                                key={match.ulid}
-                                className="flex items-center justify-between gap-3 p-3"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <PersonAvatar
-                                        src={match.thumbnail}
-                                        name={match.name}
-                                    />
-                                    <div className="text-sm">
-                                        <div className="font-medium">
-                                            {match.name}
+                    {similar !== null && similar.length > 0 && (
+                        <ul className="max-h-72 divide-y overflow-y-auto rounded-md border">
+                            {similar?.map((match) => (
+                                <li
+                                    key={match.ulid}
+                                    className="flex items-center justify-between gap-3 p-3"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <PersonAvatar
+                                            src={match.thumbnail}
+                                            name={match.name}
+                                        />
+                                        <div className="text-sm">
+                                            <div className="font-medium">
+                                                {match.name}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {match.lga?.name} LGA ·{' '}
+                                                {match.reasons.join(', ')}
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {match.lga?.name} LGA ·{' '}
-                                            {match.reasons.join(', ')}
-                                        </div>
+                                        <ClassificationBadge
+                                            level={match.classification.value}
+                                        />
                                     </div>
-                                    <ClassificationBadge
-                                        level={match.classification.value}
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link
+                                            href={PersonController.show(
+                                                match.ulid,
+                                            )}
+                                        >
+                                            This is the same person — open
+                                            existing record
+                                        </Link>
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {cross && (hitCount > 0 || cross.limitReached) && (
+                        <>
+                            <HitsPanel
+                                hits={cross.hits}
+                                limitReached={cross.limitReached}
+                                options={cross.options}
+                            />
+                            {hitCount > 0 && (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="hit_justification">
+                                        Why a new record is needed (required to
+                                        create anyway)
+                                    </Label>
+                                    <Textarea
+                                        id="hit_justification"
+                                        rows={2}
+                                        maxLength={1000}
+                                        value={justification}
+                                        onChange={(e) =>
+                                            setJustification(e.target.value)
+                                        }
+                                    />
+                                    <InputError
+                                        message={
+                                            (
+                                                form.errors as Record<
+                                                    string,
+                                                    string
+                                                >
+                                            ).hit_justification
+                                        }
                                     />
                                 </div>
-                                <Button variant="outline" size="sm" asChild>
-                                    <Link
-                                        href={PersonController.show(match.ulid)}
-                                    >
-                                        This is the same person — open existing
-                                        record
-                                    </Link>
-                                </Button>
-                            </li>
-                        ))}
-                    </ul>
+                            )}
+                        </>
+                    )}
                     <DialogFooter>
                         <Button
                             variant="ghost"
@@ -557,7 +619,11 @@ export default function PersonForm({
                         </Button>
                         <Button
                             onClick={() => save(true)}
-                            disabled={form.processing}
+                            disabled={
+                                form.processing ||
+                                (hitCount > 0 &&
+                                    justification.trim().length < 10)
+                            }
                         >
                             {form.processing && <Spinner />}
                             Create new record anyway

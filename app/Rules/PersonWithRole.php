@@ -27,7 +27,7 @@ final class PersonWithRole implements ValidationRule
         $user = Auth::user();
         $person = is_string($value) ? Person::query()->where('ulid', $value)->first() : null;
 
-        if (! $user instanceof User || $person === null || ! $user->can('view', $person)) {
+        if (! $user instanceof User || $person === null || ! $user->can('link', $person)) {
             $fail('Choose a person you can view.');
 
             return;

@@ -63,6 +63,8 @@ class GroupMemberController extends Controller
         abort_unless($member->criminal_group_id === $group->id, 404);
         $person = Person::query()->find($member->person_id);
         abort_unless($person instanceof Person && $request->user()?->can('view', $person), 404);
+        // A person seen only under a grant is read-only.
+        abort_unless($request->user()->can('link', $person), 403);
 
         return $person;
     }

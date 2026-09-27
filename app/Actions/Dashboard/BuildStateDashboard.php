@@ -14,6 +14,7 @@ use App\Models\State;
 use App\Models\User;
 use App\Models\VulnerablePopulationStat;
 use App\Support\CommunityInformation\TabData;
+use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Dashboard\ThreatFigures;
@@ -83,6 +84,7 @@ final class BuildStateDashboard
                 'overdueReviews' => $user->can('viewAny', PersonOfInterest::class) ? $this->figures->overdueReviews() : 0,
                 'activeGroups' => $user->can('viewAny', CriminalGroup::class) ? $this->figures->activeGroups() : 0,
             ],
+            'access' => app(AccessFigures::class)->for($user),
             'map' => MapView::for($state),
             'placeholders' => PlaceholderCards::for($label),
         ];

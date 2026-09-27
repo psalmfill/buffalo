@@ -164,6 +164,29 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 3C — Cross-jurisdiction access (never the super admin;
+            // national users never need requests)
+            // ---------------------------------------------------------------
+            'cross_jurisdiction' => [
+                Permission::AccessRequestsCreate->value => [
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                    Role::LgaSecurityChief,
+                ],
+                Permission::AccessRequestsDecide->value => [
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                ],
+                Permission::AccessRequestsOversee->value => [
+                    Role::DirectorGeneral,
+                    Role::DeputyDirectorGeneral,
+                ],
+                Permission::DelegationsManage->value => [
+                    Role::StateDirector,
+                ],
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

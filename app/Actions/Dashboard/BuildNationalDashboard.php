@@ -11,6 +11,7 @@ use App\Models\Lga;
 use App\Models\PersonOfInterest;
 use App\Models\State;
 use App\Models\User;
+use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Dashboard\ThreatFigures;
@@ -60,6 +61,7 @@ final class BuildNationalDashboard
                 'groupsByType' => $user->can('viewAny', CriminalGroup::class) ? $this->figures->activeGroupsByType() : [],
             ],
             'completenessByState' => $this->completenessByState((clone $states)->orderBy('name')->get()),
+            'access' => app(AccessFigures::class)->for($user),
             'map' => MapView::for(null),
             'placeholders' => PlaceholderCards::for($label),
         ];

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Users;
 
+use App\Actions\AccessRequests\ManageDelegations;
 use App\Models\OfficerPosting;
 use App\Models\User;
 
@@ -33,6 +34,10 @@ final class OfficerPostings
         ]);
     }
 
+    /**
+     * Closes the user's open posting. Approval delegations where the user
+     * is either party end with it (Phase 3C).
+     */
     public function closeOpen(User $user): void
     {
         OfficerPosting::query()
@@ -40,5 +45,7 @@ final class OfficerPostings
             ->whereNull('ended_at')
             ->get()
             ->each(fn (OfficerPosting $posting) => $posting->forceFill(['ended_at' => now()])->save());
+
+        app(ManageDelegations::class)->endFor($user);
     }
 }

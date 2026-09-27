@@ -49,7 +49,8 @@ class PersonAssociationController extends Controller
         // shown to this user and cannot be removed by them.
         $other = Person::query()->whereKey($association->otherPersonId($person))->first();
         abort_unless($other instanceof Person, 404);
-        $this->authorize('view', $other);
+        // Own jurisdiction: a person seen only under a grant is read-only.
+        $this->authorize('link', $other);
 
         /** @var User $actor */
         $actor = $request->user();

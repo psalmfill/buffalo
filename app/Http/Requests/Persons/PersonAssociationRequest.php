@@ -42,7 +42,8 @@ class PersonAssociationRequest extends FormRequest
         $user = $this->user();
         $other = Person::query()->where('ulid', $ulid)->first();
 
-        return $other !== null && $user->can('view', $other) ? $other : null;
+        // In the user's own jurisdiction: never a person seen only under a grant.
+        return $other !== null && $user->can('link', $other) ? $other : null;
     }
 
     /**

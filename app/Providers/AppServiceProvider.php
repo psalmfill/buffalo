@@ -12,9 +12,9 @@ use App\Support\CommunityInformation\ReferenceUsageChecks;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
 use App\Support\Jurisdiction\ContextMode;
 use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
+use App\Support\Jurisdiction\GrantAccessResolver;
 use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Jurisdiction\JurisdictionRules;
-use App\Support\Jurisdiction\NullAccessGrantResolver;
 use App\Support\Jurisdiction\RestrictionType;
 use App\Support\Persons\ReferenceUsageChecks as PersonsReferenceUsageChecks;
 use App\Support\ReferenceData\Contracts\ReferenceUsage;
@@ -73,8 +73,8 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
-        // Cross-jurisdiction access grants arrive in Phase 3.
-        $this->app->bind(AccessGrantResolver::class, NullAccessGrantResolver::class);
+        // Cross-jurisdiction access grants (Phase 3C): persons only.
+        $this->app->bind(AccessGrantResolver::class, GrantAccessResolver::class);
     }
 
     /**

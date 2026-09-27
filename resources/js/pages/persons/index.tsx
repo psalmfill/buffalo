@@ -3,6 +3,7 @@ import { Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
+import HitsPanel from '@/components/access-requests/hits-panel';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import EmptyState from '@/components/empty-state';
 import Heading from '@/components/heading';
@@ -11,6 +12,10 @@ import PersonAvatar from '@/components/persons/person-avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type {
+    AccessRequestOptions,
+    CrossJurisdiction,
+} from '@/types/access-requests';
 import type { NamedRef } from '@/types/local-government';
 import type {
     PersonOptions,
@@ -27,6 +32,9 @@ type Props = {
     options: PersonOptions;
     states: NamedRef[];
     lgas: NamedRef[];
+    /** null: this user never gets cross-jurisdiction hits. */
+    crossJurisdiction:
+        (CrossJurisdiction & { options: AccessRequestOptions }) | null;
     can: { create: boolean };
 };
 
@@ -53,6 +61,7 @@ export default function PersonsIndex({
     options,
     states,
     lgas,
+    crossJurisdiction,
     can,
 }: Props) {
     const [values, setValues] = useState<PersonSearchFilters>(filters);
@@ -284,15 +293,19 @@ export default function PersonsIndex({
                     )}
                 </section>
 
-                {/* Phase 3C: cross-jurisdiction hit notices appear here,
-                    separate from the results above. */}
-                <section
-                    aria-label="Records outside your jurisdiction"
-                    data-test="cross-jurisdiction-hits"
-                    className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground"
-                >
-                    Matches outside your jurisdiction are not checked yet.
-                </section>
+                {crossJurisdiction &&
+                    (mode === 'name' || mode === 'number') && (
+                        <HitsPanel
+                            hits={crossJurisdiction.hits}
+                            limitReached={crossJurisdiction.limitReached}
+                            options={crossJurisdiction.options}
+                            emptyText={
+                                kind === 'name'
+                                    ? 'Name searches match other jurisdictions only together with a date of birth (when adding a person); search by NIN or phone number to find records elsewhere.'
+                                    : 'No matching records in other jurisdictions.'
+                            }
+                        />
+                    )}
             </div>
         </>
     );

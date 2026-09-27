@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Persons;
 use App\Actions\CommunityInformation\DeleteWithReason;
 use App\Actions\Persons\AddPersonPhoto;
 use App\Actions\Persons\SavePerson;
+use App\Enums\GrantScope;
+use App\Enums\MatchContext;
 use App\Http\Controllers\Controller;
+use App\Http\Presenters\AccessRequestPresenter;
 use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\CriminalGroupPresenter;
 use App\Http\Presenters\PersonPresenter;
@@ -25,7 +28,17 @@ use App\Models\PersonAssociation;
 use App\Models\PersonOfInterest;
 use App\Models\PersonRole;
 use App\Models\PoliticalOffice;
+use App\Models\RecordAccessGrant;
+use App\Models\RecordAccessRequest;
 use App\Models\User;
+use App\Support\Audit\AuditLog;
+use App\Support\CrossJurisdiction\MatchCriteria;
+use App\Support\CrossJurisdiction\MatchResult;
+use App\Support\CrossJurisdiction\PersonMatchService;
+use App\Support\Jurisdiction\AccessRequestParties;
+use App\Support\Jurisdiction\GrantAccessResolver;
+use App\Support\Jurisdiction\GrantedPersonView;
+use App\Support\Jurisdiction\JurisdictionGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Persons\PersonSearch;
 use App\Support\Persons\PhoneNumber;
@@ -65,18 +78,18 @@ class PersonController extends Controller
     /** Persons shown for an empty search. */
     public const RECENT_LIMIT = 20;
 
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, PersonMatchService $matches): Response
     {
         $this->authorize('viewAny', Person::class);
 
-        return $this->searchPage($this->actor($request), $options, ['q' => '', 'role' => '', 'state' => '', 'lga' => '', 'gender' => '', 'classification' => '']);
+        return $this->searchPage($this->actor($request), $options, $matches, ['q' => '', 'role' => '', 'state' => '', 'lga' => '', 'gender' => '', 'classification' => '']);
     }
 
-    public function search(PersonSearchRequest $request, JurisdictionOptions $options): Response
+    public function search(PersonSearchRequest $request, JurisdictionOptions $options, PersonMatchService $matches): Response
     {
         $this->authorize('viewAny', Person::class);
 
-        return $this->searchPage($this->actor($request), $options, $request->filters());
+        return $this->searchPage($this->actor($request), $options, $matches, $request->filters());
     }
 
     public function create(Request $request, JurisdictionOptions $options): Response
@@ -90,7 +103,7 @@ class PersonController extends Controller
      * Possible duplicates of the person being created, among those the user
      * can see (JSON, POSTed: the values include NIN and phone).
      */
-    public function similar(Request $request, SimilarPersons $similar): JsonResponse
+    public function similar(Request $request, SimilarPersons $similar, PersonMatchService $matches): JsonResponse
     {
         $this->authorize('create', Person::class);
 
@@ -103,11 +116,21 @@ class PersonController extends Controller
             'date_of_birth' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        return response()->json(['matches' => $this->similarMatches($similar, $data)])
-            ->header('Cache-Control', 'private, no-store');
+        $actor = $this->actor($request);
+        // Records elsewhere (Phase 3C): minimal hits, officers who may request access only.
+        $cross = $actor->can('create', RecordAccessRequest::class)
+            ? $matches->match(MatchCriteria::fromPersonInput($data), $actor, MatchContext::PersonCreate)
+            : null;
+
+        return response()->json([
+            'matches' => $this->similarMatches($similar, $data),
+            'hits' => $cross?->hitsArray() ?? [],
+            'hitLimitReached' => $cross !== null && $cross->limitReached,
+            'accessOptions' => AccessRequestPresenter::options(),
+        ])->header('Cache-Control', 'private, no-store');
     }
 
-    public function store(PersonRequest $request, SavePerson $save, AddPersonPhoto $addPhoto, SimilarPersons $similar): RedirectResponse
+    public function store(PersonRequest $request, SavePerson $save, AddPersonPhoto $addPhoto, SimilarPersons $similar, PersonMatchService $matches): RedirectResponse
     {
         $this->authorize('create', Person::class);
         $actor = $this->actor($request);
@@ -119,15 +142,35 @@ class PersonController extends Controller
             ]);
         }
 
+        // Creating although the person is on record elsewhere needs a
+        // justification (re-checked here without recording new events).
+        $hitCount = $actor->can('create', RecordAccessRequest::class)
+            ? count($matches->match(MatchCriteria::fromPersonInput($values), $actor, MatchContext::PersonCreate, record: false)->hits)
+            : 0;
+        $justification = trim((string) $request->validated('hit_justification'));
+
+        if ($hitCount > 0 && $justification === '') {
+            throw ValidationException::withMessages([
+                'hit_justification' => 'This person may be on record in another jurisdiction. Request access, or explain why a new record is needed.',
+            ]);
+        }
+
         /** @var Lga $lga */
         $lga = $request->lga();
         $photo = $request->file('photo');
 
-        $person = DB::transaction(function () use ($save, $addPhoto, $lga, $request, $values, $actor, $photo): Person {
+        $person = DB::transaction(function () use ($save, $addPhoto, $lga, $request, $values, $actor, $photo, $hitCount, $justification): Person {
             $person = $save->create($lga, $request->community(), $values, $request->roles(), $actor);
 
             if ($photo instanceof UploadedFile) {
                 $addPhoto($person, $photo, $actor);
+            }
+
+            if ($hitCount > 0) {
+                AuditLog::event('created_despite_hit', 'Created although matching records exist in other jurisdictions', $person, [
+                    'justification' => $justification,
+                    'hits' => $hitCount,
+                ], $actor);
             }
 
             return $person;
@@ -137,10 +180,33 @@ class PersonController extends Controller
             ->with('toast', ['type' => 'success', 'message' => "{$person->name} added."]);
     }
 
-    public function show(Request $request, Person $person): Response
+    /** Person page fields a grant shows, per scope (Phase 3C). */
+    public const GRANT_PROFILE_FIELDS = [
+        'ulid', 'name', 'first_name', 'last_name', 'other_names', 'gender', 'date_of_birth', 'approximate_age',
+        'nationality', 'occupation', 'description', 'roles', 'all_roles', 'classification', 'is_deceased', 'thumbnail',
+    ];
+
+    public const GRANT_FULL_EXTRA_FIELDS = ['nin', 'phone', 'address'];
+
+    /** Tabs a grant shows, per scope. */
+    public const GRANT_TABS = [
+        'profile' => ['profile'],
+        'full' => ['profile', 'associations', 'political_offices', 'poi', 'group_memberships'],
+    ];
+
+    public function show(Request $request, Person $person, JurisdictionGate $gate, GrantAccessResolver $grants, GrantedPersonView $grantedView): Response
     {
         $this->authorize('view', $person);
         $actor = $this->actor($request);
+
+        // Visible only through a cross-jurisdiction grant: read-only, per scope.
+        if ($gate->viaGrantOnly($actor, $person)) {
+            $grant = $grants->activeGrant($actor, $person);
+            abort_if($grant === null, 404);
+
+            return $this->showUnderGrant($request, $person, $actor, $grant, $grantedView);
+        }
+
         $tab = in_array($request->query('tab'), self::TABS, true) ? (string) $request->query('tab') : 'profile';
 
         // Every view of a person is access-logged (CLAUDE.md section 6).
@@ -179,6 +245,7 @@ class PersonController extends Controller
                     ->values()
                 : null,
             'poiOptions' => $tab === 'poi' ? PoiPresenter::options() : null,
+            'grant' => null,
             'can' => [
                 'update' => $actor->can('update', $person),
                 'delete' => $actor->can('delete', $person),
@@ -187,6 +254,66 @@ class PersonController extends Controller
                 'viewPoi' => $actor->can('viewAny', PersonOfInterest::class),
                 'designatePoi' => $actor->can('create', [PersonOfInterest::class, $person]),
                 'viewGroups' => $actor->can('viewAny', CriminalGroup::class),
+            ],
+        ]);
+    }
+
+    /**
+     * The person page for a user whose only access is a grant (Phase 3C):
+     * every view is access-logged with context "grant"; only the grant
+     * scope's fields and tabs; nothing editable; nothing linked.
+     */
+    private function showUnderGrant(Request $request, Person $person, User $actor, RecordAccessGrant $grant, GrantedPersonView $grantedView): Response
+    {
+        $full = $grant->scope === GrantScope::Full;
+        $tabs = self::GRANT_TABS[$grant->scope->value];
+        $tab = in_array($request->query('tab'), $tabs, true) ? (string) $request->query('tab') : 'profile';
+
+        $person->recordAccess(context: 'grant');
+        Inertia::encryptHistory();
+
+        $person->load(['roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)]);
+        $current = $person->media->sortByDesc('id')->first();
+        $fields = [...self::GRANT_PROFILE_FIELDS, ...($full ? self::GRANT_FULL_EXTRA_FIELDS : [])];
+        $extra = $full ? $grantedView->full($person, $actor, $grant) : null;
+        $grant->loadMissing(['request.owningState']);
+        AccessRequestParties::attach($grant);
+
+        return Inertia::render('persons/show', [
+            'person' => [
+                ...array_intersect_key(PersonPresenter::detail($person), array_flip($fields)),
+                'state' => null,
+                'lga' => null,
+                'community' => null,
+            ],
+            'photo' => $current instanceof Media ? PersonPresenter::photo($person, $current, true) : null,
+            'tab' => $tab,
+            'tabs' => $tabs,
+            'options' => PersonPresenter::options(),
+            'aliases' => $person->aliases()->orderBy('alias')->get()->map(fn (PersonAlias $alias) => PersonPresenter::alias($alias))->all(),
+            'associations' => null,
+            'grantAssociations' => $tab === 'associations' ? $extra['associations'] ?? [] : null,
+            'photos' => null,
+            'history' => null,
+            'politicalOffices' => $tab === 'political_offices' ? $extra['politicalOffices'] ?? null : null,
+            'poi' => $tab === 'poi' ? $extra['poi'] ?? null : null,
+            'groupMemberships' => null,
+            'grantMemberships' => $tab === 'group_memberships' ? $extra['groupMemberships'] ?? [] : null,
+            'poiOptions' => null,
+            'grant' => [
+                'scope' => ['value' => $grant->scope->value, 'label' => $grant->scope->label()],
+                'grantedBy' => $grant->granter->name,
+                'state' => $grant->request->owningState->name,
+                'expiresAt' => $grant->expires_at->toIso8601String(),
+            ],
+            'can' => [
+                'update' => false,
+                'delete' => false,
+                'viewPolitical' => $full,
+                'addOffice' => false,
+                'viewPoi' => $full,
+                'designatePoi' => false,
+                'viewGroups' => $full,
             ],
         ]);
     }
@@ -222,7 +349,7 @@ class PersonController extends Controller
     /**
      * @param  array{q: string, role: string, state: string, lga: string, gender: string, classification: string}  $filters
      */
-    private function searchPage(User $actor, JurisdictionOptions $options, array $filters): Response
+    private function searchPage(User $actor, JurisdictionOptions $options, PersonMatchService $matches, array $filters): Response
     {
         $states = $options->states($actor);
         $state = $filters['state'] !== '' ? $states->firstWhere('ulid', $filters['state']) : null;
@@ -254,6 +381,10 @@ class PersonController extends Controller
             default => PersonSearch::withThresholds(PersonSearch::SIMILARITY, PersonSearch::WORD_SIMILARITY, fn () => PersonSearch::byName($query, $term->raw)->limit($limit + 1)->get()),
         };
 
+        $cross = $actor->can('create', RecordAccessRequest::class)
+            ? ($term->isEmpty() ? new MatchResult(new Collection, []) : $matches->match(MatchCriteria::fromSearchTerm($term), $actor, MatchContext::PersonSearch))
+            : null;
+
         Inertia::encryptHistory();
 
         return Inertia::render('persons/index', [
@@ -265,6 +396,13 @@ class PersonController extends Controller
             'options' => PersonPresenter::options(),
             'states' => $states->count() > 1 ? $states->map(fn ($s) => ['ulid' => $s->ulid, 'name' => $s->name])->values() : [],
             'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['ulid' => $l->ulid, 'name' => $l->name])->values() : [],
+            // Records elsewhere (Phase 3C): null when the user never gets hits
+            // (national users, and anyone who may not request access).
+            'crossJurisdiction' => $cross === null ? null : [
+                'hits' => $cross->hitsArray(),
+                'limitReached' => $cross->limitReached,
+                'options' => AccessRequestPresenter::options(),
+            ],
             'can' => ['create' => $actor->can('create', Person::class)],
         ]);
     }

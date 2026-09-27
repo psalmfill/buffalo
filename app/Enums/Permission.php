@@ -65,4 +65,11 @@ enum Permission: string
     case CriminalGroupsView = 'criminal_groups.view';
     case CriminalGroupsManage = 'criminal_groups.manage';
     case CriminalGroupsDelete = 'criminal_groups.delete';
+
+    // Cross-jurisdiction access (Phase 3C). Deputies decide only while
+    // holding an active delegation (AccessRequestApprovers).
+    case AccessRequestsCreate = 'access_requests.create';
+    case AccessRequestsDecide = 'access_requests.decide';
+    case AccessRequestsOversee = 'access_requests.oversee';
+    case DelegationsManage = 'delegations.manage';
 }

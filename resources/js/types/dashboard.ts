@@ -1,3 +1,4 @@
+import type { AccessFiguresData } from '@/components/dashboard/access-figures';
 import type {
     PoiPlaceRow,
     RiskCount,
@@ -36,6 +37,7 @@ export type SystemDashboardProps = {
 };
 
 export type NationalDashboardProps = {
+    access: AccessFiguresData | null;
     scope: { label: string; zones: string[]; states: number; lgas: number };
     completenessByState: { state: string; lgas: number; average: number }[];
     threats: {
@@ -56,6 +58,7 @@ export type NationalDashboardProps = {
 };
 
 export type StateDashboardProps = {
+    access: AccessFiguresData | null;
     state: { ulid: string; name: string; label: string; zone: string | null };
     lgas: {
         ulid: string;
@@ -86,6 +89,7 @@ export type StateDashboardProps = {
 };
 
 export type LgaDashboardProps = {
+    access: AccessFiguresData | null;
     lga: {
         ulid: string;
         name: string;

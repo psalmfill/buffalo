@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import { KeyRound, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import PersonAliasController from '@/actions/App/Http/Controllers/Persons/PersonAliasController';
@@ -24,7 +24,8 @@ import { Spinner } from '@/components/ui/spinner';
 import ActivityTable from '@/components/users/activity-table';
 import ConfirmActionDialog from '@/components/users/confirm-action-dialog';
 import { cn } from '@/lib/utils';
-import type { NamedRef } from '@/types/local-government';
+import type { GrantBanner } from '@/types/access-requests';
+import type { NamedRef, Option } from '@/types/local-government';
 import type { Paginated } from '@/types/pagination';
 import type {
     PersonAlias,
@@ -68,6 +69,24 @@ type Props = {
     poi: PoiDetail | null;
     poiOptions: PoiOptions | null;
     groupMemberships: GroupMember[] | null;
+    /** Set when the page is shown only under a cross-jurisdiction grant. */
+    grant: GrantBanner | null;
+    grantAssociations?:
+        | {
+              ulid: string;
+              name: string;
+              relationship: Option;
+          }[]
+        | null;
+    grantMemberships?:
+        | {
+              ulid: string;
+              group: { name: string; type: Option };
+              role_in_group: string | null;
+              membership_status: Option;
+              since: string | null;
+          }[]
+        | null;
     can: {
         update: boolean;
         delete: boolean;
@@ -500,15 +519,37 @@ export default function PersonShow({
     poi,
     poiOptions,
     groupMemberships,
+    grant,
+    grantAssociations,
+    grantMemberships,
     can,
 }: Props) {
     const [deleting, setDeleting] = useState(false);
     const activeRoles = person.all_roles.filter((role) => role.is_active);
+    // A profile-only grant withholds NIN, phone and address: hide them
+    // rather than show them as not recorded.
+    const withheld = grant?.scope.value === 'profile';
 
     return (
         <>
             <Head title={person.name} />
             <div className="space-y-6 p-4">
+                {grant && (
+                    <div
+                        role="status"
+                        data-test="grant-banner"
+                        className="flex items-start gap-3 rounded-lg border border-amber-500/50 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                    >
+                        <KeyRound className="mt-0.5 size-4 shrink-0" />
+                        <span>
+                            You are viewing this record under temporary access
+                            granted by {grant.grantedBy}, {grant.state} State.
+                            Read-only. Expires{' '}
+                            {new Date(grant.expiresAt).toLocaleString('en-NG')}.
+                            ({grant.scope.label})
+                        </span>
+                    </div>
+                )}
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <PersonAvatar
@@ -528,11 +569,14 @@ export default function PersonShow({
                                     <Badge variant="secondary">Deceased</Badge>
                                 )}
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                                {person.lga.name} LGA, {person.state.name} State
-                                {person.community &&
-                                    ` · ${person.community.name}`}
-                            </p>
+                            {person.lga && person.state && (
+                                <p className="text-sm text-muted-foreground">
+                                    {person.lga.name} LGA, {person.state.name}{' '}
+                                    State
+                                    {person.community &&
+                                        ` · ${person.community.name}`}
+                                </p>
+                            )}
                             {activeRoles.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                     {activeRoles.map((role) => (
@@ -622,16 +666,20 @@ export default function PersonShow({
                                     person.approximate_age?.toString() ?? null
                                 }
                             />
-                            <Fact
-                                label="NIN"
-                                value={person.nin}
-                                protectedField
-                            />
-                            <Fact
-                                label="Phone number"
-                                value={person.phone}
-                                protectedField
-                            />
+                            {!withheld && (
+                                <Fact
+                                    label="NIN"
+                                    value={person.nin}
+                                    protectedField
+                                />
+                            )}
+                            {!withheld && (
+                                <Fact
+                                    label="Phone number"
+                                    value={person.phone}
+                                    protectedField
+                                />
+                            )}
                             <Fact
                                 label="Occupation"
                                 value={person.occupation}
@@ -640,13 +688,15 @@ export default function PersonShow({
                                 label="Nationality"
                                 value={person.nationality}
                             />
-                            <div className="sm:col-span-2">
-                                <Fact
-                                    label="Address"
-                                    value={person.address}
-                                    protectedField
-                                />
-                            </div>
+                            {!withheld && (
+                                <div className="sm:col-span-2">
+                                    <Fact
+                                        label="Address"
+                                        value={person.address}
+                                        protectedField
+                                    />
+                                </div>
+                            )}
                             <div className="sm:col-span-3">
                                 <Fact
                                     label="Description"
@@ -743,6 +793,59 @@ export default function PersonShow({
                 )}
                 {tab === 'group_memberships' && groupMemberships && (
                     <GroupMembershipsPanel memberships={groupMemberships} />
+                )}
+                {tab === 'associations' && grantAssociations && (
+                    <ul className="divide-y rounded-lg border text-sm">
+                        {grantAssociations.length === 0 && (
+                            <li className="p-3 text-muted-foreground">
+                                No associations you may see.
+                            </li>
+                        )}
+                        {grantAssociations.map((a) => (
+                            <li
+                                key={a.ulid}
+                                className="flex justify-between px-3 py-2"
+                            >
+                                <span className="font-medium">{a.name}</span>
+                                <span className="text-muted-foreground">
+                                    {a.relationship.label}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                {tab === 'group_memberships' && grantMemberships && (
+                    <ul className="divide-y rounded-lg border text-sm">
+                        {grantMemberships.length === 0 && (
+                            <li className="p-3 text-muted-foreground">
+                                No group memberships you may see.
+                            </li>
+                        )}
+                        {grantMemberships.map((m) => (
+                            <li
+                                key={m.ulid}
+                                className="flex flex-wrap justify-between gap-2 px-3 py-2"
+                            >
+                                <span>
+                                    <span className="font-medium">
+                                        {m.group.name}
+                                    </span>{' '}
+                                    <span className="text-muted-foreground">
+                                        ({m.group.type.label})
+                                    </span>
+                                </span>
+                                <span className="text-muted-foreground">
+                                    {[
+                                        m.role_in_group,
+                                        m.membership_status.label,
+                                        m.since,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
                 )}
                 {tab === 'history' && history && (
                     <div className="space-y-3">

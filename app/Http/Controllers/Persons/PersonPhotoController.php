@@ -8,6 +8,7 @@ use App\Http\Requests\Persons\PersonPhotoRequest;
 use App\Models\Media;
 use App\Models\Person;
 use App\Models\User;
+use App\Support\Jurisdiction\JurisdictionGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -38,9 +39,14 @@ class PersonPhotoController extends Controller
             ->with('toast', ['type' => 'success', 'message' => 'Photo added.']);
     }
 
-    public function show(Request $request, Person $person, Media $media, ?string $conversion = null): StreamedResponse
+    public function show(Request $request, Person $person, Media $media, JurisdictionGate $gate, ?string $conversion = null): StreamedResponse
     {
         $this->authorize('view', $person);
+        /** @var User $viewer */
+        $viewer = $request->user();
+
+        // Under a grant, only the current photo (Phase 3C).
+        abort_if($gate->viaGrantOnly($viewer, $person) && $person->currentPhoto()?->id !== $media->id, 404);
 
         abort_unless(
             $media->model_type === $person->getMorphClass()

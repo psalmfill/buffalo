@@ -28,8 +28,8 @@ export type PersonDetail = PersonRow & {
     first_name: string;
     last_name: string;
     other_names: string | null;
-    state: NamedRef;
-    lga: NamedRef;
+    state: NamedRef | null;
+    lga: NamedRef | null;
     community: NamedRef | null;
     date_of_birth: string | null;
     approximate_age: number | null;

@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
+import AccessFigures from '@/components/dashboard/access-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
@@ -28,6 +29,7 @@ export default function LgaDashboard({
     threats,
     map,
     placeholders,
+    access,
 }: LgaDashboardProps) {
     return (
         <>
@@ -99,6 +101,8 @@ export default function LgaDashboard({
                         overdue={threats.overdueReviews}
                     />
                 )}
+
+                {access && <AccessFigures data={access} />}
 
                 <PlaceholderCardGrid cards={placeholders} />
 

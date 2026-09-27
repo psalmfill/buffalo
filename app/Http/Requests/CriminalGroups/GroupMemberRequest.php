@@ -36,7 +36,8 @@ class GroupMemberRequest extends FormRequest
         $user = $this->user();
         $person = is_string($ulid) ? Person::query()->where('ulid', $ulid)->first() : null;
 
-        return $person !== null && $user->can('view', $person) ? $person : null;
+        // In the user's own jurisdiction: never a person seen only under a grant.
+        return $person !== null && $user->can('link', $person) ? $person : null;
     }
 
     /**
