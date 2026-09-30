@@ -338,3 +338,29 @@ test('only PersonMatchService queries persons across jurisdictions outside App\S
 
     expect($violations)->toBe([]);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Date of birth in the search box (Phase 4A.0)
+|--------------------------------------------------------------------------
+*/
+
+test('a name with a matching date of birth in the search box gives a likely match; a name alone does not', function () {
+    $world = JurisdictionWorld::build();
+    CrossFixtures::person($world->lgas['B1'], ['nin' => null, 'first_name' => 'Ifeanyi', 'last_name' => 'Okoro', 'other_names' => null, 'date_of_birth' => '1980-05-05']);
+    $chief = $world->users['lga_chief'];
+
+    CrossFixtures::signIn($chief)->post('/persons/search', ['q' => 'Ifeanyi Okoro', 'dob' => '1980-05-05'])
+        ->assertInertia(fn ($page) => $page->has('crossJurisdiction.hits', 1)
+            ->where('crossJurisdiction.hits.0.strength', 'Likely match')
+            ->where('filters.dob', '1980-05-05'));
+
+    CrossFixtures::signIn($chief)->post('/persons/search', ['q' => 'Ifeanyi Okoro'])
+        ->assertInertia(fn ($page) => $page->has('crossJurisdiction.hits', 0));
+
+    CrossFixtures::signIn($chief)->post('/persons/search', ['q' => 'Ifeanyi Okoro', 'dob' => '1981-01-01'])
+        ->assertInertia(fn ($page) => $page->has('crossJurisdiction.hits', 0));
+
+    CrossFixtures::signIn($chief)->post('/persons/search', ['q' => 'Ifeanyi Okoro', 'dob' => now()->addDay()->toDateString()])
+        ->assertSessionHasErrors('dob');
+});

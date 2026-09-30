@@ -82,6 +82,7 @@ export type AccessRequestOptions = {
 
 /** The grant under which a person page is shown. */
 export type GrantBanner = {
+    ulid: string;
     scope: Option;
     grantedBy: string;
     state: string;

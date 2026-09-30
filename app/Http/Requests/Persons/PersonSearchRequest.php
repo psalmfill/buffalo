@@ -32,11 +32,13 @@ class PersonSearchRequest extends FormRequest
             'lga' => ['nullable', 'string', 'size:26'],
             'gender' => ['nullable', Rule::enum(Gender::class)],
             'classification' => ['nullable', Rule::enum(Classification::class)],
+            // Only used to check other jurisdictions by name (Phase 4A.0).
+            'dob' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
         ];
     }
 
     /**
-     * @return array{q: string, role: string, state: string, lga: string, gender: string, classification: string}
+     * @return array{q: string, role: string, state: string, lga: string, gender: string, classification: string, dob: string}
      */
     public function filters(): array
     {
@@ -49,6 +51,7 @@ class PersonSearchRequest extends FormRequest
             'lga' => (string) ($data['lga'] ?? ''),
             'gender' => (string) ($data['gender'] ?? ''),
             'classification' => (string) ($data['classification'] ?? ''),
+            'dob' => (string) ($data['dob'] ?? ''),
         ];
     }
 }

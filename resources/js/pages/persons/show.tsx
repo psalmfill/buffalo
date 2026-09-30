@@ -1,7 +1,8 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { KeyRound, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import GrantEndedWatcher from '@/components/access-requests/grant-ended-watcher';
 import PersonAliasController from '@/actions/App/Http/Controllers/Persons/PersonAliasController';
 import PersonAssociationController from '@/actions/App/Http/Controllers/Persons/PersonAssociationController';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
@@ -529,11 +530,40 @@ export default function PersonShow({
     // A profile-only grant withholds NIN, phone and address: hide them
     // rather than show them as not recorded.
     const withheld = grant?.scope.value === 'profile';
+    const [grantEnded, setGrantEnded] = useState(false);
+    const endGrant = useCallback(() => setGrantEnded(true), []);
+
+    if (grant && grantEnded) {
+        return (
+            <>
+                <Head title="Access ended" />
+                <div className="p-4">
+                    <div
+                        role="status"
+                        data-test="grant-ended"
+                        className="flex items-start gap-3 rounded-lg border p-4 text-sm"
+                    >
+                        <KeyRound className="mt-0.5 size-4 shrink-0" />
+                        <span>
+                            Your temporary access to this record has ended.
+                        </span>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
             <Head title={person.name} />
             <div className="space-y-6 p-4">
+                {grant && (
+                    <GrantEndedWatcher
+                        grantUlid={grant.ulid}
+                        expiresAt={grant.expiresAt}
+                        onEnded={endGrant}
+                    />
+                )}
                 {grant && (
                     <div
                         role="status"

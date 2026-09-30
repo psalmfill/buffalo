@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AccessGrantEnded;
 use App\Models\RecordAccessGrant;
 use App\Notifications\AccessGrantChanged;
 use App\Support\Audit\AuditLog;
@@ -45,6 +46,7 @@ class ExpireAccessGrants extends Command
             $grant->forceFill(['expiry_notified_at' => $now])->save();
             AuditLog::event('access_grant_expired', 'Temporary access expired', $grant->request, ['grant' => $grant->ulid]);
             $grant->user->notify(new AccessGrantChanged($grant->request->ulid, 'expired', $grant->expires_at->toDayDateTimeString()));
+            AccessGrantEnded::dispatch($grant, $grant->user->ulid);
         }
 
         $this->components->info("Grants reminded: {$expiring->count()}; ended: {$ended->count()}.");

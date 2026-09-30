@@ -2,8 +2,10 @@
 
 use App\Actions\AccessRequests\DecideAccessRequest;
 use App\Actions\AccessRequests\RequestAccess;
+use App\Actions\AccessRequests\RevokeGrant;
 use App\Enums\Classification;
 use App\Enums\GrantScope;
+use App\Events\AccessGrantEnded;
 use App\Models\CriminalGroup;
 use App\Models\CriminalGroupMember;
 use App\Models\Person;
@@ -14,6 +16,7 @@ use App\Models\RecordAccessLog;
 use App\Notifications\AccessGrantChanged;
 use App\Support\Jurisdiction\JurisdictionContext;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\CrossJurisdiction\CrossFixtures;
@@ -227,4 +230,36 @@ test('a grant shows linked records only on the person page, never through their 
     expect($visible)->toBe([0, 0])
         ->and($this->chief->can('update', $poi))->toBeFalse()
         ->and($this->chief->can('update', $office))->toBeFalse();
+});
+
+test('revoking a grant broadcasts AccessGrantEnded to the holder with the grant ULID only', function () {
+    Event::fake([AccessGrantEnded::class]);
+    $grant = CrossFixtures::grant($this->chief, $this->owner);
+
+    app(RevokeGrant::class)($grant, $this->owner, 'Case closed');
+
+    Event::assertDispatched(AccessGrantEnded::class, function (AccessGrantEnded $event) use ($grant) {
+        return $event->broadcastOn()->name === 'private-users.'.$this->chief->ulid
+            && $event->broadcastWith() === ['grant' => $grant->ulid]
+            && $event->broadcastAs() === 'access-grant.ended';
+    });
+});
+
+test('an expired grant broadcasts AccessGrantEnded once', function () {
+    Event::fake([AccessGrantEnded::class]);
+    $grant = CrossFixtures::grant($this->chief, $this->owner, GrantScope::Profile, 7);
+
+    $this->travel(8)->days();
+    $this->artisan('buffalo:expire-access-grants')->assertSuccessful();
+    $this->artisan('buffalo:expire-access-grants')->assertSuccessful();
+
+    Event::assertDispatchedTimes(AccessGrantEnded::class, 1);
+    Event::assertDispatched(AccessGrantEnded::class, fn (AccessGrantEnded $event) => $event->broadcastWith() === ['grant' => $grant->ulid]);
+});
+
+test('the person page under a grant carries the grant ULID for the live end', function () {
+    $grant = CrossFixtures::grant($this->chief, $this->owner);
+
+    CrossFixtures::signIn($this->chief)->get("/persons/{$this->person->ulid}")
+        ->assertInertia(fn ($page) => $page->where('grant.ulid', $grant->ulid));
 });

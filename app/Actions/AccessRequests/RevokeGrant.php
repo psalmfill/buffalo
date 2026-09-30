@@ -2,6 +2,7 @@
 
 namespace App\Actions\AccessRequests;
 
+use App\Events\AccessGrantEnded;
 use App\Models\RecordAccessGrant;
 use App\Models\User;
 use App\Notifications\AccessGrantChanged;
@@ -29,5 +30,6 @@ final class RevokeGrant
 
         AccessRequestParties::attach($grant);
         $grant->user->notify(new AccessGrantChanged($grant->request->ulid, 'revoked', $grant->expires_at->toDayDateTimeString()));
+        AccessGrantEnded::dispatch($grant, $grant->user->ulid);
     }
 }

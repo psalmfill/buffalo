@@ -191,6 +191,29 @@ export default function PersonsIndex({
                             'Any',
                         )}
                     </div>
+                    {crossJurisdiction !== null && (
+                        <div className="grid max-w-xs gap-2">
+                            <Label htmlFor="filter-dob">
+                                Date of birth (optional)
+                            </Label>
+                            <Input
+                                id="filter-dob"
+                                type="date"
+                                max={new Date().toISOString().slice(0, 10)}
+                                value={values.dob}
+                                onChange={(event) =>
+                                    setValues({
+                                        ...values,
+                                        dob: event.target.value,
+                                    })
+                                }
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Add a date of birth to check other states'
+                                records by name.
+                            </p>
+                        </div>
+                    )}
                     {kind !== 'none' && (
                         <p className="text-xs text-muted-foreground">
                             {KIND_LABELS[kind]}

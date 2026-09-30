@@ -86,6 +86,8 @@ export type PersonSearchFilters = {
     lga: string;
     gender: string;
     classification: string;
+    /** Optional date of birth, used only to check other jurisdictions by name. */
+    dob: string;
 };
 
 /** A person linked from another record (traditional ruler, leader). */

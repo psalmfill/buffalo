@@ -51,6 +51,9 @@ use Inertia\Response;
  */
 class AccessRequestController extends Controller
 {
+    /** Rows per page in each oversight list (Phase 4A.0). */
+    private const OVERSIGHT_PAGE = 25;
+
     public function __construct(private readonly AccessRequestApprovers $approvers) {}
 
     public function index(Request $request, JurisdictionOptions $options): Response
@@ -384,21 +387,21 @@ class AccessRequestController extends Controller
             ->when($officer, fn (Builder $q) => $q->where('requester_id', $officer?->id))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status))
             ->whereBetween('created_at', [$from, $to])
-            ->latest('id')->limit(100)->get();
+            ->latest('id')->paginate(self::OVERSIGHT_PAGE, ['*'], 'requests_page')->withQueryString();
 
         $events = $this->inReach($user, RecordMatchEvent::query())
             ->with(['owningState'])
             ->when($state, fn (Builder $q) => $q->where('owning_state_id', $state?->id))
             ->when($officer, fn (Builder $q) => $q->where('user_id', $officer?->id))
             ->whereBetween('created_at', [$from, $to])
-            ->latest('id')->limit(200)->get();
+            ->latest('id')->paginate(self::OVERSIGHT_PAGE, ['*'], 'events_page')->withQueryString();
 
         $grants = RecordAccessGrant::query()->with(['request.owningState', 'request.requesterState', 'request.requesterLga'])
             ->whereHas('request', fn (Builder $q) => $this->inReach($user, $q)->when($state, fn (Builder $w) => $w->where('owning_state_id', $state?->id)))
             ->when($officer, fn (Builder $q) => $q->where('user_id', $officer?->id))
             ->whereBetween('created_at', [$from, $to])
-            ->latest('id')->limit(100)->get();
-        AccessRequestParties::attach([...$requests, ...$events, ...$grants]);
+            ->latest('id')->paginate(self::OVERSIGHT_PAGE, ['*'], 'grants_page')->withQueryString();
+        AccessRequestParties::attach([...$requests->items(), ...$events->items(), ...$grants->items()]);
 
         $soft = (int) config('buffalo.cross_jurisdiction.soft_daily_limit', 20);
         $today = CarbonImmutable::today();
@@ -422,14 +425,14 @@ class AccessRequestController extends Controller
             ],
             'states' => $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values(),
             'statuses' => array_map(fn (AccessRequestStatus $s) => AccessRequestPresenter::option($s), AccessRequestStatus::cases()),
-            'requests' => array_values($requests->map(fn (RecordAccessRequest $r) => AccessRequestPresenter::row($r))->all()),
-            'grants' => array_values($grants->map(fn (RecordAccessGrant $g) => [
+            'requests' => $requests->through(fn (RecordAccessRequest $r) => AccessRequestPresenter::row($r)),
+            'grants' => $grants->through(fn (RecordAccessGrant $g) => [
                 ...AccessRequestPresenter::grant($g),
                 'request' => AccessRequestPresenter::row($g->request),
                 'granted_by' => $g->granter->name,
                 'can_revoke' => $user->can('revoke', $g),
-            ])->all()),
-            'events' => array_values($events->map(fn (RecordMatchEvent $e) => AccessRequestPresenter::event($e))->all()),
+            ]),
+            'events' => $events->through(fn (RecordMatchEvent $e) => AccessRequestPresenter::event($e)),
             'officers' => array_values($perOfficer->map(function (object $row) use ($officers, $soft): array {
                 $officer = $officers->get($row->user_id);
 

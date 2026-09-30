@@ -82,7 +82,7 @@ class PersonController extends Controller
     {
         $this->authorize('viewAny', Person::class);
 
-        return $this->searchPage($this->actor($request), $options, $matches, ['q' => '', 'role' => '', 'state' => '', 'lga' => '', 'gender' => '', 'classification' => '']);
+        return $this->searchPage($this->actor($request), $options, $matches, ['q' => '', 'role' => '', 'state' => '', 'lga' => '', 'gender' => '', 'classification' => '', 'dob' => '']);
     }
 
     public function search(PersonSearchRequest $request, JurisdictionOptions $options, PersonMatchService $matches): Response
@@ -301,6 +301,7 @@ class PersonController extends Controller
             'grantMemberships' => $tab === 'group_memberships' ? $extra['groupMemberships'] ?? [] : null,
             'poiOptions' => null,
             'grant' => [
+                'ulid' => $grant->ulid,
                 'scope' => ['value' => $grant->scope->value, 'label' => $grant->scope->label()],
                 'grantedBy' => $grant->granter->name,
                 'state' => $grant->request->owningState->name,
@@ -347,7 +348,7 @@ class PersonController extends Controller
     }
 
     /**
-     * @param  array{q: string, role: string, state: string, lga: string, gender: string, classification: string}  $filters
+     * @param  array{q: string, role: string, state: string, lga: string, gender: string, classification: string, dob: string}  $filters
      */
     private function searchPage(User $actor, JurisdictionOptions $options, PersonMatchService $matches, array $filters): Response
     {
@@ -382,7 +383,7 @@ class PersonController extends Controller
         };
 
         $cross = $actor->can('create', RecordAccessRequest::class)
-            ? ($term->isEmpty() ? new MatchResult(new Collection, []) : $matches->match(MatchCriteria::fromSearchTerm($term), $actor, MatchContext::PersonSearch))
+            ? ($term->isEmpty() ? new MatchResult(new Collection, []) : $matches->match(MatchCriteria::fromSearchTerm($term, $filters['dob'] === '' ? null : $filters['dob']), $actor, MatchContext::PersonSearch))
             : null;
 
         Inertia::encryptHistory();

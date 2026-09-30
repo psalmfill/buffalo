@@ -13,6 +13,7 @@ use App\Enums\Role;
 use App\Models\ApprovalDelegation;
 use App\Models\RecordAccessGrant;
 use App\Models\RecordAccessRequest;
+use App\Models\RecordMatchEvent;
 use App\Notifications\AccessRequestDecided;
 use App\Notifications\AccessRequestEscalated;
 use App\Notifications\AccessRequestExpired;
@@ -316,4 +317,31 @@ test('the index shows each role its own tabs', function () {
     CrossFixtures::signIn($this->world->users['director_general'])->get('/access-requests')
         ->assertInertia(fn ($page) => $page->where('tabs', fn ($tabs) => collect($tabs)->contains('oversight')));
     CrossFixtures::signIn($this->world->users['super_admin'])->get('/access-requests')->assertForbidden();
+});
+
+test('oversight lists are paginated 25 per page and keep the filters', function () {
+    CrossFixtures::system();
+    foreach (range(1, 30) as $n) {
+        RecordMatchEvent::query()->forceCreate([
+            'user_id' => $this->chief->id,
+            'subject_type' => $this->person->getMorphClass(),
+            'subject_id' => $this->person->id,
+            'owning_state_id' => $this->person->state_id,
+            'owning_lga_id' => $this->person->lga_id,
+            'match_type' => 'exact',
+            'context' => 'person_search',
+            'suppressed' => false,
+        ]);
+    }
+    $dg = $this->world->users['director_general'];
+    $state = $this->world->states['B1']->ulid;
+
+    CrossFixtures::signIn($dg)->get("/access-requests?tab=oversight&state={$state}")
+        ->assertInertia(fn ($page) => $page->has('oversight.events.data', 25)
+            ->where('oversight.events.total', 30)
+            ->where('oversight.events.next_page_url', fn (string $url) => str_contains($url, 'events_page=2') && str_contains($url, "state={$state}")));
+
+    CrossFixtures::signIn($dg)->get("/access-requests?tab=oversight&state={$state}&events_page=2")
+        ->assertInertia(fn ($page) => $page->has('oversight.events.data', 5)
+            ->where('oversight.filters.state', $state));
 });

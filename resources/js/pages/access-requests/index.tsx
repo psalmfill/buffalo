@@ -43,9 +43,9 @@ type Oversight = {
     };
     states: Option[];
     statuses: Option[];
-    requests: AccessRequestRow[];
-    grants: GrantRow[];
-    events: MatchEventRow[];
+    requests: Paginated<AccessRequestRow>;
+    grants: Paginated<GrantRow>;
+    events: Paginated<MatchEventRow>;
     officers: {
         ulid: string | null;
         name: string | null;
@@ -721,14 +721,19 @@ function OversightPanel({ data }: { data: Oversight }) {
 
             <section className="space-y-3">
                 <h2 className="text-sm font-semibold">Requests</h2>
-                <RequestsTable requests={data.requests} />
+                <RequestsTable requests={data.requests.data} />
+                <Pagination page={data.requests} />
             </section>
-            <GrantsTable title="Grants" grants={data.grants} />
+            <div className="space-y-3">
+                <GrantsTable title="Grants" grants={data.grants.data} />
+                <Pagination page={data.grants} />
+            </div>
             <section className="space-y-3">
                 <h2 className="text-sm font-semibold">
                     Match events (including suppressed)
                 </h2>
-                <EventsTable events={data.events} />
+                <EventsTable events={data.events.data} />
+                <Pagination page={data.events} />
             </section>
         </div>
     );

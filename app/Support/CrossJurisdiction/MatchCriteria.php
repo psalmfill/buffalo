@@ -24,13 +24,17 @@ final readonly class MatchCriteria
         public ?string $gender = null,
     ) {}
 
-    public static function fromSearchTerm(SearchTerm $term): self
+    /**
+     * A search box entry. The optional date of birth (Phase 4A.0) lets a
+     * name produce `strong` matches; a name alone never produces a hit.
+     */
+    public static function fromSearchTerm(SearchTerm $term, ?string $dateOfBirth = null): self
     {
         if ($term->isNumber()) {
             return new self(nin: $term->nin, phone: $term->phone);
         }
 
-        return new self(name: $term->isEmpty() ? null : $term->raw);
+        return new self(name: $term->isEmpty() ? null : $term->raw, dateOfBirth: $term->isEmpty() ? null : $dateOfBirth);
     }
 
     /**
