@@ -17,6 +17,7 @@ use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
 use App\Support\Dashboard\MapView;
+use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Dashboard\ThreatFigures;
 use App\Support\Jurisdiction\JurisdictionLabel;
@@ -86,6 +87,7 @@ final class BuildStateDashboard
                 'activeGroups' => $user->can('viewAny', CriminalGroup::class) ? $this->figures->activeGroups() : 0,
             ],
             'access' => app(AccessFigures::class)->for($user),
+            'organizations' => app(OrganizationFigures::class)->forState($user, $state),
             'coverage' => app(CoverageFigures::class)->forState($user, $state, $lgas),
             'map' => MapView::for($state),
             'placeholders' => PlaceholderCards::for($label),

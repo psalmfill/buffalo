@@ -5,6 +5,11 @@ import type {
     StateCoverageData,
 } from '@/components/dashboard/coverage-figures';
 import type {
+    LgaOrganizationData,
+    NationalOrganizationData,
+    StateOrganizationData,
+} from '@/components/dashboard/organization-figures';
+import type {
     PoiPlaceRow,
     RiskCount,
 } from '@/components/dashboard/threat-figures';
@@ -44,6 +49,7 @@ export type SystemDashboardProps = {
 export type NationalDashboardProps = {
     access: AccessFiguresData | null;
     coverage: NationalCoverageData | null;
+    organizations: NationalOrganizationData | null;
     scope: { label: string; zones: string[]; states: number; lgas: number };
     completenessByState: { state: string; lgas: number; average: number }[];
     threats: {
@@ -66,6 +72,7 @@ export type NationalDashboardProps = {
 export type StateDashboardProps = {
     access: AccessFiguresData | null;
     coverage: StateCoverageData | null;
+    organizations: StateOrganizationData | null;
     state: { ulid: string; name: string; label: string; zone: string | null };
     lgas: {
         ulid: string;
@@ -98,6 +105,7 @@ export type StateDashboardProps = {
 export type LgaDashboardProps = {
     access: AccessFiguresData | null;
     coverage: LgaCoverageData | null;
+    organizations: LgaOrganizationData | null;
     lga: {
         ulid: string;
         name: string;

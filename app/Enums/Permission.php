@@ -80,4 +80,10 @@ enum Permission: string
     case CoverageView = 'coverage.view';
     case CoverageCreate = 'coverage.create';
     case CoverageReview = 'coverage.review';
+
+    // Organizations (Phase 4B): the national directory, sites and contacts.
+    case OrganizationsView = 'organizations.view';
+    case OrganizationsManage = 'organizations.manage';
+    case OrganizationsDelete = 'organizations.delete';
+    case OrganizationSitesDelete = 'organization_sites.delete';
 }

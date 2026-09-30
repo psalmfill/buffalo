@@ -52,6 +52,10 @@ export const PERMISSIONS = [
     'coverage.view',
     'coverage.create',
     'coverage.review',
+    'organizations.view',
+    'organizations.manage',
+    'organizations.delete',
+    'organization_sites.delete',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

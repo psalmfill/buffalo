@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
 use App\Support\Dashboard\MapView;
+use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Dashboard\ThreatFigures;
 use App\Support\Jurisdiction\JurisdictionLabel;
@@ -56,6 +57,7 @@ final class BuildLgaDashboard
                 'overdueReviews' => $this->figures->overdueReviews($lga->id),
             ] : null,
             'access' => app(AccessFigures::class)->for($user),
+            'organizations' => app(OrganizationFigures::class)->forLga($user, $lga),
             'coverage' => app(CoverageFigures::class)->forLga($user, $lga),
             'map' => MapView::for($lga),
             'placeholders' => PlaceholderCards::for($label),

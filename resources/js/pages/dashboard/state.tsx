@@ -4,6 +4,7 @@ import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOf
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import AccessFigures from '@/components/dashboard/access-figures';
+import { StateOrganizations } from '@/components/dashboard/organization-figures';
 import { StateCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
@@ -28,6 +29,7 @@ export default function StateDashboard({
     placeholders,
     access,
     coverage,
+    organizations,
 }: StateDashboardProps) {
     const { can } = useAuth();
     const vacant = lgas.filter((lga) => lga.chief === null).length;
@@ -86,6 +88,7 @@ export default function StateDashboard({
                 )}
 
                 {coverage && <StateCoverage data={coverage} />}
+                {organizations && <StateOrganizations data={organizations} />}
                 {access && <AccessFigures data={access} />}
 
                 <PlaceholderCardGrid cards={placeholders} />

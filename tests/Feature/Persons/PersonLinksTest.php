@@ -4,6 +4,7 @@ use App\Enums\Classification;
 use App\Enums\PersonRoleType;
 use App\Models\Community;
 use App\Models\Denomination;
+use App\Models\OrganizationSector;
 use App\Models\Person;
 use App\Models\PersonAssociation;
 use App\Models\Religion;
@@ -294,7 +295,7 @@ test('modules register their own usage checks', function () {
 
     expect($registry->isInUse($religion))->toBeTrue()
         ->and($registry->lookups())->toBe([Religion::class])
-        ->and(app(ReferenceUsageRegistry::class)->lookups())->toEqualCanonicalizing([Religion::class, Denomination::class, ThreatType::class, SecurityAgency::class]);
+        ->and(app(ReferenceUsageRegistry::class)->lookups())->toEqualCanonicalizing([Religion::class, Denomination::class, ThreatType::class, SecurityAgency::class, OrganizationSector::class]);
 });
 
 beforeEach(function () {

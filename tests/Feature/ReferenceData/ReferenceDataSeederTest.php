@@ -5,6 +5,7 @@ use App\Enums\IncidentCategory;
 use App\Enums\Severity;
 use App\Models\Denomination;
 use App\Models\IncidentType;
+use App\Models\OrganizationSector;
 use App\Models\PropertyType;
 use App\Models\Religion;
 use App\Models\SecurityAgency;
@@ -21,6 +22,7 @@ function counts(): array
         'religions' => Religion::query()->count(),
         'denominations' => Denomination::query()->count(),
         'property_types' => PropertyType::query()->count(),
+        'organization_sectors' => OrganizationSector::query()->count(),
     ];
 }
 
@@ -34,6 +36,7 @@ test('the seeder creates every default', function () {
         'religions' => 4,
         'denominations' => 9,
         'property_types' => 12,
+        'organization_sectors' => 19,
     ]);
 
     $kidnapping = IncidentType::query()->where('code', 'kidnapping')->sole();

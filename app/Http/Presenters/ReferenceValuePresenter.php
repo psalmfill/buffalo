@@ -65,7 +65,7 @@ final class ReferenceValuePresenter
             ],
             ReferenceTable::Denominations => [['key' => 'religion', 'label' => 'Religion']],
             ReferenceTable::Religions => [['key' => 'denominations', 'label' => 'Denominations']],
-            ReferenceTable::PropertyTypes => [],
+            ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors => [],
         };
     }
 
@@ -144,7 +144,7 @@ final class ReferenceValuePresenter
                     'createOnly' => true,
                 ],
             ],
-            ReferenceTable::Religions, ReferenceTable::PropertyTypes => [],
+            ReferenceTable::Religions, ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors => [],
         };
     }
 

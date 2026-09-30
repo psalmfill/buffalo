@@ -4,6 +4,7 @@ namespace App\Support\ReferenceData;
 
 use App\Models\Denomination;
 use App\Models\IncidentType;
+use App\Models\OrganizationSector;
 use App\Models\PropertyType;
 use App\Models\ReferenceModel;
 use App\Models\Religion;
@@ -22,9 +23,10 @@ enum ReferenceTable: string
     case Religions = 'religions';
     case Denominations = 'denominations';
     case PropertyTypes = 'property-types';
+    case OrganizationSectors = 'organization-sectors';
 
     /**
-     * @return class-string<IncidentType|ThreatType|SecurityAgency|Religion|Denomination|PropertyType>
+     * @return class-string<IncidentType|ThreatType|SecurityAgency|Religion|Denomination|PropertyType|OrganizationSector>
      */
     public function modelClass(): string
     {
@@ -35,11 +37,12 @@ enum ReferenceTable: string
             self::Religions => Religion::class,
             self::Denominations => Denomination::class,
             self::PropertyTypes => PropertyType::class,
+            self::OrganizationSectors => OrganizationSector::class,
         };
     }
 
     /**
-     * @return Builder<IncidentType>|Builder<ThreatType>|Builder<SecurityAgency>|Builder<Religion>|Builder<Denomination>|Builder<PropertyType>
+     * @return Builder<IncidentType>|Builder<ThreatType>|Builder<SecurityAgency>|Builder<Religion>|Builder<Denomination>|Builder<PropertyType>|Builder<OrganizationSector>
      */
     public function query(): Builder
     {
@@ -62,6 +65,7 @@ enum ReferenceTable: string
             self::Religions => 'Religions',
             self::Denominations => 'Denominations',
             self::PropertyTypes => 'Property types',
+            self::OrganizationSectors => 'Organization sectors',
         };
     }
 
@@ -74,6 +78,7 @@ enum ReferenceTable: string
             self::Religions => 'Religion',
             self::Denominations => 'Denomination',
             self::PropertyTypes => 'Property type',
+            self::OrganizationSectors => 'Organization sector',
         };
     }
 

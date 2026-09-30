@@ -88,7 +88,7 @@ class ReferenceValueRequest extends FormRequest
             ReferenceTable::Denominations => [
                 'religion' => $creating ? ['required', new ActiveOption(Religion::class)] : ['prohibited'],
             ],
-            ReferenceTable::Religions, ReferenceTable::PropertyTypes => [],
+            ReferenceTable::Religions, ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors => [],
         }];
     }
 

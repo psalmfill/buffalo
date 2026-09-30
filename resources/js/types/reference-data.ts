@@ -16,6 +16,8 @@ export type ReferenceRow = {
     sort_order: number;
     is_active: boolean;
     extras: Record<string, string | null>;
+    /** Referenced by records (index page only). */
+    in_use?: boolean;
 };
 
 /** An extra form field of a table (category, agency type, state…). */

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Base for the lookup tables (Phase 2A): IncidentType, ThreatType,
- * SecurityAgency, Religion, Denomination and PropertyType.
+ * SecurityAgency, Religion, Denomination, PropertyType and OrganizationSector.
  *
  * @property int $id
  * @property string $ulid

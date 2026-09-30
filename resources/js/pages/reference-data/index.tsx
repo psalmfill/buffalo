@@ -183,6 +183,14 @@ export default function ReferenceDataIndex({
                                                 ? 'Active'
                                                 : 'Inactive'}
                                         </Badge>
+                                        {row.in_use && (
+                                            <Badge
+                                                variant="outline"
+                                                className="ml-1"
+                                            >
+                                                In use
+                                            </Badge>
+                                        )}
                                     </td>
                                     {can.manage && (
                                         <td className="px-3 py-2 text-right whitespace-nowrap">

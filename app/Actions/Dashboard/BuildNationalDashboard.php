@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
 use App\Support\Dashboard\MapView;
+use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Dashboard\ThreatFigures;
 use App\Support\Jurisdiction\JurisdictionRules;
@@ -63,6 +64,7 @@ final class BuildNationalDashboard
             ],
             'completenessByState' => $this->completenessByState((clone $states)->orderBy('name')->get()),
             'access' => app(AccessFigures::class)->for($user),
+            'organizations' => app(OrganizationFigures::class)->national($user, (clone $states)->orderBy('name')->get()),
             'coverage' => app(CoverageFigures::class)->national($user, (clone $states)->orderBy('name')->get()),
             'map' => MapView::for(null),
             'placeholders' => PlaceholderCards::for($label),

@@ -7,6 +7,7 @@ use App\Enums\IncidentCategory;
 use App\Enums\Severity;
 use App\Models\Denomination;
 use App\Models\IncidentType;
+use App\Models\OrganizationSector;
 use App\Models\PropertyType;
 use App\Models\Religion;
 use App\Models\SecurityAgency;
@@ -35,6 +36,7 @@ class ReferenceDataSeeder extends Seeder
             $this->securityAgencies();
             $this->religions();
             $this->propertyTypes();
+            $this->organizationSectors();
         });
 
         $this->command->info("Reference data: {$this->created} missing entries created.");
@@ -271,6 +273,39 @@ class ReferenceDataSeeder extends Seeder
         $order = 0;
         foreach ($types as $code => $name) {
             $this->createMissing(PropertyType::class, ['code' => $code], [
+                'name' => $name,
+                'sort_order' => ++$order * 10,
+            ]);
+        }
+    }
+
+    private function organizationSectors(): void
+    {
+        $sectors = [
+            'oil_and_gas' => 'Oil and gas',
+            'mining' => 'Mining',
+            'manufacturing' => 'Manufacturing',
+            'agriculture' => 'Agriculture',
+            'construction' => 'Construction',
+            'telecommunications' => 'Telecommunications',
+            'banking_and_finance' => 'Banking and finance',
+            'transport_and_logistics' => 'Transport and logistics',
+            'maritime_and_ports' => 'Maritime and ports',
+            'markets_and_retail' => 'Markets and retail',
+            'hospitality' => 'Hospitality',
+            'education' => 'Education',
+            'health' => 'Health',
+            'media' => 'Media',
+            'private_security' => 'Private security',
+            'power_and_energy' => 'Power and energy',
+            'government_and_public_services' => 'Government and public services',
+            'non_profit' => 'Non-profit',
+            'other' => 'Other',
+        ];
+
+        $order = 0;
+        foreach ($sectors as $code => $name) {
+            $this->createMissing(OrganizationSector::class, ['code' => $code], [
                 'name' => $name,
                 'sort_order' => ++$order * 10,
             ]);

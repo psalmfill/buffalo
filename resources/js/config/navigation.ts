@@ -1,6 +1,7 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
+    Building2,
     ClipboardCheck,
     Crosshair,
     KeyRound,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
 import AgencyFormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
+import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
@@ -91,6 +93,7 @@ export const NAVIGATION: NavSection[] = [
         items: [
             { title: 'Agency formations', icon: Shield, href: AgencyFormationController.index(), permission: 'formations.view' },
             { title: 'Coverage reports', icon: ClipboardCheck, href: CoverageReportController.index(), permission: 'coverage.view', badge: 'coverageReview' },
+            { title: 'Organizations', icon: Building2, href: OrganizationController.index(), permission: 'organizations.view' },
         ],
     },
     {

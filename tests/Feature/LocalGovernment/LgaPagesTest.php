@@ -62,7 +62,7 @@ test('the LGA page has overview, profile and communities tabs', function () {
     $this->get("/lgas/{$lga->ulid}")->assertInertia(fn (Assert $page) => $page
         ->component('lgas/show')
         ->where('tab', 'overview')
-        ->where('tabs', ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence'])
+        ->where('tabs', ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations'])
         ->where('completeness.percent', 0)
         ->has('overview.chief')
         ->where('profile', null)

@@ -24,6 +24,8 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDateTime } from '@/lib/time';
+import LgaOrganizationsPanel from '@/components/organizations/lga-organizations-panel';
+import type { LgaOrganizationsTab } from '@/components/organizations/lga-organizations-panel';
 import LeadershipPanel from '@/components/political/leadership-panel';
 import SecurityPresencePanel from '@/components/security/security-presence-panel';
 import type { SecurityPresenceTab } from '@/components/security/security-presence-panel';
@@ -52,7 +54,8 @@ type Tab =
     | 'religious_institutions'
     | 'vulnerable_population'
     | 'security_notes'
-    | 'security_presence';
+    | 'security_presence'
+    | 'organizations';
 
 type Props = {
     lga: LgaFacts;
@@ -68,6 +71,7 @@ type Props = {
         viewLeadership: boolean;
         viewFormations: boolean;
         addFormation: boolean;
+        viewOrganizations: boolean;
     };
     options: InformationOptions;
     overview: { chief: NamedRef | null } | null;
@@ -79,6 +83,7 @@ type Props = {
     securityNotes: NotesTab | null;
     leadership: LgaLeadership | null;
     securityPresence: SecurityPresenceTab | null;
+    organizations: LgaOrganizationsTab | null;
 };
 
 // Later phases add their tabs here and in LgaController::TABS.
@@ -91,6 +96,7 @@ const TAB_LABELS: Record<Tab, string> = {
     vulnerable_population: 'Vulnerable population',
     security_notes: 'Security notes',
     security_presence: 'Security presence',
+    organizations: 'Organizations',
 };
 
 export default function LgaShow(props: Props) {
@@ -124,7 +130,9 @@ export default function LgaShow(props: Props) {
                                 (name !== 'leadership' ||
                                     props.can.viewLeadership) &&
                                 (name !== 'security_presence' ||
-                                    props.can.viewFormations),
+                                    props.can.viewFormations) &&
+                                (name !== 'organizations' ||
+                                    props.can.viewOrganizations),
                         )
                         .map((name) => (
                             <Link
@@ -184,6 +192,12 @@ export default function LgaShow(props: Props) {
                     )}
                 {tab === 'leadership' && props.leadership && (
                     <LeadershipPanel data={props.leadership} />
+                )}
+                {tab === 'organizations' && props.organizations && (
+                    <LgaOrganizationsPanel
+                        baseUrl={tabUrl(lga.ulid, tab)}
+                        data={props.organizations}
+                    />
                 )}
                 {tab === 'security_presence' && props.securityPresence && (
                     <SecurityPresencePanel

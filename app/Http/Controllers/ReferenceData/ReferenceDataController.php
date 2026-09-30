@@ -32,7 +32,7 @@ class ReferenceDataController extends Controller
         return redirect()->route('reference-data.index', ReferenceTable::IncidentTypes);
     }
 
-    public function index(Request $request, ReferenceTable $table): Response
+    public function index(Request $request, ReferenceTable $table, ReferenceUsage $usage): Response
     {
         $this->authorize('viewAny', $table->modelClass());
 
@@ -55,7 +55,9 @@ class ReferenceDataController extends Controller
             'tables' => array_map(fn (ReferenceTable $case) => ReferenceValuePresenter::table($case), ReferenceTable::cases()),
             'table' => ReferenceValuePresenter::table($table),
             'columns' => ReferenceValuePresenter::columns($table),
-            'values' => $values->map(fn (ReferenceModel $value) => ReferenceValuePresenter::row($value))->values(),
+            // In use by records (any jurisdiction; a yes/no only): such values
+            // can be deactivated but never removed.
+            'values' => $values->map(fn (ReferenceModel $value) => [...ReferenceValuePresenter::row($value), 'in_use' => $usage->isInUse($value)])->values(),
             'filters' => ['status' => $filters['status'] ?? '', 'search' => $filters['search'] ?? ''],
             'can' => ['manage' => $this->actor($request)->can('create', $table->modelClass())],
         ]);

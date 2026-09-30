@@ -206,6 +206,19 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 4B — Organizations (directory, sites, contacts)
+            // ---------------------------------------------------------------
+            'organizations' => [
+                Permission::OrganizationsView->value => self::INTELLIGENCE_ROLES,
+                Permission::OrganizationsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::OrganizationsDelete->value => [
+                    Role::DirectorGeneral,
+                    Role::DeputyDirectorGeneral,
+                ],
+                Permission::OrganizationSitesDelete->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

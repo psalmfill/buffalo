@@ -6,17 +6,20 @@ use App\Actions\LocalGovernment\MarkLgaProfileReviewed;
 use App\Actions\LocalGovernment\UpdateLgaProfile;
 use App\Enums\JurisdictionLevel;
 use App\Enums\Permission;
+use App\Enums\SecurityRelevance;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\AgencyFormationPresenter;
 use App\Http\Presenters\CommunityInformationPresenter;
 use App\Http\Presenters\CommunityPresenter;
 use App\Http\Presenters\LgaPresenter;
+use App\Http\Presenters\OrganizationPresenter;
 use App\Http\Requests\LocalGovernment\LgaProfileRequest;
 use App\Models\AgencyFormation;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
 use App\Models\LgaProfile;
+use App\Models\OrganizationSite;
 use App\Models\PoliticalOffice;
 use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
@@ -44,7 +47,7 @@ class LgaController extends Controller
     /**
      * Tabs of an LGA page. Phase 2C and later phases add theirs here.
      */
-    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence'];
+    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations'];
 
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
@@ -134,6 +137,7 @@ class LgaController extends Controller
                 'viewLeadership' => $user->can('viewAny', PoliticalOffice::class),
                 'viewFormations' => $user->can('viewAny', AgencyFormation::class),
                 'addFormation' => $user->can('create', AgencyFormation::class),
+                'viewOrganizations' => $user->can('viewAny', OrganizationSite::class),
                 // For showing row actions; each action is authorised on the record.
                 'deleteReligiousInstitutions' => $user->checkPermissionTo(Permission::ReligiousInstitutionsDelete->value),
                 'deleteVulnerableFigures' => $user->checkPermissionTo(Permission::VulnerableStatsDelete->value),
@@ -155,6 +159,10 @@ class LgaController extends Controller
             'securityNotes' => $tab === 'security_notes' && $user->can('viewAny', CommunitySecurityNote::class)
                 ? $data->securityNotes($lga, null, $request)
                 : null,
+            // Organization sites in the LGA (Phase 4B), through their own scopes.
+            'organizations' => $tab === 'organizations' && $user->can('viewAny', OrganizationSite::class)
+                ? $this->organizationSites($request, $lga)
+                : null,
             // Formations in the LGA (Phase 4A), through their own scopes.
             'securityPresence' => $tab === 'security_presence' && $user->can('viewAny', AgencyFormation::class)
                 ? [
@@ -168,6 +176,28 @@ class LgaController extends Controller
                 ]
                 : null,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function organizationSites(Request $request, Lga $lga): array
+    {
+        $relevance = SecurityRelevance::tryFrom((string) $request->query('relevance'));
+
+        return [
+            'sites' => OrganizationSite::query()->withCoordinates()->with(['organization', 'lga', 'state'])
+                ->where('organization_sites.lga_id', $lga->id)
+                ->when($relevance, fn ($q) => $q->where('organization_sites.security_relevance', $relevance?->value))
+                ->orderByRaw("CASE organization_sites.security_relevance WHEN 'critical_infrastructure' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END")
+                ->orderBy('organization_sites.name')
+                ->get()
+                ->map(fn (OrganizationSite $s) => OrganizationPresenter::site($s))
+                ->values(),
+            'relevance' => $relevance === null ? '' : $relevance->value,
+            'relevanceOptions' => array_map(fn (SecurityRelevance $r) => ['value' => $r->value, 'label' => $r->label()], SecurityRelevance::cases()),
+            'map' => MapView::for($lga),
+        ];
     }
 
     public function updateProfile(LgaProfileRequest $request, Lga $lga, UpdateLgaProfile $update): RedirectResponse
