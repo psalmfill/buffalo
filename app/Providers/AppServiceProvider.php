@@ -9,6 +9,7 @@ use App\Policies\ReferenceDataPolicy;
 use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
 use App\Support\CommunityInformation\ReferenceUsageChecks;
+use App\Support\Incidents\ReferenceUsageChecks as IncidentsReferenceUsageChecks;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
 use App\Support\Jurisdiction\ContextMode;
 use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
@@ -49,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
             ReferenceUsageChecks::register($registry);
             PersonsReferenceUsageChecks::register($registry);
             SecurityReferenceUsageChecks::register($registry);
+            IncidentsReferenceUsageChecks::register($registry);
 
             return $registry;
         });

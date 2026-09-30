@@ -17,11 +17,14 @@ export default function HitsPanel({
     limitReached,
     options,
     emptyText = 'No matching records in other jurisdictions.',
+    incidentUlid = null,
 }: {
     hits: Hit[];
     limitReached: boolean;
     options: AccessRequestOptions;
     emptyText?: string;
+    /** Cite this incident with any access request made from here. */
+    incidentUlid?: string | null;
 }) {
     const [requesting, setRequesting] = useState<Hit | null>(null);
 
@@ -78,6 +81,7 @@ export default function HitsPanel({
                     hit={requesting}
                     options={options}
                     onClose={() => setRequesting(null)}
+                    incidentUlid={incidentUlid}
                 />
             )}
         </section>

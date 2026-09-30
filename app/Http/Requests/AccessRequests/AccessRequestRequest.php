@@ -4,6 +4,9 @@ namespace App\Http\Requests\AccessRequests;
 
 use App\Enums\GrantScope;
 use App\Enums\RequestUrgency;
+use App\Models\Incident;
+use App\Models\User;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +36,17 @@ class AccessRequestRequest extends FormRequest
             'scope' => ['required', Rule::enum(GrantScope::class)],
             'urgency' => ['required', Rule::enum(RequestUrgency::class)],
             'requested_days' => ['required', 'integer', Rule::in([7, 14, 30])],
+            // The requester's own incident, cited as the reason (Phase 5A):
+            // it must be an incident the requester can see.
+            'incident' => ['nullable', 'string', function (string $attribute, mixed $value, Closure $fail): void {
+                $incident = $this->incident();
+                /** @var User $user */
+                $user = $this->user();
+
+                if ($incident === null || ! $user->can('view', $incident)) {
+                    $fail('Choose an incident you can view.');
+                }
+            }],
         ];
     }
 
@@ -45,7 +59,7 @@ class AccessRequestRequest extends FormRequest
     }
 
     /**
-     * @return array{reason: string, reference: string|null, scope: string, urgency: string, requested_days: int}
+     * @return array{reason: string, reference: string|null, scope: string, urgency: string, requested_days: int, incident_id: int|null}
      */
     public function values(): array
     {
@@ -57,6 +71,14 @@ class AccessRequestRequest extends FormRequest
             'scope' => (string) $data['scope'],
             'urgency' => (string) $data['urgency'],
             'requested_days' => (int) $data['requested_days'],
+            'incident_id' => $this->incident()?->id,
         ];
+    }
+
+    public function incident(): ?Incident
+    {
+        $ulid = $this->input('incident');
+
+        return is_string($ulid) ? Incident::query()->where('ulid', $ulid)->first() : null;
     }
 }

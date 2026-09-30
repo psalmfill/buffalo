@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $owning_state_id
  * @property int|null $owning_lga_id
  * @property int $match_event_id
+ * @property int|null $incident_id
  * @property string $reason
  * @property string|null $reference
  * @property GrantScope $scope
@@ -61,7 +62,7 @@ class RecordAccessRequest extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'requester_id', 'requester_state_id', 'requester_lga_id', 'subject_id', 'owning_state_id', 'owning_lga_id', 'match_event_id', 'decided_by'];
+    protected $hidden = ['id', 'requester_id', 'requester_state_id', 'requester_lga_id', 'subject_id', 'owning_state_id', 'owning_lga_id', 'match_event_id', 'decided_by', 'incident_id'];
 
     protected function casts(): array
     {

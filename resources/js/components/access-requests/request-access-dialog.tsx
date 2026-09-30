@@ -29,10 +29,13 @@ export default function RequestAccessDialog({
     hit,
     options,
     onClose,
+    incidentUlid,
 }: {
     hit: Hit;
     options: AccessRequestOptions;
     onClose: () => void;
+    /** The requester's own incident, cited with the request (Phase 5A). */
+    incidentUlid?: string | null;
 }) {
     const form = useForm({
         token: hit.token,
@@ -49,6 +52,7 @@ export default function RequestAccessDialog({
             ...data,
             reference: data.reference || null,
             requested_days: Number(data.requested_days),
+            incident: incidentUlid ?? null,
         }));
         form.post(AccessRequestController.store().url, {
             onSuccess: () => onClose(),

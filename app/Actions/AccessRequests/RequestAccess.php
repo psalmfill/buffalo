@@ -32,7 +32,7 @@ final class RequestAccess
     ) {}
 
     /**
-     * @param  array{reason: string, reference?: string|null, scope: string, urgency: string, requested_days: int}  $data
+     * @param  array{reason: string, reference?: string|null, scope: string, urgency: string, requested_days: int, incident_id?: int|null}  $data
      *
      * @throws ValidationException
      */
@@ -88,6 +88,7 @@ final class RequestAccess
                 'scope' => GrantScope::from($data['scope']),
                 'urgency' => RequestUrgency::from($data['urgency']),
                 'requested_days' => (int) $data['requested_days'],
+                'incident_id' => $data['incident_id'] ?? null,
                 'status' => AccessRequestStatus::Pending,
             ]);
 

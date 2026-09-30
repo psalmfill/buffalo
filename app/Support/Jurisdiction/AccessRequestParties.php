@@ -9,6 +9,7 @@ use App\Models\RecordMatchEvent;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Loads the officers involved in cross-jurisdiction access (Phase 3C):
@@ -81,6 +82,33 @@ final class AccessRequestParties
             ->whereKey($ids)
             ->get()
             ->keyBy('id');
+    }
+
+    /**
+     * "Related incident: [reference] — [type], [LGA]" for an access request
+     * citing the requester's own incident (Phase 5A). The approver usually
+     * cannot see that incident: this line (reference, type and LGA names)
+     * is all they get, never the incident itself.
+     */
+    public static function incidentLine(RecordAccessRequest $request): ?string
+    {
+        if ($request->incident_id === null) {
+            return null;
+        }
+
+        $row = DB::table('incidents as i')
+            ->join('incident_types as t', 't.id', '=', 'i.incident_type_id')
+            ->join('lgas as l', 'l.id', '=', 'i.lga_id')
+            ->where('i.id', $request->incident_id)
+            ->first(['i.reference_no', 't.name as type', 'l.name as lga']);
+
+        if ($row === null) {
+            return null;
+        }
+
+        $reference = is_string($row->reference_no) ? $row->reference_no : 'No reference yet';
+
+        return "{$reference} — {$row->type}, {$row->lga} LGA";
     }
 
     /**

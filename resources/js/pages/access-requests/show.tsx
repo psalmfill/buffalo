@@ -24,6 +24,8 @@ type Props = {
         reference: string | null;
         decision_note: string | null;
         decided_by: string | null;
+        /** "[reference] — [type], [LGA]": the requester's cited incident. */
+        related_incident: string | null;
     };
     requester: {
         ulid: string;
@@ -264,6 +266,13 @@ export default function AccessRequestShow({
                         <Fact label="Reference">
                             {request.reference ?? '—'}
                         </Fact>
+                        {request.related_incident && (
+                            <div className="sm:col-span-2">
+                                <Fact label="Related incident">
+                                    {request.related_incident}
+                                </Fact>
+                            </div>
+                        )}
                         <Fact label="Requested">
                             {request.scope.label}, {request.requested_days}{' '}
                             days, {request.urgency.label.toLowerCase()}

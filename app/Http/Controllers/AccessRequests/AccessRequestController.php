@@ -107,6 +107,7 @@ class AccessRequestController extends Controller
                 'reference' => $accessRequest->reference,
                 'decision_note' => $accessRequest->decision_note,
                 'decided_by' => $accessRequest->decider?->name,
+                'related_incident' => AccessRequestParties::incidentLine($accessRequest),
             ],
             'requester' => $isOwner ? AccessRequestPresenter::requester($accessRequest->requester) : null,
             'history' => $isOwner ? $this->history($accessRequest->requester) : null,
