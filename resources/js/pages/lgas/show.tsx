@@ -25,6 +25,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDateTime } from '@/lib/time';
 import LeadershipPanel from '@/components/political/leadership-panel';
+import SecurityPresencePanel from '@/components/security/security-presence-panel';
+import type { SecurityPresenceTab } from '@/components/security/security-presence-panel';
 import { cn } from '@/lib/utils';
 import type {
     InformationCan,
@@ -49,7 +51,8 @@ type Tab =
     | 'leadership'
     | 'religious_institutions'
     | 'vulnerable_population'
-    | 'security_notes';
+    | 'security_notes'
+    | 'security_presence';
 
 type Props = {
     lga: LgaFacts;
@@ -63,6 +66,8 @@ type Props = {
         addCommunity: boolean;
         importCommunities: boolean;
         viewLeadership: boolean;
+        viewFormations: boolean;
+        addFormation: boolean;
     };
     options: InformationOptions;
     overview: { chief: NamedRef | null } | null;
@@ -73,6 +78,7 @@ type Props = {
     vulnerablePopulation: VulnerableTab | null;
     securityNotes: NotesTab | null;
     leadership: LgaLeadership | null;
+    securityPresence: SecurityPresenceTab | null;
 };
 
 // Later phases add their tabs here and in LgaController::TABS.
@@ -84,6 +90,7 @@ const TAB_LABELS: Record<Tab, string> = {
     religious_institutions: 'Religious institutions',
     vulnerable_population: 'Vulnerable population',
     security_notes: 'Security notes',
+    security_presence: 'Security presence',
 };
 
 export default function LgaShow(props: Props) {
@@ -114,8 +121,10 @@ export default function LgaShow(props: Props) {
                     {tabs
                         .filter(
                             (name) =>
-                                name !== 'leadership' ||
-                                props.can.viewLeadership,
+                                (name !== 'leadership' ||
+                                    props.can.viewLeadership) &&
+                                (name !== 'security_presence' ||
+                                    props.can.viewFormations),
                         )
                         .map((name) => (
                             <Link
@@ -175,6 +184,13 @@ export default function LgaShow(props: Props) {
                     )}
                 {tab === 'leadership' && props.leadership && (
                     <LeadershipPanel data={props.leadership} />
+                )}
+                {tab === 'security_presence' && props.securityPresence && (
+                    <SecurityPresencePanel
+                        lgaUlid={lga.ulid}
+                        data={props.securityPresence}
+                        canAdd={props.can.addFormation}
+                    />
                 )}
                 {tab === 'security_notes' && props.securityNotes && (
                     <SecurityNotesPanel

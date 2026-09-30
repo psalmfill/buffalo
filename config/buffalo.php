@@ -47,6 +47,19 @@ return [
         'grant_reminder_hours' => 24,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Security coverage reports (Phase 4A)
+    |--------------------------------------------------------------------------
+    */
+    'coverage' => [
+        // The report each LGA is expected to submit: weekly, monthly or
+        // quarterly. Reminders go out once the grace days after the last
+        // completed period have passed.
+        'expected_period' => env('BUFFALO_COVERAGE_PERIOD', 'monthly'),
+        'grace_days' => (int) env('BUFFALO_COVERAGE_GRACE_DAYS', 5),
+    ],
+
     'banner' => [
         'text' => env('BUFFALO_BANNER_TEXT'),
         'level' => env('BUFFALO_BANNER_LEVEL', 'info'),

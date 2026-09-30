@@ -16,6 +16,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             notifications: { unreadCount: number };
+            badges: { coverageReview: number };
             [key: string]: unknown;
         };
     }

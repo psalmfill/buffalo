@@ -20,6 +20,7 @@ use App\Support\Persons\ReferenceUsageChecks as PersonsReferenceUsageChecks;
 use App\Support\ReferenceData\Contracts\ReferenceUsage;
 use App\Support\ReferenceData\ReferenceTable;
 use App\Support\ReferenceData\ReferenceUsageRegistry;
+use App\Support\Security\ReferenceUsageChecks as SecurityReferenceUsageChecks;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Hashing\Hasher;
@@ -47,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
             $registry = new ReferenceUsageRegistry;
             ReferenceUsageChecks::register($registry);
             PersonsReferenceUsageChecks::register($registry);
+            SecurityReferenceUsageChecks::register($registry);
 
             return $registry;
         });

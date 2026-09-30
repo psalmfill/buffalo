@@ -1,0 +1,223 @@
+<?php
+
+namespace App\Http\Controllers\Security;
+
+use App\Actions\CommunityInformation\DeleteWithReason;
+use App\Actions\Security\SaveAgencyFormation;
+use App\Enums\FormationStatus;
+use App\Enums\FormationType;
+use App\Http\Controllers\Controller;
+use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\AgencyFormationPresenter;
+use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
+use App\Http\Requests\Security\AgencyFormationRequest;
+use App\Models\AgencyFormation;
+use App\Models\Community;
+use App\Models\Lga;
+use App\Models\SecurityAgency;
+use App\Models\State;
+use App\Models\User;
+use App\Support\Dashboard\MapView;
+use App\Support\Jurisdiction\JurisdictionOptions;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
+use Spatie\Activitylog\Models\Activity;
+
+/**
+ * Agency formations (Phase 4A). {formation} is bound through the
+ * jurisdiction and classification scopes. Every view is access-logged.
+ */
+class AgencyFormationController extends Controller
+{
+    /** Map markers shown on the list page (the filtered set, with a location). */
+    private const MAP_LIMIT = 1000;
+
+    /** Parent formations offered in the form. */
+    private const PARENT_LIMIT = 1000;
+
+    public function index(Request $request, JurisdictionOptions $options): Response
+    {
+        $this->authorize('viewAny', AgencyFormation::class);
+        $user = $this->actor($request);
+        $states = $options->states($user);
+
+        $filters = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'agency' => ['nullable', 'string', 'size:26'],
+            'type' => ['nullable', Rule::enum(FormationType::class)],
+            'status' => ['nullable', Rule::enum(FormationStatus::class)],
+            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
+            'lga' => ['nullable', 'string', 'size:26'],
+            'temporary' => ['nullable', Rule::in(['yes', 'no'])],
+        ]);
+        $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
+        $lgas = $options->lgas($user, $state);
+        $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
+        $agency = isset($filters['agency']) ? SecurityAgency::query()->where('ulid', $filters['agency'])->first() : null;
+
+        $query = fn (): Builder => AgencyFormation::query()
+            ->when($agency, fn (Builder $q) => $q->where('agency_formations.security_agency_id', $agency?->id))
+            ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('agency_formations.formation_type', $type))
+            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('agency_formations.status', $status))
+            ->when($state, fn (Builder $q) => $q->where('agency_formations.state_id', $state?->id))
+            ->when($lga, fn (Builder $q) => $q->where('agency_formations.lga_id', $lga?->id))
+            ->when($filters['temporary'] ?? null, fn (Builder $q, string $temporary) => $q->where('agency_formations.is_temporary', $temporary === 'yes'))
+            ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->search($term));
+
+        $formations = $query()
+            ->withCoordinates()
+            ->with(['agency', 'lga', 'state'])
+            ->when(! isset($filters['q']), fn (Builder $q) => $q->orderBy('agency_formations.name'))
+            ->paginate(25)
+            ->withQueryString();
+
+        $markers = $query()
+            ->withCoordinates()
+            ->with(['agency', 'lga', 'state'])
+            ->whereNotNull('agency_formations.location')
+            ->limit(self::MAP_LIMIT)
+            ->get();
+
+        return Inertia::render('formations/index', [
+            'formations' => $formations->through(fn (AgencyFormation $f) => AgencyFormationPresenter::row($f)),
+            'markers' => $markers->map(fn (AgencyFormation $f) => AgencyFormationPresenter::row($f))->values(),
+            'filters' => [
+                'q' => $filters['q'] ?? '',
+                'agency' => $filters['agency'] ?? '',
+                'type' => $filters['type'] ?? '',
+                'status' => $filters['status'] ?? '',
+                'state' => $filters['state'] ?? '',
+                'lga' => $filters['lga'] ?? '',
+                'temporary' => $filters['temporary'] ?? '',
+            ],
+            'options' => AgencyFormationPresenter::options(),
+            'agencies' => AgencyFormationPresenter::agencyOptions(),
+            'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
+            'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name])->values() : [],
+            'can' => ['create' => $user->can('create', AgencyFormation::class)],
+        ]);
+    }
+
+    public function create(Request $request, JurisdictionOptions $options): Response
+    {
+        $this->authorize('create', AgencyFormation::class);
+
+        return $this->form($this->actor($request), $options, null, $request->query('lga'));
+    }
+
+    public function store(AgencyFormationRequest $request, SaveAgencyFormation $save): RedirectResponse
+    {
+        $this->authorize('create', AgencyFormation::class);
+
+        /** @var SecurityAgency $agency */
+        $agency = $request->agency();
+        /** @var Lga $lga */
+        $lga = $request->lga();
+        $formation = $save->create($agency, $lga, $request->values(), $this->actor($request));
+
+        return redirect()->route('formations.show', $formation)
+            ->with('toast', ['type' => 'success', 'message' => "Formation \"{$formation->name}\" added."]);
+    }
+
+    public function show(Request $request, AgencyFormation $formation): Response
+    {
+        $this->authorize('view', $formation);
+        $user = $this->actor($request);
+        $tab = $request->query('tab') === 'history' ? 'history' : 'overview';
+
+        $formation->recordAccess(context: "tab:{$tab}");
+        Inertia::encryptHistory();
+
+        $row = AgencyFormation::query()->withCoordinates()->whereKey($formation->id)->firstOrFail();
+        $row->load(['agency', 'lga', 'state', 'community']);
+        // Parent and children only when the viewer can see them.
+        $parent = $formation->parent_formation_id === null ? null : AgencyFormation::query()->find($formation->parent_formation_id);
+        $children = AgencyFormation::query()->withCoordinates()->with(['agency', 'lga', 'state'])
+            ->where('parent_formation_id', $formation->id)
+            ->orderBy('name')->get();
+
+        return Inertia::render('formations/show', [
+            'formation' => AgencyFormationPresenter::detail($row, $parent),
+            'children' => $children->map(fn (AgencyFormation $f) => AgencyFormationPresenter::row($f))->values(),
+            'tab' => $tab,
+            'history' => $tab === 'history'
+                ? Activity::query()->with(['causer', 'subject'])
+                    ->where('subject_type', $formation->getMorphClass())->where('subject_id', $formation->id)
+                    ->latest('id')
+                    ->paginate(25, pageName: 'history_page')
+                    ->withQueryString()
+                    ->through(fn (Activity $a) => ActivityPresenter::present($a))
+                : null,
+            'can' => [
+                'update' => $user->can('update', $formation),
+                'delete' => $user->can('delete', $formation),
+                'create' => $user->can('create', AgencyFormation::class),
+            ],
+        ]);
+    }
+
+    public function edit(Request $request, AgencyFormation $formation, JurisdictionOptions $options): Response
+    {
+        $this->authorize('update', $formation);
+
+        return $this->form($this->actor($request), $options, $formation, null);
+    }
+
+    public function update(AgencyFormationRequest $request, AgencyFormation $formation, SaveAgencyFormation $save): RedirectResponse
+    {
+        $this->authorize('update', $formation);
+
+        $save->update($formation, $request->values(), $this->actor($request));
+
+        return redirect()->route('formations.show', $formation)->with('toast', ['type' => 'success', 'message' => 'Formation saved.']);
+    }
+
+    public function destroy(DeleteRecordRequest $request, AgencyFormation $formation, DeleteWithReason $delete): RedirectResponse
+    {
+        $this->authorize('delete', $formation);
+
+        $name = $formation->name;
+        $delete($formation, 'agency_formation', (string) $request->validated('reason'), $this->actor($request));
+
+        return redirect()->route('formations.index')->with('toast', ['type' => 'success', 'message' => "Formation \"{$name}\" deleted."]);
+    }
+
+    private function form(User $user, JurisdictionOptions $options, ?AgencyFormation $formation, mixed $lgaUlid): Response
+    {
+        $row = $formation === null ? null : AgencyFormation::query()->withCoordinates()->whereKey($formation->id)->firstOrFail();
+        $row?->load(['agency', 'lga', 'state', 'community']);
+        $parent = $formation?->parent_formation_id === null ? null : AgencyFormation::query()->find($formation->parent_formation_id);
+        $lgas = $formation === null ? $options->lgas($user)->load('state:id,ulid,name') : collect();
+        $lga = $row !== null ? $row->lga : (is_string($lgaUlid) ? $lgas->firstWhere('ulid', $lgaUlid) : ($lgas->count() === 1 ? $lgas->first() : null));
+
+        // Candidate parents the user can see (the form filters by agency).
+        $parents = AgencyFormation::query()->with(['agency', 'lga'])
+            ->when($formation, fn (Builder $q) => $q->where('security_agency_id', $formation?->security_agency_id)->whereKeyNot($formation?->id))
+            ->orderBy('name')->limit(self::PARENT_LIMIT)->get();
+
+        return Inertia::render('formations/form', [
+            'formation' => $row === null ? null : AgencyFormationPresenter::detail($row, $parent),
+            'lga' => $lga === null ? null : ['ulid' => $lga->ulid, 'name' => $lga->name],
+            'lgas' => $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => "{$l->name} ({$l->state->name})", 'state' => $l->state->ulid])->values(),
+            'communities' => $lga === null ? [] : Community::query()->where('lga_id', $lga->id)->orderBy('name')->get(['ulid', 'name'])->map(fn (Community $c) => ['value' => $c->ulid, 'label' => $c->name]),
+            'agencies' => AgencyFormationPresenter::agencyOptions($row?->agency),
+            'parents' => $parents->map(fn (AgencyFormation $f) => [
+                'value' => $f->ulid,
+                'label' => "{$f->name} ({$f->lga->name})",
+                'agency' => $f->agency->ulid,
+            ])->values(),
+            'options' => AgencyFormationPresenter::options(),
+            'map' => MapView::for($lga),
+        ]);
+    }
+
+    private function actor(Request $request): User
+    {
+        /** @var User */
+        return $request->user();
+    }
+}

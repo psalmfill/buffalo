@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import AccessFigures from '@/components/dashboard/access-figures';
+import { LgaCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
@@ -30,6 +31,7 @@ export default function LgaDashboard({
     map,
     placeholders,
     access,
+    coverage,
 }: LgaDashboardProps) {
     return (
         <>
@@ -102,6 +104,7 @@ export default function LgaDashboard({
                     />
                 )}
 
+                {coverage && <LgaCoverage data={coverage} />}
                 {access && <AccessFigures data={access} />}
 
                 <PlaceholderCardGrid cards={placeholders} />

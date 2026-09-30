@@ -18,3 +18,9 @@ Schedule::command('buffalo:poi-review-reminders')->dailyAt('07:00');
 Schedule::command('buffalo:escalate-access-requests')->everyFiveMinutes();
 Schedule::command('buffalo:expire-access-grants')->everyFifteenMinutes();
 Schedule::command('buffalo:match-digest')->dailyAt('06:30');
+
+// Security agencies (Phase 4A): end temporary formations past their dates.
+Schedule::command('buffalo:expire-temporary-formations')->dailyAt('00:30');
+
+// Coverage reports (Phase 4A): overdue reminders, once per period.
+Schedule::command('buffalo:coverage-reminders')->dailyAt('08:00');

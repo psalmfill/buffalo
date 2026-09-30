@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import AccessFigures from '@/components/dashboard/access-figures';
+import { NationalCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
@@ -22,6 +23,7 @@ export default function NationalDashboard({
     map,
     placeholders,
     access,
+    coverage,
 }: NationalDashboardProps) {
     const zoned = scope.zones.length > 0;
 
@@ -60,6 +62,7 @@ export default function NationalDashboard({
                     <GroupsByType rows={threats.groupsByType} />
                 </div>
 
+                {coverage && <NationalCoverage data={coverage} />}
                 {access && <AccessFigures data={access} />}
 
                 <PlaceholderCardGrid cards={placeholders} />

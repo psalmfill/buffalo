@@ -1,6 +1,7 @@
 import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
+    ClipboardCheck,
     Crosshair,
     KeyRound,
     Gauge,
@@ -12,10 +13,13 @@ import {
     MapPinned,
     Network,
     ScrollText,
+    Shield,
     UserSearch,
     Users,
 } from 'lucide-react';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
+import AgencyFormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
+import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
@@ -47,6 +51,8 @@ export type NavItem = {
     permission: Permission | readonly Permission[] | null;
     /** Not an Inertia page: opens in a new tab (e.g. Horizon). */
     external?: boolean;
+    /** A shared count shown next to the item (`badges` page prop). */
+    badge?: 'coverageReview';
 };
 
 export type NavSection = {
@@ -78,6 +84,13 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Persons of interest', icon: Crosshair, href: PersonOfInterestController.index(), permission: 'poi.view' },
             { title: 'Criminal groups', icon: Network, href: CriminalGroupController.index(), permission: 'criminal_groups.view' },
             { title: 'Access requests', icon: KeyRound, href: AccessRequestController.index(), permission: ['access_requests.create', 'access_requests.decide', 'access_requests.oversee'] },
+        ],
+    },
+    {
+        title: 'Security',
+        items: [
+            { title: 'Agency formations', icon: Shield, href: AgencyFormationController.index(), permission: 'formations.view' },
+            { title: 'Coverage reports', icon: ClipboardCheck, href: CoverageReportController.index(), permission: 'coverage.view', badge: 'coverageReview' },
         ],
     },
     {

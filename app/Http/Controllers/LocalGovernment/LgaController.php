@@ -7,10 +7,12 @@ use App\Actions\LocalGovernment\UpdateLgaProfile;
 use App\Enums\JurisdictionLevel;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Presenters\AgencyFormationPresenter;
 use App\Http\Presenters\CommunityInformationPresenter;
 use App\Http\Presenters\CommunityPresenter;
 use App\Http\Presenters\LgaPresenter;
 use App\Http\Requests\LocalGovernment\LgaProfileRequest;
+use App\Models\AgencyFormation;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
@@ -42,7 +44,7 @@ class LgaController extends Controller
     /**
      * Tabs of an LGA page. Phase 2C and later phases add theirs here.
      */
-    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes'];
+    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence'];
 
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
@@ -130,6 +132,8 @@ class LgaController extends Controller
                 'viewVulnerableFigures' => $user->can('viewAny', VulnerablePopulationStat::class),
                 'viewSecurityNotes' => $user->can('viewAny', CommunitySecurityNote::class),
                 'viewLeadership' => $user->can('viewAny', PoliticalOffice::class),
+                'viewFormations' => $user->can('viewAny', AgencyFormation::class),
+                'addFormation' => $user->can('create', AgencyFormation::class),
                 // For showing row actions; each action is authorised on the record.
                 'deleteReligiousInstitutions' => $user->checkPermissionTo(Permission::ReligiousInstitutionsDelete->value),
                 'deleteVulnerableFigures' => $user->checkPermissionTo(Permission::VulnerableStatsDelete->value),
@@ -150,6 +154,18 @@ class LgaController extends Controller
                 : null,
             'securityNotes' => $tab === 'security_notes' && $user->can('viewAny', CommunitySecurityNote::class)
                 ? $data->securityNotes($lga, null, $request)
+                : null,
+            // Formations in the LGA (Phase 4A), through their own scopes.
+            'securityPresence' => $tab === 'security_presence' && $user->can('viewAny', AgencyFormation::class)
+                ? [
+                    'formations' => AgencyFormation::query()->withCoordinates()->with(['agency', 'lga', 'state'])
+                        ->where('agency_formations.lga_id', $lga->id)
+                        ->orderBy('agency_formations.name')
+                        ->get()
+                        ->map(fn (AgencyFormation $f) => AgencyFormationPresenter::row($f))
+                        ->values(),
+                    'map' => MapView::for($lga),
+                ]
                 : null,
         ]);
     }

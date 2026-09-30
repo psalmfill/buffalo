@@ -1,9 +1,10 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { ExternalLink } from 'lucide-react';
 import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
@@ -12,6 +13,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 
 export function NavMain({ sections }: { sections: NavSection[] }) {
     const { isCurrentUrl } = useCurrentUrl();
+    const badges = usePage().props.badges;
 
     return (
         <>
@@ -50,6 +52,14 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                                         </Link>
                                     )}
                                 </SidebarMenuButton>
+                                {item.badge &&
+                                    (badges?.[item.badge] ?? 0) > 0 && (
+                                        <SidebarMenuBadge
+                                            aria-label={`${badges[item.badge]} awaiting your review`}
+                                        >
+                                            {badges[item.badge]}
+                                        </SidebarMenuBadge>
+                                    )}
                             </SidebarMenuItem>
                         ))}
                     </SidebarMenu>

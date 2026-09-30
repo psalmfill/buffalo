@@ -46,6 +46,12 @@ export const PERMISSIONS = [
     'access_requests.decide',
     'access_requests.oversee',
     'delegations.manage',
+    'formations.view',
+    'formations.manage',
+    'formations.delete',
+    'coverage.view',
+    'coverage.create',
+    'coverage.review',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

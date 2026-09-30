@@ -72,4 +72,12 @@ enum Permission: string
     case AccessRequestsDecide = 'access_requests.decide';
     case AccessRequestsOversee = 'access_requests.oversee';
     case DelegationsManage = 'delegations.manage';
+
+    // Security agencies (Phase 4A): formations and coverage reports.
+    case FormationsView = 'formations.view';
+    case FormationsManage = 'formations.manage';
+    case FormationsDelete = 'formations.delete';
+    case CoverageView = 'coverage.view';
+    case CoverageCreate = 'coverage.create';
+    case CoverageReview = 'coverage.review';
 }

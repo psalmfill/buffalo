@@ -42,7 +42,25 @@ export type MapMarker = {
     href?: string;
     /** Marker style: the default pin, or a layer-specific symbol. */
     kind?: 'default' | 'religious';
+    /**
+     * A coloured dot instead of the pin (e.g. one colour per agency). A
+     * hex colour from our own palette; never user input.
+     */
+    color?: string;
 };
+
+/** A coloured dot marker (no image assets). */
+function dotIcon(color: string): L.DivIcon {
+    const safe = /^#[0-9a-f]{6}$/i.test(color) ? color : '#475569';
+
+    return L.divIcon({
+        className: '',
+        html: `<span style="display:block;width:14px;height:14px;border-radius:9999px;background:${safe};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45)"></span>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+        popupAnchor: [0, -8],
+    });
+}
 
 /** A small purple dot for religious institutions (no image assets). */
 const RELIGIOUS_ICON = L.divIcon({
@@ -207,9 +225,11 @@ export default function BuffaloMap({
         for (const marker of markers ?? []) {
             L.marker(marker.position, {
                 title: marker.title,
-                ...(marker.kind === 'religious'
-                    ? { icon: RELIGIOUS_ICON }
-                    : {}),
+                ...(marker.color
+                    ? { icon: dotIcon(marker.color) }
+                    : marker.kind === 'religious'
+                      ? { icon: RELIGIOUS_ICON }
+                      : {}),
             })
                 .bindPopup(popupContent(marker))
                 .addTo(layer);

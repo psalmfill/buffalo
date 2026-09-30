@@ -59,6 +59,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'criminal_groups.manage',
         'criminal_groups.delete',
         'access_requests.oversee',
+        'formations.view',
+        'formations.manage',
+        'formations.delete',
+        'coverage.view',
     ],
     deputy_director_general: [
         'users.view',
@@ -91,6 +95,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'criminal_groups.manage',
         'criminal_groups.delete',
         'access_requests.oversee',
+        'formations.view',
+        'formations.manage',
+        'formations.delete',
+        'coverage.view',
     ],
     state_director: [
         'users.view',
@@ -126,6 +134,12 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'access_requests.create',
         'access_requests.decide',
         'delegations.manage',
+        'formations.view',
+        'formations.manage',
+        'formations.delete',
+        'coverage.view',
+        'coverage.create',
+        'coverage.review',
     ],
     deputy_state_director: [
         'users.view',
@@ -151,6 +165,11 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'criminal_groups.manage',
         'access_requests.create',
         'access_requests.decide',
+        'formations.view',
+        'formations.manage',
+        'coverage.view',
+        'coverage.create',
+        'coverage.review',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -173,6 +192,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'criminal_groups.view',
         'criminal_groups.manage',
         'access_requests.create',
+        'formations.view',
+        'formations.manage',
+        'coverage.view',
+        'coverage.create',
     ],
 };
 
@@ -245,6 +268,7 @@ describe('navigation', () => {
                     'Criminal groups',
                     'Access requests',
                 ],
+                Security: ['Agency formations', 'Coverage reports'],
                 Administration: ['Users', 'Reference data', 'Audit log'],
             },
             deputy_director_general: {
@@ -260,6 +284,7 @@ describe('navigation', () => {
                     'Criminal groups',
                     'Access requests',
                 ],
+                Security: ['Agency formations', 'Coverage reports'],
                 Administration: ['Users', 'Reference data'],
             },
             state_director: {
@@ -275,6 +300,7 @@ describe('navigation', () => {
                     'Criminal groups',
                     'Access requests',
                 ],
+                Security: ['Agency formations', 'Coverage reports'],
                 Administration: ['Users', 'Reference data'],
             },
             deputy_state_director: {
@@ -290,6 +316,7 @@ describe('navigation', () => {
                     'Criminal groups',
                     'Access requests',
                 ],
+                Security: ['Agency formations', 'Coverage reports'],
                 Administration: ['Users', 'Reference data'],
             },
             lga_security_chief: {
@@ -305,6 +332,7 @@ describe('navigation', () => {
                     'Criminal groups',
                     'Access requests',
                 ],
+                Security: ['Agency formations', 'Coverage reports'],
                 Administration: ['Reference data'],
             },
         });

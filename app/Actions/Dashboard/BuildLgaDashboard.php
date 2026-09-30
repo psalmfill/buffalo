@@ -11,6 +11,7 @@ use App\Models\PersonOfInterest;
 use App\Models\ReligiousInstitution;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
+use App\Support\Dashboard\CoverageFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Dashboard\ThreatFigures;
@@ -55,6 +56,7 @@ final class BuildLgaDashboard
                 'overdueReviews' => $this->figures->overdueReviews($lga->id),
             ] : null,
             'access' => app(AccessFigures::class)->for($user),
+            'coverage' => app(CoverageFigures::class)->forLga($user, $lga),
             'map' => MapView::for($lga),
             'placeholders' => PlaceholderCards::for($label),
         ];

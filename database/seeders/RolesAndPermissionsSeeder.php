@@ -187,6 +187,25 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 4A — Security agencies: formations and coverage reports
+            // ---------------------------------------------------------------
+            'security' => [
+                Permission::FormationsView->value => self::INTELLIGENCE_ROLES,
+                Permission::FormationsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::FormationsDelete->value => self::DELETE_ROLES,
+                Permission::CoverageView->value => self::INTELLIGENCE_ROLES,
+                Permission::CoverageCreate->value => [
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                    Role::LgaSecurityChief,
+                ],
+                Permission::CoverageReview->value => [
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                ],
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

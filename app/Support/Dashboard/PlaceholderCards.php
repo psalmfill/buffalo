@@ -18,7 +18,6 @@ final class PlaceholderCards
             ['key' => 'incidents', 'title' => 'Incidents (last 30 days)', 'scope' => $scope, 'availableFromPhase' => 5],
             ['key' => 'flashpoints', 'title' => 'Active flashpoints', 'scope' => $scope, 'availableFromPhase' => 6],
             ['key' => 'escalations', 'title' => 'Pending escalations', 'scope' => $scope, 'availableFromPhase' => 5],
-            ['key' => 'access_requests', 'title' => 'Cross-state access requests', 'scope' => $scope, 'availableFromPhase' => 3],
         ];
     }
 }

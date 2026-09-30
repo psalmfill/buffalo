@@ -2,7 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\CoverageReportStatus;
+use App\Enums\Permission;
 use App\Http\Presenters\CurrentUserPresenter;
+use App\Models\CoverageReport;
 use App\Models\User;
 use App\Support\SystemBanner;
 use Illuminate\Http\Request;
@@ -57,6 +60,12 @@ class HandleInertiaRequests extends Middleware
                 // Unread count for the bell; kept live over Echo afterwards.
                 'unreadCount' => fn (): int => $user instanceof User
                     ? $user->unreadNotifications()->count()
+                    : 0,
+            ],
+            // Sidebar counts (Phase 4A): coverage reports the user may review.
+            'badges' => [
+                'coverageReview' => fn (): int => $user instanceof User && $user->checkPermissionTo(Permission::CoverageReview->value)
+                    ? CoverageReport::query()->where('status', CoverageReportStatus::Submitted->value)->count()
                     : 0,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

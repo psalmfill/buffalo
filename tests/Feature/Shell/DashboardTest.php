@@ -113,7 +113,7 @@ test('national dashboards show placeholders and national or zonal counts', funct
         ->where('scope.states', State::query()->active()->count())
         ->where('scope.lgas', Lga::query()->active()->count())
         ->where('map.center', null)
-        ->has('placeholders', 4)
+        ->has('placeholders', 3)
         ->where('placeholders.0.title', 'Incidents (last 30 days)')
         ->where('placeholders.0.availableFromPhase', 5));
 
@@ -151,7 +151,7 @@ test('a state director sees only their state\'s LGAs, with the chief from curren
             ['ulid' => $fagge->ulid, 'name' => 'Fagge', 'headquarters' => $fagge->headquarters, 'chief' => null, 'completeness' => 0, 'last_reviewed_at' => null],
             ['ulid' => $nassarawa->ulid, 'name' => 'Nassarawa', 'headquarters' => $nassarawa->headquarters, 'chief' => ['ulid' => $chief->ulid, 'name' => 'Current Chief'], 'completeness' => 0, 'last_reviewed_at' => null],
         ])
-        ->has('placeholders', 4)
+        ->has('placeholders', 3)
         ->where('placeholders.0.scope', 'Kano State'));
 });
 
