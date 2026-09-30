@@ -85,6 +85,10 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // The session time zone is the app's (Phase 5A.0), so wall-clock
+            // values written to timestamptz columns are read as Lagos time.
+            // (config('app.timezone') is not yet loaded here: same env var.)
+            'timezone' => env('DB_TIMEZONE', env('APP_TIMEZONE', 'Africa/Lagos')),
         ],
 
         'sqlsrv' => [
