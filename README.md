@@ -235,6 +235,24 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - dashboards: sites by relevance for the LGA; critical and high sites, and sites without government security, for the state; critical and high sites by state and sector nationally;
   - reference data: **organization sectors**; lookup values in use are now marked "In use".
 
+## Incidents (Phase 5A: the incident record)
+
+- **Report incident** (Incidents → Report incident) opens one form in six sections:
+  - what happened: the type, the type's own fields, and the severity (pre-filled from the type);
+  - when and where;
+  - people: casualty counts, persons involved, criminal groups;
+  - response: agencies and formations;
+  - property affected;
+  - classification.
+
+  Incidents are saved as **drafts** for now; submission, reference numbers and the workflow come in 5C. **Incidents** lists your own drafts.
+- **Scope:** incidents and every related row (casualties, persons, groups, agencies, property) are jurisdiction-scoped and classified. Related rows move with the incident when its LGA changes. Views of confidential and secret incidents are logged.
+- **Persons:** you may link persons of your own jurisdiction or persons you hold an active grant for. Other viewers of the incident see "Person on record (not visible to you)". Checking an unidentified person, or creating a new person from the form, runs the cross-jurisdiction match (context `incident_entry`), with **Request access** or **Create anyway** (justified and audited).
+- **Editing:** a draft can be edited by its creator, or by the State Director or Deputy of the state.
+- **Access requests** may cite one of your incidents. The approver sees only "reference — type, LGA".
+- **Searchable pickers** replace long drop-down lists for persons, communities, formations, sites, criminal groups, organizations and users.
+- **Time zone:** the database session uses Africa/Lagos (`DB_TIMEZONE`, defaulting to `APP_TIMEZONE`). Times stored earlier as `timestamptz` were corrected by a migration.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
