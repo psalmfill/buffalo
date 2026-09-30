@@ -193,7 +193,7 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 
 ## Cross-jurisdiction records (Phase 3C)
 
-- **Hits:** a search or a new-person form that matches a person held by another jurisdiction shows a **hit**: only the owning state, "Person of interest" or "Person record", and "Record found" (same NIN or phone) or "Likely match" (similar name and the same date of birth). National users never get hits.
+- **Hits:** a search or a new-person form that matches a person held by another jurisdiction shows a **hit**: only the owning state, "Person of interest" or "Person record", and "Record found" (same NIN or phone) or "Likely match" (similar name and the same date of birth). National users never get hits. A name gives a "Likely match" only with a date of birth: the persons search has an optional date-of-birth field for this.
 - **Classification:** records above the searcher's clearance never produce a hit. For `confidential` records the owning State Director is told, and for `secret` records the DG and covering DDGs.
 - **Limits:** each officer has a soft limit of 20 hits a day, which notifies national oversight, and a hard limit of 50, which stops hits for the day.
 - **Access requests** (Intelligence → Access requests) are made from a hit:
@@ -201,8 +201,22 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - urgent requests escalate to national oversight after 2 hours, normal ones after 48 hours; escalated requests expire after 7 days.
 - **Grants** are read-only, temporary (7, 14 or 30 days), revocable, and never override classification.
   - `profile` shows the basic profile; `full` adds NIN, phone, address, POI details, offices, group memberships and associations (names only).
-  - Every view is logged with context `grant`.
+  - Every view is logged with context `grant`. When a grant is revoked or expires, a page open under it closes at once (`AccessGrantEnded` broadcast).
 - **Scheduled jobs:** `buffalo:escalate-access-requests` (every 5 minutes), `buffalo:expire-access-grants` (every 15 minutes) and `buffalo:match-digest` (daily, owners' summary). Settings: `BUFFALO_MATCH_*` and `BUFFALO_ESCALATE_*` in `config/buffalo.php`.
+
+## Security agencies: formations and coverage reports (Phase 4A)
+
+- **Agency formations** (Security → Agency formations; also the LGA page's **Security presence** tab): commands, divisions, stations, bases, checkpoints and other posts of each security agency.
+  - Formations are jurisdiction-scoped and classified; every view is logged.
+  - A formation's parent must be of the same agency, and the hierarchy cannot loop.
+  - A state agency's formations stay in its state.
+  - `buffalo:expire-temporary-formations` (daily) sets temporary formations past their end date to inactive.
+- **Coverage reports** (Security → Coverage reports): one per LGA and period (weekly, monthly, quarterly, or ad hoc). Each lists the agency deployments, the communities they cover, and the gaps.
+  - The LGA chief creates the report; the State Director or Deputy can create one for any LGA of the state.
+  - The report is submitted to the State Director and Deputy, who return it with a reason or mark it reviewed. A reviewed report is **locked**, and the database enforces this too.
+  - A `critical` rating alerts the DG and the DDGs covering the state.
+- **Overdue reports:** `buffalo:coverage-reminders` (daily) tells LGA chiefs, and each State Director, about LGAs with no report for the last completed period, once the grace days have passed. Settings: `BUFFALO_COVERAGE_PERIOD` (default `monthly`) and `BUFFALO_COVERAGE_GRACE_DAYS` (default 5).
+- **Dashboards:** the LGA dashboard shows the current report's status. The state dashboard shows every LGA's status for the period. The national dashboard shows compliance by state and the poorly covered LGAs.
 
 ## Audit and notifications
 
