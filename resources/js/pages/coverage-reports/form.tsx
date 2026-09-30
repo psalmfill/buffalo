@@ -2,9 +2,11 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
+import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
+import EntityPicker from '@/components/pickers/entity-picker';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -28,7 +30,8 @@ type Props = {
     lgas: Option[];
     communities: Option[];
     agencies: AgencyOption[];
-    formations: (Option & { agency: string })[];
+    /** ULID of the LGA's state, to filter formations. */
+    lgaState: string | null;
     periods: Record<string, SuggestedPeriod[]>;
     options: CoverageOptions;
     can: { submit: boolean };
@@ -39,6 +42,7 @@ type Row = {
     ulid: string | null;
     agency: string;
     formation: string;
+    formation_label: string;
     /** A formation the user cannot see is kept unless replaced. */
     keep_formation: boolean;
     personnel_count: string;
@@ -58,6 +62,7 @@ function emptyRow(): Row {
         ulid: null,
         agency: '',
         formation: '',
+        formation_label: '',
         keep_formation: false,
         personnel_count: '0',
         vehicles_count: '',
@@ -112,7 +117,7 @@ export default function CoverageReportForm({
     lgas,
     communities,
     agencies,
-    formations,
+    lgaState,
     periods,
     options,
     can,
@@ -136,6 +141,7 @@ export default function CoverageReportForm({
             ulid: d.ulid,
             agency: d.agency.ulid,
             formation: d.formation?.ulid ?? '',
+            formation_label: d.formation?.name ?? '',
             keep_formation: d.formation_hidden,
             personnel_count: d.personnel_count.toString(),
             vehicles_count: d.vehicles_count?.toString() ?? '',
@@ -170,7 +176,7 @@ export default function CoverageReportForm({
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
-                only: ['communities', 'formations', 'lga'],
+                only: ['communities', 'lgaState', 'lga'],
             },
         );
     };
@@ -449,6 +455,7 @@ export default function CoverageReportForm({
                                                 updateRow(row.key, {
                                                     agency: e.target.value,
                                                     formation: '',
+                                                    formation_label: '',
                                                     keep_formation: false,
                                                 })
                                             }
@@ -489,33 +496,40 @@ export default function CoverageReportForm({
                                                 </button>
                                             </p>
                                         ) : (
-                                            <NativeSelect
+                                            <EntityPicker
                                                 id={`formation-${row.key}`}
-                                                value={row.formation}
+                                                endpoint={
+                                                    PickerController.formations()
+                                                        .url
+                                                }
+                                                params={{
+                                                    agency: row.agency,
+                                                    state:
+                                                        lgaState ?? undefined,
+                                                }}
                                                 disabled={row.agency === ''}
-                                                onChange={(e) =>
+                                                placeholder={
+                                                    row.agency === ''
+                                                        ? 'Choose the agency first'
+                                                        : 'Search formations'
+                                                }
+                                                value={
+                                                    row.formation === ''
+                                                        ? null
+                                                        : {
+                                                              value: row.formation,
+                                                              label: row.formation_label,
+                                                          }
+                                                }
+                                                onChange={(picked) =>
                                                     updateRow(row.key, {
                                                         formation:
-                                                            e.target.value,
+                                                            picked?.value ?? '',
+                                                        formation_label:
+                                                            picked?.label ?? '',
                                                     })
                                                 }
-                                            >
-                                                <option value="">None</option>
-                                                {formations
-                                                    .filter(
-                                                        (f) =>
-                                                            f.agency ===
-                                                            row.agency,
-                                                    )
-                                                    .map((f) => (
-                                                        <option
-                                                            key={f.value}
-                                                            value={f.value}
-                                                        >
-                                                            {f.label}
-                                                        </option>
-                                                    ))}
-                                            </NativeSelect>
+                                            />
                                         )}
                                         <InputError
                                             message={rowError(

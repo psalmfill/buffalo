@@ -219,6 +219,15 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 5A — Incidents (workflow permissions arrive in 5C)
+            // ---------------------------------------------------------------
+            'incidents' => [
+                Permission::IncidentsView->value => self::INTELLIGENCE_ROLES,
+                Permission::IncidentsCreate->value => self::INTELLIGENCE_ROLES,
+                Permission::IncidentsUpdate->value => self::INTELLIGENCE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

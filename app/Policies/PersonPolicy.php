@@ -64,6 +64,18 @@ final class PersonPolicy
         return $this->viewAny($actor) && $this->reachableOwn($actor, $person);
     }
 
+    /**
+     * Record the person on one of the actor's own incidents (Phase 5A): a
+     * person the actor can see, INCLUDING through an active cross-
+     * jurisdiction grant. Unlike `link`, this writes nothing that appears on
+     * the person's record or in the owning jurisdiction: the link lives on
+     * the actor's own incident only. Classification always applies.
+     */
+    public function linkToIncident(User $actor, Person $person): bool
+    {
+        return $actor->checkPermissionTo(Permission::IncidentsCreate->value) && $this->view($actor, $person);
+    }
+
     private function reachable(User $actor, Person $person): bool
     {
         return $this->jurisdiction->canAccess($actor, $person) && $this->classification->canSee($actor, $person);

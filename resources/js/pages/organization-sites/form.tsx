@@ -1,12 +1,16 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
+import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import OrganizationSiteController from '@/actions/App/Http/Controllers/Organizations/OrganizationSiteController';
 import InputError from '@/components/input-error';
 import MapPointPicker, {
     coordinatesProblem,
 } from '@/components/map/MapPointPicker';
 import NativeSelect from '@/components/native-select';
+import EntityPicker from '@/components/pickers/entity-picker';
+import type { PickedEntity } from '@/components/pickers/entity-picker';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -24,7 +28,6 @@ type Props = {
     lga: NamedRef | null;
     lgas: Option[];
     communities: Option[];
-    providers: (Option & { private_security: boolean })[];
     options: OrganizationOptions;
     map: MapView;
 };
@@ -36,7 +39,6 @@ export default function OrganizationSiteForm({
     lga,
     lgas,
     communities,
-    providers,
     options,
     map,
 }: Props) {
@@ -58,8 +60,17 @@ export default function OrganizationSiteForm({
         classification: (site?.classification.value ??
             'restricted') as ClassificationLevel,
     });
-    const provider = providers.find(
-        (p) => p.value === form.data.security_provider,
+    const [provider, setProvider] = useState<PickedEntity | null>(
+        site?.security_provider
+            ? {
+                  value: site.security_provider.ulid,
+                  label: site.security_provider.name,
+                  meta: {
+                      private_security:
+                          site.security_provider.is_private_security,
+                  },
+              }
+            : null,
     );
 
     const chooseLga = (value: string) => {
@@ -121,8 +132,7 @@ export default function OrganizationSiteForm({
             | 'community'
             | 'security_relevance'
             | 'status'
-            | 'classification'
-            | 'security_provider',
+            | 'classification',
         label: string,
         items: Option[],
         placeholder: string | null,
@@ -249,18 +259,34 @@ export default function OrganizationSiteForm({
                                 Has private security
                             </Label>
                         </div>
-                        {select(
-                            'security_provider',
-                            'Private security provider (from the directory)',
-                            providers,
-                            'None',
-                        )}
-                        {provider && !provider.private_security && (
-                            <p className="text-xs text-amber-700 dark:text-amber-300">
-                                This organization is not in the private security
-                                sector. Check that it is the right provider.
-                            </p>
-                        )}
+                        <div className="grid gap-2">
+                            <Label htmlFor="security_provider">
+                                Private security provider (from the directory)
+                            </Label>
+                            <EntityPicker
+                                id="security_provider"
+                                endpoint={PickerController.organizations().url}
+                                params={{ except: organization.ulid }}
+                                placeholder="Search the organization directory"
+                                value={provider}
+                                onChange={(picked) => {
+                                    setProvider(picked);
+                                    form.setData(
+                                        'security_provider',
+                                        picked?.value ?? '',
+                                    );
+                                }}
+                            />
+                            <InputError message={errors.security_provider} />
+                        </div>
+                        {provider &&
+                            provider.meta?.private_security === false && (
+                                <p className="text-xs text-amber-700 dark:text-amber-300">
+                                    This organization is not in the private
+                                    security sector. Check that it is the right
+                                    provider.
+                                </p>
+                            )}
                         <div className="grid gap-2">
                             <Label htmlFor="security_notes">
                                 Security notes (threats, past incidents,

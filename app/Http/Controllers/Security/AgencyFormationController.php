@@ -36,9 +36,6 @@ class AgencyFormationController extends Controller
     /** Map markers shown on the list page (the filtered set, with a location). */
     private const MAP_LIMIT = 1000;
 
-    /** Parent formations offered in the form. */
-    private const PARENT_LIMIT = 1000;
-
     public function index(Request $request, JurisdictionOptions $options): Response
     {
         $this->authorize('viewAny', AgencyFormation::class);
@@ -194,22 +191,12 @@ class AgencyFormationController extends Controller
         $lgas = $formation === null ? $options->lgas($user)->load('state:id,ulid,name') : collect();
         $lga = $row !== null ? $row->lga : (is_string($lgaUlid) ? $lgas->firstWhere('ulid', $lgaUlid) : ($lgas->count() === 1 ? $lgas->first() : null));
 
-        // Candidate parents the user can see (the form filters by agency).
-        $parents = AgencyFormation::query()->with(['agency', 'lga'])
-            ->when($formation, fn (Builder $q) => $q->where('security_agency_id', $formation?->security_agency_id)->whereKeyNot($formation?->id))
-            ->orderBy('name')->limit(self::PARENT_LIMIT)->get();
-
         return Inertia::render('formations/form', [
             'formation' => $row === null ? null : AgencyFormationPresenter::detail($row, $parent),
             'lga' => $lga === null ? null : ['ulid' => $lga->ulid, 'name' => $lga->name],
             'lgas' => $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => "{$l->name} ({$l->state->name})", 'state' => $l->state->ulid])->values(),
             'communities' => $lga === null ? [] : Community::query()->where('lga_id', $lga->id)->orderBy('name')->get(['ulid', 'name'])->map(fn (Community $c) => ['value' => $c->ulid, 'label' => $c->name]),
             'agencies' => AgencyFormationPresenter::agencyOptions($row?->agency),
-            'parents' => $parents->map(fn (AgencyFormation $f) => [
-                'value' => $f->ulid,
-                'label' => "{$f->name} ({$f->lga->name})",
-                'agency' => $f->agency->ulid,
-            ])->values(),
             'options' => AgencyFormationPresenter::options(),
             'map' => MapView::for($lga),
         ]);

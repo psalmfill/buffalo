@@ -56,6 +56,9 @@ export const PERMISSIONS = [
     'organizations.manage',
     'organizations.delete',
     'organization_sites.delete',
+    'incidents.view',
+    'incidents.create',
+    'incidents.update',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

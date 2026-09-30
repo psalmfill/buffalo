@@ -9,7 +9,6 @@ use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\OrganizationPresenter;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Organizations\OrganizationSiteRequest;
-use App\Models\AgencyFormation;
 use App\Models\Community;
 use App\Models\Lga;
 use App\Models\Organization;
@@ -21,7 +20,6 @@ use App\Support\Dashboard\MapView;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -85,7 +83,6 @@ class OrganizationSiteController extends Controller
             'site' => OrganizationPresenter::siteDetail($row),
             'contacts' => $contacts->map(fn (OrganizationContact $c) => OrganizationPresenter::contact($c, $user))->values(),
             'formations' => $links->map(fn (OrganizationSiteFormation $l) => OrganizationPresenter::formationLink($l))->values(),
-            'formationChoices' => $user->can('update', $site) ? $this->formationChoices($row, $links) : [],
             'tab' => $tab,
             'history' => $tab === 'history'
                 ? Activity::query()->with(['causer', 'subject'])
@@ -131,24 +128,6 @@ class OrganizationSiteController extends Controller
         return redirect()->route('organizations.show', $organization)->with('toast', ['type' => 'success', 'message' => "Site \"{$name}\" deleted."]);
     }
 
-    /**
-     * Formations the user can see in the site's state, not yet linked.
-     *
-     * @param  Collection<int, OrganizationSiteFormation>  $links
-     * @return list<array{value: string, label: string}>
-     */
-    private function formationChoices(OrganizationSite $site, Collection $links): array
-    {
-        return array_values(AgencyFormation::query()->with(['agency', 'lga'])
-            ->where('agency_formations.state_id', $site->state_id)
-            ->whereNotIn('agency_formations.id', $links->pluck('agency_formation_id'))
-            ->orderBy('agency_formations.name')
-            ->limit(1000)
-            ->get()
-            ->map(fn (AgencyFormation $f) => ['value' => $f->ulid, 'label' => "{$f->name} ({$f->agency->short_name}, {$f->lga->name})"])
-            ->all());
-    }
-
     private function form(User $user, JurisdictionOptions $options, Organization $organization, ?OrganizationSite $site, mixed $lgaUlid): Response
     {
         $row = $site === null ? null : OrganizationSite::query()->withCoordinates()->whereKey($site->id)->firstOrFail();
@@ -163,8 +142,6 @@ class OrganizationSiteController extends Controller
             'lgas' => $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => "{$l->name} ({$l->state->name})"])->values(),
             'communities' => $lga === null ? [] : Community::query()->where('lga_id', $lga->id)->orderBy('name')->get(['ulid', 'name'])
                 ->map(fn (Community $c) => ['value' => $c->ulid, 'label' => $c->name])->values(),
-            'providers' => Organization::query()->with('sector')->whereKeyNot($organization->id)->orderBy('name')->limit(2000)->get()
-                ->map(fn (Organization $o) => ['value' => $o->ulid, 'label' => $o->name, 'private_security' => $o->sector->code === 'private_security'])->values(),
             'options' => OrganizationPresenter::options(),
             'map' => MapView::for($lga),
         ]);

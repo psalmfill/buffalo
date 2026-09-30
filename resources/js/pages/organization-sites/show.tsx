@@ -6,6 +6,7 @@ import OrganizationContactController from '@/actions/App/Http/Controllers/Organi
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
 import OrganizationSiteController from '@/actions/App/Http/Controllers/Organizations/OrganizationSiteController';
 import SiteFormationController from '@/actions/App/Http/Controllers/Organizations/SiteFormationController';
+import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
 import AgencyFormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
@@ -17,6 +18,8 @@ import {
 } from '@/components/organizations/site-parts';
 import Pagination from '@/components/pagination';
 import PersonPicker from '@/components/persons/person-picker';
+import EntityPicker from '@/components/pickers/entity-picker';
+import type { PickedEntity } from '@/components/pickers/entity-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,7 +46,6 @@ type Props = {
     site: SiteDetail;
     contacts: ContactDetail[];
     formations: FormationLink[];
-    formationChoices: Option[];
     tab: Tab;
     history: Paginated<ActivityEntry> | null;
     options: OrganizationOptions;
@@ -59,7 +61,6 @@ export default function OrganizationSiteShow({
     site,
     contacts,
     formations,
-    formationChoices,
     tab,
     history,
     options,
@@ -275,7 +276,7 @@ export default function OrganizationSiteShow({
                                 {can.update && (
                                     <LinkFormationForm
                                         siteUlid={site.ulid}
-                                        choices={formationChoices}
+                                        stateUlid={site.state.ulid}
                                         arrangements={options.arrangements}
                                     />
                                 )}
@@ -480,11 +481,11 @@ export default function OrganizationSiteShow({
 
 function LinkFormationForm({
     siteUlid,
-    choices,
+    stateUlid,
     arrangements,
 }: {
     siteUlid: string;
-    choices: Option[];
+    stateUlid: string;
     arrangements: Option[];
 }) {
     const form = useForm({
@@ -492,22 +493,18 @@ function LinkFormationForm({
         arrangement: 'stationed_on_site',
         notes: '',
     });
+    const [picked, setPicked] = useState<PickedEntity | null>(null);
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
         form.post(SiteFormationController.store(siteUlid).url, {
             preserveScroll: true,
-            onSuccess: () => form.reset(),
+            onSuccess: () => {
+                form.reset();
+                setPicked(null);
+            },
         });
     };
-
-    if (choices.length === 0) {
-        return (
-            <p className="text-xs text-muted-foreground">
-                No other formations you can view in this state.
-            </p>
-        );
-    }
 
     return (
         <form
@@ -516,18 +513,17 @@ function LinkFormationForm({
         >
             <div className="grid gap-1">
                 <Label htmlFor="link-formation">Formation</Label>
-                <NativeSelect
+                <EntityPicker
                     id="link-formation"
-                    value={form.data.formation}
-                    onChange={(e) => form.setData('formation', e.target.value)}
-                >
-                    <option value="">Choose a formation</option>
-                    {choices.map((c) => (
-                        <option key={c.value} value={c.value}>
-                            {c.label}
-                        </option>
-                    ))}
-                </NativeSelect>
+                    endpoint={PickerController.formations().url}
+                    params={{ state: stateUlid }}
+                    placeholder="Search formations in this state"
+                    value={picked}
+                    onChange={(value) => {
+                        setPicked(value);
+                        form.setData('formation', value?.value ?? '');
+                    }}
+                />
                 <InputError message={form.errors.formation} />
             </div>
             <div className="grid gap-1">

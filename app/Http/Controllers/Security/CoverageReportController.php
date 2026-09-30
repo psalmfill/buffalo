@@ -14,7 +14,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Presenters\AgencyFormationPresenter;
 use App\Http\Presenters\CoverageReportPresenter;
 use App\Http\Requests\Security\CoverageReportRequest;
-use App\Models\AgencyFormation;
 use App\Models\Community;
 use App\Models\CoverageReport;
 use App\Models\CoverageReportDeployment;
@@ -232,14 +231,6 @@ class CoverageReportController extends Controller
             ->orderBy('id')
             ->get();
 
-        // Formations of the LGA's state the user can see (the form filters by agency).
-        $formations = $lga === null ? collect() : AgencyFormation::query()
-            ->with(['agency', 'lga'])
-            ->where('agency_formations.state_id', $lga->state_id)
-            ->orderBy('agency_formations.name')
-            ->limit(2000)
-            ->get();
-
         return Inertia::render('coverage-reports/form', [
             'report' => $report === null ? null : CoverageReportPresenter::detail($report),
             'deployments' => $deployments->map(fn (CoverageReportDeployment $d) => CoverageReportPresenter::deployment($d))->values(),
@@ -248,11 +239,7 @@ class CoverageReportController extends Controller
             'communities' => $lga === null ? [] : Community::query()->where('lga_id', $lga->id)->orderBy('name')->get(['ulid', 'name'])
                 ->map(fn (Community $c) => ['value' => $c->ulid, 'label' => $c->name])->values(),
             'agencies' => AgencyFormationPresenter::agencyOptions(),
-            'formations' => $formations->map(fn (AgencyFormation $f) => [
-                'value' => $f->ulid,
-                'label' => "{$f->name} ({$f->lga->name})",
-                'agency' => $f->agency->ulid,
-            ])->values(),
+            'lgaState' => $lga === null ? null : $lga->loadMissing('state')->state->ulid,
             // Suggested periods: the current and last completed of each type.
             'periods' => $this->suggestedPeriods(CarbonImmutable::today()),
             'options' => CoverageReportPresenter::options(),

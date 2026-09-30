@@ -86,4 +86,9 @@ enum Permission: string
     case OrganizationsManage = 'organizations.manage';
     case OrganizationsDelete = 'organizations.delete';
     case OrganizationSitesDelete = 'organization_sites.delete';
+
+    // Incidents (Phase 5A). Workflow permissions arrive in 5C.
+    case IncidentsView = 'incidents.view';
+    case IncidentsCreate = 'incidents.create';
+    case IncidentsUpdate = 'incidents.update';
 }

@@ -67,6 +67,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'organizations.manage',
         'organizations.delete',
         'organization_sites.delete',
+        'incidents.view',
+        'incidents.create',
+        'incidents.update',
     ],
     deputy_director_general: [
         'users.view',
@@ -107,6 +110,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'organizations.manage',
         'organizations.delete',
         'organization_sites.delete',
+        'incidents.view',
+        'incidents.create',
+        'incidents.update',
     ],
     state_director: [
         'users.view',
@@ -151,6 +157,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'organizations.view',
         'organizations.manage',
         'organization_sites.delete',
+        'incidents.view',
+        'incidents.create',
+        'incidents.update',
     ],
     deputy_state_director: [
         'users.view',
@@ -183,6 +192,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'coverage.review',
         'organizations.view',
         'organizations.manage',
+        'incidents.view',
+        'incidents.create',
+        'incidents.update',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -211,6 +223,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'coverage.create',
         'organizations.view',
         'organizations.manage',
+        'incidents.view',
+        'incidents.create',
+        'incidents.update',
     ],
 };
 

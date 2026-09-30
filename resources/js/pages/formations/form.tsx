@@ -1,11 +1,14 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
+import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import FormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
 import InputError from '@/components/input-error';
 import MapPointPicker, {
     coordinatesProblem,
 } from '@/components/map/MapPointPicker';
 import NativeSelect from '@/components/native-select';
+import EntityPicker from '@/components/pickers/entity-picker';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -26,15 +29,14 @@ type Props = {
     lgas: (Option & { state: string })[];
     communities: Option[];
     agencies: AgencyOption[];
-    parents: (Option & { agency: string })[];
     options: FormationOptions;
     map: MapView;
 };
 
 /**
  * Add or edit an agency formation. The agency and LGA are chosen once. The
- * parent list shows formations of the chosen agency that the user can see;
- * a parent the user cannot see is kept unless replaced.
+ * parent picker searches formations of the chosen agency that the user can
+ * see; a parent the user cannot see is kept unless replaced.
  */
 export default function FormationForm({
     formation,
@@ -42,7 +44,6 @@ export default function FormationForm({
     lgas,
     communities,
     agencies,
-    parents,
     options,
     map,
 }: Props) {
@@ -82,7 +83,9 @@ export default function FormationForm({
                   selectedLgaState === undefined ||
                   a.state === selectedLgaState,
           );
-    const parentChoices = parents.filter((p) => p.agency === form.data.agency);
+    const [parentLabel, setParentLabel] = useState(
+        formation?.parent?.name ?? '',
+    );
 
     const chooseLga = (value: string) => {
         form.setData((data) => ({ ...data, lga: value, community: '' }));
@@ -170,7 +173,6 @@ export default function FormationForm({
     const select = (
         field:
             | 'agency'
-            | 'parent'
             | 'community'
             | 'formation_type'
             | 'status'
@@ -273,13 +275,41 @@ export default function FormationForm({
                                 </p>
                             </div>
                         ) : (
-                            select(
-                                'parent',
-                                'Parent formation (optional)',
-                                parentChoices,
-                                'None',
-                                form.data.agency === '',
-                            )
+                            <div className="grid gap-2">
+                                <Label htmlFor="parent">
+                                    Parent formation (optional)
+                                </Label>
+                                <EntityPicker
+                                    id="parent"
+                                    endpoint={PickerController.formations().url}
+                                    params={{
+                                        agency: form.data.agency,
+                                        except: formation?.ulid,
+                                    }}
+                                    placeholder={
+                                        form.data.agency === ''
+                                            ? 'Choose the agency first'
+                                            : 'Search formations of this agency'
+                                    }
+                                    disabled={form.data.agency === ''}
+                                    value={
+                                        form.data.parent === ''
+                                            ? null
+                                            : {
+                                                  value: form.data.parent,
+                                                  label: parentLabel,
+                                              }
+                                    }
+                                    onChange={(picked) => {
+                                        form.setData(
+                                            'parent',
+                                            picked?.value ?? '',
+                                        );
+                                        setParentLabel(picked?.label ?? '');
+                                    }}
+                                />
+                                <InputError message={form.errors.parent} />
+                            </div>
                         )}
                         {select(
                             'community',
