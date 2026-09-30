@@ -218,6 +218,23 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Overdue reports:** `buffalo:coverage-reminders` (daily) tells LGA chiefs, and each State Director, about LGAs with no report for the last completed period, once the grace days have passed. Settings: `BUFFALO_COVERAGE_PERIOD` (default `monthly`) and `BUFFALO_COVERAGE_GRACE_DAYS` (default 5).
 - **Dashboards:** the LGA dashboard shows the current report's status. The state dashboard shows every LGA's status for the period. The national dashboard shows compliance by state and the poorly covered LGAs.
 
+## Organizations (Phase 4B)
+
+- **The directory** (Security → Organizations) is **national**. Every intelligence role sees every organization's name, type, sector, RC number and public description. It holds no location and nothing sensitive.
+- **Sites** (head office, terminals, facilities, branches…) are jurisdiction-scoped and classified. They carry the security information:
+  - security relevance, up to `critical_infrastructure`;
+  - private security, and the provider (another directory entry);
+  - security notes;
+  - the government formations protecting the site.
+
+  Officers see and count only the sites in their jurisdiction. Views of confidential and secret sites are logged. An organization has at most one head office.
+- **Contacts** belong to a site and follow its jurisdiction and classification. Phone and email are encrypted, searchable only by exact match. Type a phone number (any format) or an email into the organizations search to find "who this number belongs to" within your jurisdiction. Every view of a contact is logged. A contact may be linked to a person on record, and only viewers who can see that person see the link.
+- **Deletion:** only the DG or a DDG may delete a directory entry, and only one without sites. Sites are deleted by the DG, DDGs or State Directors.
+- **Also in this phase:**
+  - the LGA page's **Organizations** tab;
+  - dashboards: sites by relevance for the LGA; critical and high sites, and sites without government security, for the state; critical and high sites by state and sector nationally;
+  - reference data: **organization sectors**; lookup values in use are now marked "In use".
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
