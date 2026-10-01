@@ -311,6 +311,33 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Map clustering** (`leaflet.markercluster`, MIT) also applies to the community, formation and site maps.
 - **Demo data (local only):** `make artisan cmd="buffalo:seed-demo-incidents --count=50000"` adds synthetic incidents (titles start with "[Demo]", references with "DEMO/"); `--purge` removes them. The command refuses to run outside `local`.
 
+## Boundaries, flashpoints and blackspots (Phase 6A)
+
+- **Boundaries:** LGA (and optionally state) boundaries come from an owner-supplied GeoJSON file:
+  `make artisan cmd="buffalo:import-boundaries <file> --level=lga --code-property=… --state-property=… --attribution='…' --dry-run"`.
+  - Features are matched by code properties or by a mapping CSV.
+  - Every geometry is validated before writing: invalid shapes are repaired and reported, and anything outside Nigeria is refused.
+  - Centroids are computed inside each shape.
+  - State boundaries are derived from their LGAs unless states are imported too.
+  - The attribution appears on every map.
+  - Records now outside their LGA's boundary are listed in `storage/app/private/reports/`; nothing is changed.
+  - Formats and options: [`database/data/README.md`](database/data/README.md).
+- **Demo boundaries (local only):** `make artisan cmd="buffalo:generate-demo-boundaries"` gives each LGA a synthetic square, credited on maps as "SYNTHETIC demo boundaries". Many demo incidents fall outside these squares, and the post-import report lists them; that is expected.
+- **What they are:**
+  - A **flashpoint** is a place where tension could erupt.
+  - A **blackspot** is a place where incidents keep happening.
+  - Each is a point plus a radius (100 m to 50 km), with a threat type, a concern level, a status and a classification.
+- **Assessments:** the concern level, status, recommended action and next review date change only through an assessment. Assessments are append-only, and the first one is recorded when the flashpoint is created. Reviews fall due 30 / 60 / 90 / 180 days after an assessment, for severe / high / moderate / low concern.
+- **Links:** incidents (including closed and resolved ones; not drafts or invalid reports) and community security notes can be linked.
+  - A link shows only to viewers who can see both sides.
+  - The Incidents tab suggests visible incidents inside the area from the last 3–24 months. It can be limited to incidents in the threat type's category.
+- **Notifications:**
+  - An incident submitted inside an active or monitoring area is reported once to the SD, DSD and LGA chief who can see both the incident and the area. The incident page then shows "Near flashpoint".
+  - A blackspot with 3 incidents in 30 days asks the SD and DSD to reassess it, at most once per 30 days.
+  - Due reviews are reminded daily (`buffalo:flashpoint-review-reminders`).
+  - Settings: `config/buffalo.php` → `flashpoints`.
+- **Pages:** Flashpoints & blackspots (list and map coloured by concern), the flashpoint page (overview, assessments, incidents, security notes, history), a Flashpoints section on incidents and a Flashpoints tab on LGAs.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
