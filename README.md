@@ -291,6 +291,26 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Verification deadlines:** `buffalo:incident-verification-reminders` runs every 5 minutes. It reminds the SD/DSD once when a submitted incident passes its deadline, and the DG/DDGs once at twice the deadline. Deadlines by severity: critical 60, high 360, medium 1440, low 2880 minutes (`BUFFALO_VERIFY_*_MINUTES`).
 - **Possible duplicates** (same type, within 24 hours, same community or within 2 km) are shown at submission and to reviewers. A reviewer can mark a report invalid as a duplicate in one step.
 
+## Incident lists, map and dashboards (Phase 5D)
+
+- **Incidents list** (Incidents → Incidents), 25 per page.
+  - **Search:** a reference number (`BUF/…`) matches exactly; anything else is a ranked full-text search.
+  - **Filters:** type, category, severity, status (by default open work: no drafts, closed or invalid), escalation, dates, state, LGA, community, casualties, overdue verification, reporting officer, criminal group, "my reports", no map location.
+  - **Sharing:** filters live in the URL, so a view can be shared; each officer still sees only what their own jurisdiction and clearance allow.
+  - **Saved views:** save your own named views; built-in views are "Awaiting my verification", "Escalated, unacknowledged", "My reports" and "My drafts".
+- **Incident map:** the same filters, the last 30 days by default.
+  - Markers are coloured by severity, shaped by category, and clustered.
+  - Popups show only the reference, type, time and status.
+  - At most 5,000 points (`BUFFALO_INCIDENT_MAP_CAP`); incidents without a location are counted, with a link to them in the list.
+- **Incident page tabs:** Overview, People, Response, Evidence, Timeline, Possible duplicates (reviewers) and History.
+- **Print view:** classification marked on every page and "Printed by … on …". Each print is recorded in the access log.
+- **Incidents tabs** on persons, criminal groups, formations, organization sites, communities and LGAs. The tab is hidden when empty, and a person's tab is never shown under an access grant.
+- **Dashboards** (LGA, state, national): incident figures, charts and maps that refresh live as incidents change.
+  - Drafts and invalid reports are never counted.
+  - Charts use Chart.js (MIT).
+- **Map clustering** (`leaflet.markercluster`, MIT) also applies to the community, formation and site maps.
+- **Demo data (local only):** `make artisan cmd="buffalo:seed-demo-incidents --count=50000"` adds synthetic incidents (titles start with "[Demo]", references with "DEMO/"); `--purge` removes them. The command refuses to run outside `local`.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
