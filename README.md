@@ -266,6 +266,31 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Removal:** State Directors and above, with a reason. The file is never deleted.
 - **File types** are decided from the file's content, not its name. The limits are in `config/buffalo.php` (`BUFFALO_EVIDENCE_*`). Files over 10 MB are verified on the queue, so Horizon must be running.
 
+## Incident workflow (Phase 5C)
+
+- **Submit fast:** a report needs only the type, title, description (20+ characters), severity, time and LGA. Everything else can be added after submission. Use "Save and submit" on the form, or **Submit** on the incident page.
+- **Reference numbers:** `BUF/<state>/<LGA>/<year>/<sequence>`, given at the first submission and never changed. The sequence runs per state and per year, without gaps.
+- **Workflow:**
+
+  | Step | From | Who | Needs |
+  |---|---|---|---|
+  | Submit | draft, returned | creator, reporting officer, SD/DSD | |
+  | Return | submitted | SD, DSD | a reason |
+  | Verify | submitted | SD, DSD | |
+  | Start investigation | verified | SD, DSD, DG, DDG | |
+  | Resolve | verified, under investigation | SD, DSD, DG, DDG | a summary |
+  | Reopen | resolved | SD, DG, DDG | a reason |
+  | Close | resolved | SD, DG, DDG | |
+  | Mark invalid | submitted, verified | SD, DG, DDG | a reason (duplicate, false report, not security related, other) |
+
+  **Closed and invalid incidents are locked**, in the policies and in the database.
+- **Escalation** to national level is a flag, separate from status. SD/DSD escalate with a reason; a `critical` incident is escalated automatically when submitted. The DG, or a DDG covering the state, acknowledges.
+- **Editing after submission:** the reporting side may edit until verification. After that, SD, DSD, DG and DDG may edit, each save with an amendment reason. Only the SD and above may correct the LGA; the reference number stays.
+- **Follow-ups** (Timeline tab) are append-only: follow-up, action taken, intelligence, status note. Each can be classified higher than the incident.
+- **Notifications and live updates:** notifications reach only people who can see the incident, and carry the reference, type and LGA only. Open incident pages refresh by themselves; broadcasts carry only the incident ULID.
+- **Verification deadlines:** `buffalo:incident-verification-reminders` runs every 5 minutes. It reminds the SD/DSD once when a submitted incident passes its deadline, and the DG/DDGs once at twice the deadline. Deadlines by severity: critical 60, high 360, medium 1440, low 2880 minutes (`BUFFALO_VERIFY_*_MINUTES`).
+- **Possible duplicates** (same type, within 24 hours, same community or within 2 km) are shown at submission and to reviewers. A reviewer can mark a report invalid as a duplicate in one step.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
