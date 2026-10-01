@@ -113,4 +113,11 @@ enum Permission: string
     case FlashpointsManage = 'flashpoints.manage';
     case FlashpointsAssess = 'flashpoints.assess';
     case FlashpointsDelete = 'flashpoints.delete';
+
+    // Threat reports (Phase 6B).
+    case ThreatsView = 'threats.view';
+    case ThreatsCreate = 'threats.create';
+    case ThreatsManage = 'threats.manage';
+    case ThreatsReactivate = 'threats.reactivate';
+    case ThreatsDelete = 'threats.delete';
 }

@@ -2,6 +2,10 @@ import { Head, Link } from '@inertiajs/react';
 import { Lock, Pencil, Printer, Siren } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { IncidentFlashpoints } from '@/types/flashpoints';
+import type { IncidentThreats } from '@/types/threats';
+import IncidentThreatsSection, {
+    PossibleThreatBadge,
+} from '@/components/threats/incident-threats';
 import { useMemo, useState } from 'react';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
 import { flashpointCircles } from '@/components/flashpoints/flashpoint-areas';
@@ -70,6 +74,8 @@ type Props = IncidentRecord & {
     map: MapView;
     /** Phase 6A: null without flashpoints.view. */
     flashpoints: IncidentFlashpoints | null;
+    /** Phase 6B: null without threats.view. */
+    threats: IncidentThreats | null;
     can: WorkflowCan;
 };
 
@@ -95,6 +101,7 @@ export default function IncidentShow({
     openSubmit,
     map,
     flashpoints,
+    threats,
     can,
 }: Props) {
     const record: IncidentRecord = {
@@ -146,6 +153,7 @@ export default function IncidentShow({
                                 {incident.title}
                             </h1>
                             <NearFlashpointBadge data={flashpoints} />
+                            <PossibleThreatBadge data={threats} />
                             <Badge variant="secondary">
                                 {incident.status.label}
                             </Badge>
@@ -319,6 +327,17 @@ export default function IncidentShow({
                                 </dl>
                             </Section>
                             <WorkflowSummary incident={incident} />
+                            {threats && (
+                                <IncidentThreatsSection
+                                    data={threats}
+                                    incident={{
+                                        ulid: incident.ulid,
+                                        label:
+                                            incident.reference_no ??
+                                            incident.title,
+                                    }}
+                                />
+                            )}
                             {flashpoints && (
                                 <IncidentFlashpointsSection
                                     data={flashpoints}

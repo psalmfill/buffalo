@@ -14,6 +14,7 @@ use App\Support\Incidents\IncidentNotifier;
 use App\Support\Incidents\IncidentReferenceAllocator;
 use App\Support\Incidents\IncidentWorkflow;
 use App\Support\Incidents\PossibleDuplicates;
+use App\Support\Jurisdiction\ThreatMatching;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 
@@ -31,6 +32,8 @@ use Illuminate\Validation\ValidationException;
  *   critical one also reaches the DG and the DDGs covering the state.
  * - Inside the area of an active or monitoring flashpoint, the
  *   flashpoint's owners are told (FlashpointAlerts, Phase 6A).
+ * - Active threat reports it may realise are recorded as possibly related
+ *   (ThreatMatching, Phase 6B).
  */
 final class SubmitIncident
 {
@@ -40,6 +43,7 @@ final class SubmitIncident
         private readonly PossibleDuplicates $duplicates,
         private readonly IncidentNotifier $notifier,
         private readonly FlashpointAlerts $flashpoints,
+        private readonly ThreatMatching $threats,
     ) {}
 
     public function __invoke(Incident $incident, User $actor, bool $confirmDuplicates): Incident
@@ -95,6 +99,9 @@ final class SubmitIncident
 
         // Inside a flashpoint area (Phase 6A): its owners are told once.
         $this->flashpoints->incidentSubmitted($submitted);
+
+        // Possibly related active threat reports (Phase 6B), recorded for the incident page.
+        $this->threats->recordFor($submitted->id);
 
         return $submitted;
     }

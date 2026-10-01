@@ -11,6 +11,7 @@ use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\PersonOfInterest;
 use App\Models\State;
+use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
@@ -19,6 +20,7 @@ use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Dashboard\ThreatFigures;
+use App\Support\Dashboard\ThreatReportFigures;
 use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\RestrictionType;
 use App\Support\LocalGovernment\ProfileCompleteness;
@@ -70,6 +72,8 @@ final class BuildNationalDashboard
             'coverage' => app(CoverageFigures::class)->national($user, (clone $states)->orderBy('name')->get()),
             'map' => MapView::for(null),
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->national($user) : null,
+            // Threat reports (Phase 6B), through their own scopes.
+            'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->national() : null,
             'placeholders' => PlaceholderCards::for($label),
         ];
     }

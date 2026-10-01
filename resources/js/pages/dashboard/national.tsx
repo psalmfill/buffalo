@@ -1,4 +1,8 @@
 import { Head } from '@inertiajs/react';
+import {
+    NationalImmediateThreats,
+    NationalThreatsByState,
+} from '@/components/dashboard/threat-report-figures';
 import AccessFigures from '@/components/dashboard/access-figures';
 import { NationalOrganizations } from '@/components/dashboard/organization-figures';
 import { NationalCoverage } from '@/components/dashboard/coverage-figures';
@@ -19,6 +23,7 @@ import type { NationalDashboardProps } from '@/types/dashboard';
 /** Director General and Deputy Director General. */
 export default function NationalDashboard({
     incidents,
+    threatReports,
     scope,
     completenessByState,
     securityNotesByState,
@@ -56,6 +61,10 @@ export default function NationalDashboard({
                     )}
                 </DashboardHeader>
 
+                {threatReports && (
+                    <NationalImmediateThreats data={threatReports} />
+                )}
+
                 <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
                     <PoiByPlaceTable
                         title="Open persons of interest by state and risk"
@@ -70,6 +79,9 @@ export default function NationalDashboard({
                     <GroupsByType rows={threats.groupsByType} />
                 </div>
 
+                {threatReports && (
+                    <NationalThreatsByState data={threatReports} />
+                )}
                 {coverage && <NationalCoverage data={coverage} />}
                 {organizations && (
                     <NationalOrganizations data={organizations} />

@@ -19,11 +19,13 @@ use App\Models\FlashpointAssessment;
 use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\State;
+use App\Models\ThreatReport;
 use App\Models\ThreatType;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Flashpoints\FlashpointLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Threats\ThreatLinks;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -40,7 +42,7 @@ use Spatie\Activitylog\Models\Activity;
  */
 class FlashpointController extends Controller
 {
-    private const TABS = ['overview', 'assessments', 'incidents', 'security_notes', 'history'];
+    private const TABS = ['overview', 'assessments', 'incidents', 'security_notes', 'threats', 'history'];
 
     /** Suggestion windows offered on the Incidents tab (the default is configured). */
     private const SUGGESTION_MONTHS = [3, 6, 12, 24];
@@ -173,6 +175,8 @@ class FlashpointController extends Controller
                 'linked' => FlashpointLinks::securityNotes($flashpoint),
                 'suggestions' => $canLink ? FlashpointLinks::securityNoteSuggestions($row) : [],
             ] : null,
+            // Threat reports linked to it (Phase 6B), through their scopes.
+            'threatReports' => $tab === 'threats' && $user->can('viewAny', ThreatReport::class) ? ThreatLinks::forFlashpoint($flashpoint) : null,
             'history' => $tab === 'history'
                 ? Activity::query()->with(['causer', 'subject'])
                     ->where('subject_type', $flashpoint->getMorphClass())->where('subject_id', $flashpoint->id)
@@ -188,6 +192,7 @@ class FlashpointController extends Controller
                 'delete' => $user->can('delete', $flashpoint),
                 'viewIncidents' => $user->can('viewAny', Incident::class),
                 'viewSecurityNotes' => $user->can('viewAny', CommunitySecurityNote::class),
+                'viewThreats' => $user->can('viewAny', ThreatReport::class),
             ],
         ]);
     }

@@ -23,6 +23,7 @@ use App\Support\ReferenceData\Contracts\ReferenceUsage;
 use App\Support\ReferenceData\ReferenceTable;
 use App\Support\ReferenceData\ReferenceUsageRegistry;
 use App\Support\Security\ReferenceUsageChecks as SecurityReferenceUsageChecks;
+use App\Support\Threats\ReferenceUsageChecks as ThreatsReferenceUsageChecks;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Hashing\Hasher;
@@ -53,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
             SecurityReferenceUsageChecks::register($registry);
             IncidentsReferenceUsageChecks::register($registry);
             FlashpointsReferenceUsageChecks::register($registry);
+            ThreatsReferenceUsageChecks::register($registry);
 
             return $registry;
         });

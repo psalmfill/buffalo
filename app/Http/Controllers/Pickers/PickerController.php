@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AgencyFormation;
 use App\Models\Community;
 use App\Models\CriminalGroup;
+use App\Models\Flashpoint;
 use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\Organization;
@@ -161,6 +162,19 @@ class PickerController extends Controller
             ->limit(self::LIMIT)->get();
 
         return $this->respond($results->map(fn (CriminalGroup $g) => self::row($g->ulid, $g->name, "{$g->type->label()} · {$g->lga->name} LGA, {$g->state->name}")));
+    }
+
+    /** Flashpoints and blackspots the user can see (Phase 6B threat links). */
+    public function flashpoints(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Flashpoint::class);
+        $data = $request->validate(['q' => ['nullable', 'string', 'max:100']]);
+
+        $results = Flashpoint::query()->with(['lga', 'state', 'threatType'])
+            ->when(trim((string) ($data['q'] ?? '')) !== '', fn (Builder $q) => $q->search((string) $data['q']), fn (Builder $q) => $q->byConcern())
+            ->limit(self::LIMIT)->get();
+
+        return $this->respond($results->map(fn (Flashpoint $f) => self::row($f->ulid, $f->name, "{$f->kind->label()} · {$f->threatType->name} · {$f->lga->name} LGA, {$f->state->name}")));
     }
 
     public function organizations(Request $request): JsonResponse

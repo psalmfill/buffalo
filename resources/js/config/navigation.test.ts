@@ -84,6 +84,11 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'flashpoints.manage',
         'flashpoints.assess',
         'flashpoints.delete',
+        'threats.view',
+        'threats.create',
+        'threats.manage',
+        'threats.reactivate',
+        'threats.delete',
     ],
     deputy_director_general: [
         'users.view',
@@ -141,6 +146,11 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'flashpoints.manage',
         'flashpoints.assess',
         'flashpoints.delete',
+        'threats.view',
+        'threats.create',
+        'threats.manage',
+        'threats.reactivate',
+        'threats.delete',
     ],
     state_director: [
         'users.view',
@@ -203,6 +213,11 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'flashpoints.manage',
         'flashpoints.assess',
         'flashpoints.delete',
+        'threats.view',
+        'threats.create',
+        'threats.manage',
+        'threats.reactivate',
+        'threats.delete',
     ],
     deputy_state_director: [
         'users.view',
@@ -248,6 +263,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'flashpoints.view',
         'flashpoints.manage',
         'flashpoints.assess',
+        'threats.view',
+        'threats.create',
+        'threats.manage',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -285,6 +303,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'flashpoints.view',
         'flashpoints.manage',
         'flashpoints.assess',
+        'threats.view',
+        'threats.create',
+        'threats.manage',
     ],
 };
 
@@ -347,7 +368,10 @@ describe('navigation', () => {
             director_general: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
-                Flashpoints: ['Flashpoints & blackspots'],
+                'Threats & flashpoints': [
+                    'Threat reports',
+                    'Flashpoints & blackspots',
+                ],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -369,7 +393,10 @@ describe('navigation', () => {
             deputy_director_general: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
-                Flashpoints: ['Flashpoints & blackspots'],
+                'Threats & flashpoints': [
+                    'Threat reports',
+                    'Flashpoints & blackspots',
+                ],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -391,7 +418,10 @@ describe('navigation', () => {
             state_director: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
-                Flashpoints: ['Flashpoints & blackspots'],
+                'Threats & flashpoints': [
+                    'Threat reports',
+                    'Flashpoints & blackspots',
+                ],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -413,7 +443,10 @@ describe('navigation', () => {
             deputy_state_director: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
-                Flashpoints: ['Flashpoints & blackspots'],
+                'Threats & flashpoints': [
+                    'Threat reports',
+                    'Flashpoints & blackspots',
+                ],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -435,7 +468,10 @@ describe('navigation', () => {
             lga_security_chief: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
-                Flashpoints: ['Flashpoints & blackspots'],
+                'Threats & flashpoints': [
+                    'Threat reports',
+                    'Flashpoints & blackspots',
+                ],
                 'Local Government': [
                     'LGAs',
                     'Communities',

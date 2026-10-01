@@ -19,12 +19,14 @@ import {
     Network,
     ScrollText,
     Shield,
+    TriangleAlert,
     UserSearch,
     Users,
 } from 'lucide-react';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
+import ThreatReportController from '@/actions/App/Http/Controllers/Threats/ThreatReportController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import AgencyFormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
@@ -61,7 +63,7 @@ export type NavItem = {
     /** Not an Inertia page: opens in a new tab (e.g. Horizon). */
     external?: boolean;
     /** A shared count shown next to the item (`badges` page prop). */
-    badge?: 'coverageReview';
+    badge?: 'coverageReview' | 'immediateThreats';
 };
 
 export type NavSection = {
@@ -87,8 +89,9 @@ export const NAVIGATION: NavSection[] = [
         ],
     },
     {
-        title: 'Flashpoints',
+        title: 'Threats & flashpoints',
         items: [
+            { title: 'Threat reports', icon: TriangleAlert, href: ThreatReportController.index(), permission: 'threats.view', badge: 'immediateThreats' },
             { title: 'Flashpoints & blackspots', icon: Flame, href: FlashpointController.index(), permission: 'flashpoints.view' },
         ],
     },

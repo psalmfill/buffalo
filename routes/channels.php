@@ -28,3 +28,19 @@ Broadcast::channel('states.{stateUlid}.incidents', function (User $user, string 
 Broadcast::channel('national.incidents', fn (User $user): bool => ! $user->isAccessBlocked()
     && $user->jurisdiction_level === JurisdictionLevel::National
     && $user->checkPermissionTo(Permission::IncidentsView->value));
+
+// Threat report events (Phase 6B), parallel to the incident channels and
+// gated on threats.view. Payloads carry only the ULID and the event name.
+Broadcast::channel('states.{stateUlid}.threats', function (User $user, string $stateUlid): bool {
+    if ($user->isAccessBlocked() || ! $user->checkPermissionTo(Permission::ThreatsView->value)) {
+        return false;
+    }
+
+    $state = State::query()->where('ulid', $stateUlid)->first();
+
+    return $state !== null && app(JurisdictionOptions::class)->coversState($user, $state);
+});
+
+Broadcast::channel('national.threats', fn (User $user): bool => ! $user->isAccessBlocked()
+    && $user->jurisdiction_level === JurisdictionLevel::National
+    && $user->checkPermissionTo(Permission::ThreatsView->value));

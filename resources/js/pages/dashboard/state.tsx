@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { StateThreats } from '@/components/dashboard/threat-report-figures';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOfInterest/PersonOfInterestController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
@@ -22,6 +23,7 @@ import type { StateDashboardProps } from '@/types/dashboard';
 /** State Director and Deputy State Director. */
 export default function StateDashboard({
     incidents,
+    threatReports,
     state,
     lgas,
     securityNotesByLga,
@@ -51,6 +53,7 @@ export default function StateDashboard({
                         .join(' · ')}
                 />
 
+                {threatReports && <StateThreats data={threatReports} />}
                 {incidents && <StateIncidents data={incidents} view={map} />}
 
                 {(can('poi.view') || can('criminal_groups.view')) && (

@@ -11,6 +11,12 @@ import {
 import type { NavSection } from '@/config/navigation';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 
+/** What each sidebar count means, for screen readers. */
+const BADGE_LABELS = {
+    coverageReview: 'awaiting your review',
+    immediateThreats: 'active immediate threats',
+} as const;
+
 export function NavMain({ sections }: { sections: NavSection[] }) {
     const { isCurrentUrl } = useCurrentUrl();
     const badges = usePage().props.badges;
@@ -55,7 +61,7 @@ export function NavMain({ sections }: { sections: NavSection[] }) {
                                 {item.badge &&
                                     (badges?.[item.badge] ?? 0) > 0 && (
                                         <SidebarMenuBadge
-                                            aria-label={`${badges[item.badge]} awaiting your review`}
+                                            aria-label={`${badges[item.badge]} ${BADGE_LABELS[item.badge]}`}
                                         >
                                             {badges[item.badge]}
                                         </SidebarMenuBadge>

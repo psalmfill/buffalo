@@ -104,6 +104,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Threat reports (Phase 6B)
+    |--------------------------------------------------------------------------
+    | Without an expected end, a threat report expires this many days after
+    | it is recorded. No expiry may be set more than `max_expiry_days` ahead
+    | (from the day it is set). Owners are warned `expiry_warning_hours`
+    | before expiry.
+    */
+    'threats' => [
+        'default_expiry_days' => (int) env('BUFFALO_THREAT_DEFAULT_EXPIRY_DAYS', 14),
+        'max_expiry_days' => (int) env('BUFFALO_THREAT_MAX_EXPIRY_DAYS', 90),
+        'expiry_warning_hours' => (int) env('BUFFALO_THREAT_EXPIRY_WARNING_HOURS', 24),
+        // "Expiring soon" on lists and dashboards.
+        'expiring_soon_hours' => (int) env('BUFFALO_THREAT_EXPIRING_SOON_HOURS', 48),
+        'map_cap' => (int) env('BUFFALO_THREAT_MAP_CAP', 2000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Incident evidence (Phase 5B)
     |--------------------------------------------------------------------------
     | Limits in megabytes per evidence type. Keep them within nginx's

@@ -4,8 +4,10 @@ namespace App\Http\Middleware;
 
 use App\Enums\CoverageReportStatus;
 use App\Enums\Permission;
+use App\Enums\ThreatUrgency;
 use App\Http\Presenters\CurrentUserPresenter;
 use App\Models\CoverageReport;
+use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Geo\BoundaryAttribution;
 use App\Support\SystemBanner;
@@ -67,6 +69,10 @@ class HandleInertiaRequests extends Middleware
             'badges' => [
                 'coverageReview' => fn (): int => $user instanceof User && $user->checkPermissionTo(Permission::CoverageReview->value)
                     ? CoverageReport::query()->where('status', CoverageReportStatus::Submitted->value)->count()
+                    : 0,
+                // Active immediate threat reports in reach (Phase 6B), through their scopes.
+                'immediateThreats' => fn (): int => $user instanceof User && $user->checkPermissionTo(Permission::ThreatsView->value)
+                    ? ThreatReport::query()->active()->where('urgency', ThreatUrgency::Immediate->value)->count()
                     : 0,
             ],
             // Attribution of the imported boundaries, shown on every map (Phase 6A).

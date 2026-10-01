@@ -257,6 +257,18 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 6B — Threat reports (LGA chiefs manage only their own:
+            // ThreatReportPolicy)
+            // ---------------------------------------------------------------
+            'threats' => [
+                Permission::ThreatsView->value => self::INTELLIGENCE_ROLES,
+                Permission::ThreatsCreate->value => self::INTELLIGENCE_ROLES,
+                Permission::ThreatsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::ThreatsReactivate->value => self::DELETE_ROLES,
+                Permission::ThreatsDelete->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

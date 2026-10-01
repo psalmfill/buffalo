@@ -75,6 +75,11 @@ export const PERMISSIONS = [
     'flashpoints.manage',
     'flashpoints.assess',
     'flashpoints.delete',
+    'threats.view',
+    'threats.create',
+    'threats.manage',
+    'threats.reactivate',
+    'threats.delete',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

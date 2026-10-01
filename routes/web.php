@@ -40,3 +40,4 @@ require __DIR__.'/pickers.php';
 require __DIR__.'/incidents.php';
 require __DIR__.'/evidence.php';
 require __DIR__.'/flashpoints.php';
+require __DIR__.'/threats.php';

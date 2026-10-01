@@ -45,15 +45,23 @@ import type {
 import type { IncidentListRow } from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
+import type { ThreatRow } from '@/types/threats';
+import { ThreatList } from '@/components/threats/threat-display';
 
 type Tab =
-    'overview' | 'assessments' | 'incidents' | 'security_notes' | 'history';
+    | 'overview'
+    | 'assessments'
+    | 'incidents'
+    | 'security_notes'
+    | 'threats'
+    | 'history';
 
 const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
     assessments: 'Assessments',
     incidents: 'Incidents',
     security_notes: 'Security notes',
+    threats: 'Threat reports',
     history: 'History',
 };
 
@@ -79,6 +87,8 @@ type Props = {
         monthOptions: number[];
     } | null;
     securityNotes: { linked: LinkedNote[]; suggestions: NoteRow[] } | null;
+    /** Phase 6B: threat reports linked to this flashpoint. */
+    threatReports: ThreatRow[] | null;
     history: Paginated<ActivityEntry> | null;
     options: FlashpointOptions | null;
     can: {
@@ -87,6 +97,7 @@ type Props = {
         delete: boolean;
         viewIncidents: boolean;
         viewSecurityNotes: boolean;
+        viewThreats: boolean;
     };
 };
 
@@ -97,7 +108,8 @@ export default function FlashpointShow(props: Props) {
     const tabs = (Object.keys(TAB_LABELS) as Tab[]).filter(
         (name) =>
             (name !== 'incidents' || can.viewIncidents) &&
-            (name !== 'security_notes' || can.viewSecurityNotes),
+            (name !== 'security_notes' || can.viewSecurityNotes) &&
+            (name !== 'threats' || can.viewThreats),
     );
 
     return (
@@ -205,6 +217,13 @@ export default function FlashpointShow(props: Props) {
                         flashpoint={flashpoint}
                         data={props.securityNotes}
                         canLink={can.update}
+                    />
+                )}
+                {tab === 'threats' && props.threatReports && (
+                    <ThreatList
+                        rows={props.threatReports}
+                        empty="No linked threat reports you can view."
+                        label="Linked threat reports"
                     />
                 )}
                 {tab === 'history' && props.history && (

@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { LgaThreats } from '@/components/dashboard/threat-report-figures';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import AccessFigures from '@/components/dashboard/access-figures';
 import { LgaOrganizations } from '@/components/dashboard/organization-figures';
@@ -27,6 +28,7 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 /** LGA Security Chief. */
 export default function LgaDashboard({
     incidents,
+    threatReports,
     lga,
     profile,
     information,
@@ -43,6 +45,7 @@ export default function LgaDashboard({
             <div className="flex flex-col gap-6 p-4">
                 <DashboardHeader title={lga.label} subtitle={lga.state} />
 
+                {threatReports && <LgaThreats data={threatReports} />}
                 {incidents && <LgaIncidents data={incidents} />}
 
                 <section

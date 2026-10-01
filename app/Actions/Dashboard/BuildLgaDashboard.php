@@ -10,6 +10,7 @@ use App\Models\Lga;
 use App\Models\LgaProfile;
 use App\Models\PersonOfInterest;
 use App\Models\ReligiousInstitution;
+use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
@@ -18,6 +19,7 @@ use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
 use App\Support\Dashboard\ThreatFigures;
+use App\Support\Dashboard\ThreatReportFigures;
 use App\Support\Jurisdiction\JurisdictionLabel;
 use App\Support\LocalGovernment\ProfileCompleteness;
 
@@ -63,6 +65,8 @@ final class BuildLgaDashboard
             'coverage' => app(CoverageFigures::class)->forLga($user, $lga),
             'map' => MapView::for($lga),
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forLga($user, $lga) : null,
+            // Threat reports (Phase 6B), through their own scopes.
+            'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forLga($lga) : null,
             'placeholders' => PlaceholderCards::for($label),
         ];
     }

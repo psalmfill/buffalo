@@ -27,6 +27,7 @@ use App\Models\IncidentPerson;
 use App\Models\IncidentProperty;
 use App\Models\Lga;
 use App\Models\RecordAccessRequest;
+use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Evidence\EvidenceFileInspector;
@@ -34,6 +35,7 @@ use App\Support\Flashpoints\FlashpointLinks;
 use App\Support\Incidents\PossibleDuplicates;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Jurisdiction\OfficerNames;
+use App\Support\Threats\ThreatLinks;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -117,6 +119,8 @@ class IncidentController extends Controller
             'timeline' => $tab === 'timeline' ? IncidentTimeline::for($incident) : null,
             // Linked and nearby flashpoints the viewer can see (Phase 6A).
             'flashpoints' => $user->can('viewAny', Flashpoint::class) ? FlashpointLinks::forIncident($incident, $user) : null,
+            // Linked and possibly related threat reports the viewer can see (Phase 6B).
+            'threats' => $user->can('viewAny', ThreatReport::class) ? ThreatLinks::forIncident($incident, $user) : null,
             'possibleDuplicates' => $reviewing
                 ? $duplicates->for($incident)->map(fn (Incident $d) => IncidentPresenter::duplicate($d))->values()
                 : [],

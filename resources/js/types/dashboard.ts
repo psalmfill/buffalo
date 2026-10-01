@@ -1,3 +1,8 @@
+import type {
+    LgaThreatFigures,
+    NationalThreatFigures,
+    StateThreatFigures,
+} from '@/types/threats';
 import type { Geometry } from 'geojson';
 import type { IncidentListRow, IncidentMapPoint } from '@/types/incidents';
 import type { AccessFiguresData } from '@/components/dashboard/access-figures';
@@ -52,6 +57,7 @@ export type SystemDashboardProps = {
 
 export type NationalDashboardProps = {
     incidents: NationalIncidentFigures | null;
+    threatReports: NationalThreatFigures | null;
     access: AccessFiguresData | null;
     coverage: NationalCoverageData | null;
     organizations: NationalOrganizationData | null;
@@ -76,6 +82,7 @@ export type NationalDashboardProps = {
 
 export type StateDashboardProps = {
     incidents: StateIncidentFigures | null;
+    threatReports: StateThreatFigures | null;
     access: AccessFiguresData | null;
     coverage: StateCoverageData | null;
     organizations: StateOrganizationData | null;
@@ -110,6 +117,7 @@ export type StateDashboardProps = {
 
 export type LgaDashboardProps = {
     incidents: LgaIncidentFigures | null;
+    threatReports: LgaThreatFigures | null;
     access: AccessFiguresData | null;
     coverage: LgaCoverageData | null;
     organizations: LgaOrganizationData | null;
