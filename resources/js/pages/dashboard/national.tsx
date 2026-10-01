@@ -3,6 +3,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { NationalOrganizations } from '@/components/dashboard/organization-figures';
 import { NationalCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { NationalIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
 import {
@@ -17,6 +18,7 @@ import type { NationalDashboardProps } from '@/types/dashboard';
 
 /** Director General and Deputy Director General. */
 export default function NationalDashboard({
+    incidents,
     scope,
     completenessByState,
     securityNotesByState,
@@ -61,6 +63,10 @@ export default function NationalDashboard({
                         rows={threats.poisByState}
                         riskLevels={threats.riskLevels}
                     />
+
+                    {incidents && (
+                        <NationalIncidents data={incidents} view={map} />
+                    )}
                     <GroupsByType rows={threats.groupsByType} />
                 </div>
 

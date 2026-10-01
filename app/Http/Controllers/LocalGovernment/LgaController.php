@@ -17,6 +17,7 @@ use App\Http\Requests\LocalGovernment\LgaProfileRequest;
 use App\Models\AgencyFormation;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\LgaProfile;
 use App\Models\OrganizationSite;
@@ -27,6 +28,7 @@ use App\Models\User;
 use App\Models\VulnerablePopulationStat;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
+use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\ProfileCompleteness;
 use App\Support\Political\Leadership;
@@ -47,7 +49,7 @@ class LgaController extends Controller
     /**
      * Tabs of an LGA page. Phase 2C and later phases add theirs here.
      */
-    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations'];
+    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations', 'incidents'];
 
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
@@ -108,7 +110,10 @@ class LgaController extends Controller
         $this->authorize('view', $lga);
         $user = $this->actor($request);
 
-        $tab = in_array($request->query('tab'), self::TABS, true) ? $request->query('tab') : 'overview';
+        // Incidents in the LGA (Phase 5D), hidden when there are none.
+        $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::lga($lga)->exists();
+        $tabs = $hasIncidents ? self::TABS : array_values(array_diff(self::TABS, ['incidents']));
+        $tab = in_array($request->query('tab'), $tabs, true) ? $request->query('tab') : 'overview';
         $lga->loadMissing(['state', 'senatorialDistrict']);
 
         $profile = LgaProfile::query()->with('reviewer')->firstWhere('lga_id', $lga->id);
@@ -117,7 +122,11 @@ class LgaController extends Controller
         return Inertia::render('lgas/show', [
             'lga' => LgaPresenter::facts($lga),
             'tab' => $tab,
-            'tabs' => self::TABS,
+            'tabs' => $tabs,
+            'incidents' => $tab === 'incidents' ? [
+                'rows' => IncidentLinks::rows(IncidentLinks::lga($lga)),
+                'last90ByType' => IncidentLinks::lgaSummary($lga),
+            ] : null,
             'completeness' => LgaPresenter::completeness($profile, $communityCount),
             'communityCount' => $communityCount,
             'lastReviewed' => [

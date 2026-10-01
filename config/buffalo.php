@@ -75,6 +75,8 @@ return [
             'medium' => (int) env('BUFFALO_VERIFY_MEDIUM_MINUTES', 1440),
             'low' => (int) env('BUFFALO_VERIFY_LOW_MINUTES', 2880),
         ],
+        // The incident map shows at most this many points (Phase 5D).
+        'map_cap' => (int) env('BUFFALO_INCIDENT_MAP_CAP', 5000),
     ],
 
     /*

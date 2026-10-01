@@ -7,6 +7,7 @@ use App\Enums\SecurityNoteStatus;
 use App\Enums\VulnerableCategory;
 use App\Models\CommunitySecurityNote;
 use App\Models\CriminalGroup;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\OfficerPosting;
 use App\Models\PersonOfInterest;
@@ -16,6 +17,7 @@ use App\Models\VulnerablePopulationStat;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
+use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
@@ -90,6 +92,7 @@ final class BuildStateDashboard
             'organizations' => app(OrganizationFigures::class)->forState($user, $state),
             'coverage' => app(CoverageFigures::class)->forState($user, $state, $lgas),
             'map' => MapView::for($state),
+            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forState($user, $state) : null,
             'placeholders' => PlaceholderCards::for($label),
         ];
     }

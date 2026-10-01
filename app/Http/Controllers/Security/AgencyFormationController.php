@@ -13,11 +13,13 @@ use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Security\AgencyFormationRequest;
 use App\Models\AgencyFormation;
 use App\Models\Community;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\SecurityAgency;
 use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -124,7 +126,13 @@ class AgencyFormationController extends Controller
     {
         $this->authorize('view', $formation);
         $user = $this->actor($request);
-        $tab = $request->query('tab') === 'history' ? 'history' : 'overview';
+        // Incidents linked to it (Phase 5D): the tab is hidden when there are none.
+        $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::formation($formation)->exists();
+        $tab = match ($request->query('tab')) {
+            'history' => 'history',
+            'incidents' => $hasIncidents ? 'incidents' : 'overview',
+            default => 'overview',
+        };
 
         $formation->recordAccess(context: "tab:{$tab}");
         Inertia::encryptHistory();
@@ -141,6 +149,8 @@ class AgencyFormationController extends Controller
             'formation' => AgencyFormationPresenter::detail($row, $parent),
             'children' => $children->map(fn (AgencyFormation $f) => AgencyFormationPresenter::row($f))->values(),
             'tab' => $tab,
+            'hasIncidents' => $hasIncidents,
+            'incidents' => $tab === 'incidents' ? IncidentLinks::rows(IncidentLinks::formation($formation)) : null,
             'history' => $tab === 'history'
                 ? Activity::query()->with(['causer', 'subject'])
                     ->where('subject_type', $formation->getMorphClass())->where('subject_id', $formation->id)

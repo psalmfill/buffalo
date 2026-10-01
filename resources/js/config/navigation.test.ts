@@ -328,7 +328,7 @@ describe('navigation', () => {
             },
             director_general: {
                 Overview: ['Dashboard'],
-                Incidents: ['Report incident', 'Incidents'],
+                Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -349,7 +349,7 @@ describe('navigation', () => {
             },
             deputy_director_general: {
                 Overview: ['Dashboard'],
-                Incidents: ['Report incident', 'Incidents'],
+                Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -370,7 +370,7 @@ describe('navigation', () => {
             },
             state_director: {
                 Overview: ['Dashboard'],
-                Incidents: ['Report incident', 'Incidents'],
+                Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -391,7 +391,7 @@ describe('navigation', () => {
             },
             deputy_state_director: {
                 Overview: ['Dashboard'],
-                Incidents: ['Report incident', 'Incidents'],
+                Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -412,7 +412,7 @@ describe('navigation', () => {
             },
             lga_security_chief: {
                 Overview: ['Dashboard'],
-                Incidents: ['Report incident', 'Incidents'],
+                Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Local Government': [
                     'LGAs',
                     'Communities',

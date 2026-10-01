@@ -20,6 +20,9 @@ void createInertiaApp({
                 // Error pages draw their own full-page layout: they are
                 // shown to guests and signed-in users alike.
                 return null;
+            case name.endsWith('/print'):
+                // Print views are bare pages (no app shell).
+                return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

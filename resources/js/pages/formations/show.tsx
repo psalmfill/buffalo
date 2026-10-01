@@ -1,3 +1,5 @@
+import type { IncidentListRow } from '@/types/incidents';
+import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -15,17 +17,22 @@ import type { FormationDetail, FormationRow } from '@/types/formations';
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
 
-type Tab = 'overview' | 'history';
+type Tab = 'overview' | 'incidents' | 'history';
 
 /** One agency formation: details, parent and sub-formations, map, history. */
 export default function FormationShow({
     formation,
+    incidents,
+    hasIncidents,
     children,
     tab,
     history,
     can,
 }: {
     formation: FormationDetail;
+    /** Phase 5D: incidents where the formation responded. */
+    incidents: Paginated<IncidentListRow> | null;
+    hasIncidents: boolean;
     children: FormationRow[];
     tab: Tab;
     history: Paginated<ActivityEntry> | null;
@@ -88,7 +95,11 @@ export default function FormationShow({
                 </div>
 
                 <nav className="flex gap-1 border-b" aria-label="Sections">
-                    {(['overview', 'history'] as Tab[]).map((name) => (
+                    {(
+                        (hasIncidents
+                            ? ['overview', 'incidents', 'history']
+                            : ['overview', 'history']) as Tab[]
+                    ).map((name) => (
                         <Link
                             key={name}
                             href={FormationController.show(formation.ulid, {
@@ -103,7 +114,11 @@ export default function FormationShow({
                             )}
                             aria-current={tab === name ? 'page' : undefined}
                         >
-                            {name === 'overview' ? 'Overview' : 'History'}
+                            {name === 'overview'
+                                ? 'Overview'
+                                : name === 'incidents'
+                                  ? 'Incidents'
+                                  : 'History'}
                         </Link>
                     ))}
                 </nav>
@@ -248,6 +263,10 @@ export default function FormationShow({
                             className="h-80"
                         />
                     </div>
+                )}
+
+                {tab === 'incidents' && incidents && (
+                    <IncidentsTab incidents={incidents} />
                 )}
 
                 {tab === 'history' && history && (

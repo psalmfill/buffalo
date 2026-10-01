@@ -7,12 +7,14 @@ use App\Enums\SecurityNoteCategory;
 use App\Enums\SecurityNoteStatus;
 use App\Models\CommunitySecurityNote;
 use App\Models\CriminalGroup;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\PersonOfInterest;
 use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
+use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
@@ -67,6 +69,7 @@ final class BuildNationalDashboard
             'organizations' => app(OrganizationFigures::class)->national($user, (clone $states)->orderBy('name')->get()),
             'coverage' => app(CoverageFigures::class)->national($user, (clone $states)->orderBy('name')->get()),
             'map' => MapView::for(null),
+            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->national($user) : null,
             'placeholders' => PlaceholderCards::for($label),
         ];
     }

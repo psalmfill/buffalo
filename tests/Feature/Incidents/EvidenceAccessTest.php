@@ -177,8 +177,11 @@ test('listing items on the incident page logs each one', function () {
     $incident = Incident::factory()->in($this->world->lgas['A1a'])->by($this->chief)->create();
     $pdf = evidenceOn($incident, EvidenceFixtures::pdf(), $this->chief);
 
+    // Logged when the Evidence tab shows the items (Phase 5D), not on other tabs.
     CrossFixtures::signIn($this->chief)->get("/incidents/{$incident->ulid}")->assertOk();
+    expect(accessLogs($pdf, 'view', 'incident_page'))->toBe(0);
 
+    CrossFixtures::signIn($this->chief)->get("/incidents/{$incident->ulid}?tab=evidence")->assertOk();
     expect(accessLogs($pdf, 'view', 'incident_page'))->toBe(1);
 });
 

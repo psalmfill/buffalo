@@ -77,6 +77,7 @@ export function SitesMap({
                 className={`${className} rounded-lg border`}
                 markers={markers}
                 fitMarkers={markers.length > 0}
+                cluster
                 {...(center ? { center, zoom } : {})}
             />
             {markers.length === 0 ? (

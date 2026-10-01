@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
+import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import DynamicFields from '@/components/dynamic-fields/dynamic-fields';
 import EvidenceSection from '@/components/evidence/evidence-section';
@@ -714,7 +715,7 @@ export default function IncidentForm(props: Props) {
                             href={
                                 editing
                                     ? IncidentController.show(incident.ulid)
-                                    : IncidentController.index()
+                                    : IncidentListController.index()
                             }
                         >
                             Cancel
@@ -741,5 +742,5 @@ export default function IncidentForm(props: Props) {
 }
 
 IncidentForm.layout = {
-    breadcrumbs: [{ title: 'Incidents', href: IncidentController.index() }],
+    breadcrumbs: [{ title: 'Incidents', href: IncidentListController.index() }],
 };

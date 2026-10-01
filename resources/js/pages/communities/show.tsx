@@ -1,3 +1,5 @@
+import type { IncidentListRow } from '@/types/incidents';
+import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -26,6 +28,8 @@ import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
 
 type Props = {
+    /** Phase 5D: linked incidents (the tab is hidden when there are none). */
+    incidents: Paginated<IncidentListRow> | null;
     community: CommunityDetail;
     marker: MapMarker | null;
     map: MapView;
@@ -44,6 +48,7 @@ type CommunityTab =
     | 'religious_institutions'
     | 'vulnerable_population'
     | 'security_notes'
+    | 'incidents'
     | 'history';
 
 const TAB_LABELS: Record<CommunityTab, string> = {
@@ -51,6 +56,7 @@ const TAB_LABELS: Record<CommunityTab, string> = {
     religious_institutions: 'Religious institutions',
     vulnerable_population: 'Vulnerable population',
     security_notes: 'Security notes',
+    incidents: 'Incidents',
     history: 'History',
 };
 
@@ -65,6 +71,7 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 
 export default function CommunityShow({
     community,
+    incidents,
     marker,
     tab,
     tabs,
@@ -222,6 +229,10 @@ export default function CommunityShow({
                         options={options}
                         can={can}
                     />
+                )}
+
+                {tab === 'incidents' && incidents && (
+                    <IncidentsTab incidents={incidents} />
                 )}
 
                 {tab === 'history' && history && (

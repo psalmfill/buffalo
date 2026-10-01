@@ -10,6 +10,7 @@ use App\Http\Presenters\OrganizationPresenter;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Organizations\OrganizationSiteRequest;
 use App\Models\Community;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\Organization;
 use App\Models\OrganizationContact;
@@ -17,6 +18,7 @@ use App\Models\OrganizationSite;
 use App\Models\OrganizationSiteFormation;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,7 +56,13 @@ class OrganizationSiteController extends Controller
     {
         $this->authorize('view', $site);
         $user = $this->actor($request);
-        $tab = $request->query('tab') === 'history' ? 'history' : 'overview';
+        // Incidents linked to it (Phase 5D): the tab is hidden when there are none.
+        $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::site($site)->exists();
+        $tab = match ($request->query('tab')) {
+            'history' => 'history',
+            'incidents' => $hasIncidents ? 'incidents' : 'overview',
+            default => 'overview',
+        };
 
         if ($site->logsViews()) {
             $site->recordAccess(context: "tab:{$tab}");
@@ -84,6 +92,8 @@ class OrganizationSiteController extends Controller
             'contacts' => $contacts->map(fn (OrganizationContact $c) => OrganizationPresenter::contact($c, $user))->values(),
             'formations' => $links->map(fn (OrganizationSiteFormation $l) => OrganizationPresenter::formationLink($l))->values(),
             'tab' => $tab,
+            'hasIncidents' => $hasIncidents,
+            'incidents' => $tab === 'incidents' ? IncidentLinks::rows(IncidentLinks::site($site)) : null,
             'history' => $tab === 'history'
                 ? Activity::query()->with(['causer', 'subject'])
                     ->where('subject_type', $site->getMorphClass())->where('subject_id', $site->id)

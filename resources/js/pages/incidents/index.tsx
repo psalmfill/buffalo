@@ -1,108 +1,65 @@
 import { Head, Link } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { MapIcon, Plus } from 'lucide-react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
-import ClassificationBadge from '@/components/community-information/classification-badge';
-import EmptyState from '@/components/empty-state';
+import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
+import IncidentFilters from '@/components/incidents/incident-filters';
+import IncidentTable from '@/components/incidents/incident-table';
 import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
-import { formatDateTime } from '@/lib/time';
-import type { IncidentRow } from '@/types/incidents';
+import type { IncidentListRow, IncidentListShared } from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
 
-type Props = {
-    incidents: Paginated<IncidentRow>;
-    can: { create: boolean };
+type Props = IncidentListShared & {
+    incidents: Paginated<IncidentListRow>;
 };
 
-/** The user's own drafts (Phase 5A; the full incident list is 5D). */
-export default function IncidentIndex({ incidents, can }: Props) {
+/**
+ * The incident list (Phase 5D): filters, search, saved views, 25 per page.
+ * Everything is narrowed on the server through the viewer's scopes.
+ */
+export default function IncidentIndex(props: Props) {
+    const { incidents, national, can, filters } = props;
+
     return (
         <>
             <Head title="Incidents" />
             <div className="space-y-4 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                        <h1 className="text-xl font-semibold">
-                            My draft incidents
-                        </h1>
+                        <h1 className="text-xl font-semibold">Incidents</h1>
                         <p className="text-sm text-muted-foreground">
-                            Incidents you have started but not yet submitted.
+                            {incidents.total.toLocaleString('en-NG')} incident
+                            {incidents.total === 1 ? '' : 's'} in this view
                         </p>
                     </div>
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={IncidentController.create()}>
-                                <Plus /> Report incident
+                    <div className="flex gap-2">
+                        <Button variant="outline" asChild>
+                            <Link
+                                href={IncidentListController.map({
+                                    query: filters,
+                                })}
+                            >
+                                <MapIcon /> Map
                             </Link>
                         </Button>
-                    )}
-                </div>
-                {incidents.data.length === 0 ? (
-                    <EmptyState
-                        title="No drafts"
-                        description="Incidents you report are saved here as drafts."
-                    />
-                ) : (
-                    <div className="overflow-x-auto rounded-lg border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-muted/50 text-left">
-                                <tr>
-                                    <th className="px-3 py-2 font-medium">
-                                        Title
-                                    </th>
-                                    <th className="px-3 py-2 font-medium">
-                                        Type
-                                    </th>
-                                    <th className="px-3 py-2 font-medium">
-                                        Occurred
-                                    </th>
-                                    <th className="px-3 py-2 font-medium">
-                                        Place
-                                    </th>
-                                    <th className="px-3 py-2 font-medium">
-                                        Severity
-                                    </th>
-                                    <th className="px-3 py-2 font-medium">
-                                        Classification
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                                {incidents.data.map((i) => (
-                                    <tr key={i.ulid}>
-                                        <td className="px-3 py-2">
-                                            <Link
-                                                href={IncidentController.show(
-                                                    i.ulid,
-                                                )}
-                                                className="font-medium hover:underline"
-                                            >
-                                                {i.title}
-                                            </Link>
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {i.type.name}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {formatDateTime(i.occurred_at)}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {i.lga.name}, {i.state.name}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            {i.severity.label}
-                                        </td>
-                                        <td className="px-3 py-2">
-                                            <ClassificationBadge
-                                                level={i.classification.value}
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={IncidentController.create()}>
+                                    <Plus /> Report incident
+                                </Link>
+                            </Button>
+                        )}
                     </div>
-                )}
+                </div>
+                <IncidentFilters
+                    shared={props}
+                    url={IncidentListController.index().url}
+                />
+                <IncidentTable
+                    rows={incidents.data}
+                    showState={national}
+                    empty="No incidents match these filters."
+                />
                 <Pagination page={incidents} />
             </div>
         </>
@@ -110,5 +67,5 @@ export default function IncidentIndex({ incidents, can }: Props) {
 }
 
 IncidentIndex.layout = {
-    breadcrumbs: [{ title: 'Incidents', href: IncidentController.index() }],
+    breadcrumbs: [{ title: 'Incidents', href: IncidentListController.index() }],
 };

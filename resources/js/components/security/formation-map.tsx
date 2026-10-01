@@ -70,6 +70,7 @@ export default function FormationMap({
                 className={`${className} rounded-lg border`}
                 markers={markers}
                 fitMarkers={markers.length > 0}
+                cluster
                 {...(center ? { center, zoom } : {})}
             />
             {colours.size > 0 ? (

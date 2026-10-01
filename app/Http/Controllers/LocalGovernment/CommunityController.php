@@ -14,6 +14,7 @@ use App\Http\Requests\LocalGovernment\CommunityRequest;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\ReligiousInstitution;
 use App\Models\User;
@@ -21,6 +22,7 @@ use App\Models\VulnerablePopulationStat;
 use App\Models\Ward;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
+use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -96,13 +98,16 @@ class CommunityController extends Controller
     }
 
     /** Tabs of a community page. */
-    public const TABS = ['details', 'religious_institutions', 'vulnerable_population', 'security_notes', 'history'];
+    public const TABS = ['details', 'religious_institutions', 'vulnerable_population', 'security_notes', 'incidents', 'history'];
 
     public function show(Request $request, Community $community, TabData $data): Response
     {
         $this->authorize('view', $community);
         $user = $this->actor($request);
-        $tab = in_array($request->query('tab'), self::TABS, true) ? $request->query('tab') : 'details';
+        // Incidents in the community (Phase 5D), hidden when there are none.
+        $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::community($community)->exists();
+        $tabs = $hasIncidents ? self::TABS : array_values(array_diff(self::TABS, ['incidents']));
+        $tab = in_array($request->query('tab'), $tabs, true) ? $request->query('tab') : 'details';
         $lga = $community->lga;
 
         $record = $this->withCoordinates($community);
@@ -112,7 +117,8 @@ class CommunityController extends Controller
             'marker' => CommunityPresenter::marker($record),
             'map' => MapView::for($record->lga),
             'tab' => $tab,
-            'tabs' => self::TABS,
+            'tabs' => $tabs,
+            'incidents' => $tab === 'incidents' ? IncidentLinks::rows(IncidentLinks::community($community)) : null,
             'options' => CommunityInformationPresenter::options(),
             'religiousInstitutions' => $tab === 'religious_institutions' && $user->can('viewAny', ReligiousInstitution::class)
                 ? [...$data->religiousInstitutions($lga, $community, $request), 'communities' => [], 'map' => MapView::for($lga)]

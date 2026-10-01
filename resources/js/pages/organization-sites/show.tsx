@@ -1,3 +1,5 @@
+import type { IncidentListRow } from '@/types/incidents';
+import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -40,9 +42,12 @@ import type {
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
 
-type Tab = 'overview' | 'history';
+type Tab = 'overview' | 'incidents' | 'history';
 
 type Props = {
+    /** Phase 5D: linked incidents (the tab is hidden when there are none). */
+    incidents: Paginated<IncidentListRow> | null;
+    hasIncidents: boolean;
     site: SiteDetail;
     contacts: ContactDetail[];
     formations: FormationLink[];
@@ -59,6 +64,8 @@ type Props = {
  */
 export default function OrganizationSiteShow({
     site,
+    incidents,
+    hasIncidents,
     contacts,
     formations,
     tab,
@@ -129,7 +136,11 @@ export default function OrganizationSiteShow({
                 </div>
 
                 <nav className="flex gap-1 border-b" aria-label="Sections">
-                    {(['overview', 'history'] as Tab[]).map((name) => (
+                    {(
+                        (hasIncidents
+                            ? ['overview', 'incidents', 'history']
+                            : ['overview', 'history']) as Tab[]
+                    ).map((name) => (
                         <Link
                             key={name}
                             href={OrganizationSiteController.show(site.ulid, {
@@ -144,7 +155,11 @@ export default function OrganizationSiteShow({
                             )}
                             aria-current={tab === name ? 'page' : undefined}
                         >
-                            {name === 'overview' ? 'Overview' : 'History'}
+                            {name === 'overview'
+                                ? 'Overview'
+                                : name === 'incidents'
+                                  ? 'Incidents'
+                                  : 'History'}
                         </Link>
                     ))}
                 </nav>
@@ -419,6 +434,10 @@ export default function OrganizationSiteShow({
                             zoom={map.zoom}
                         />
                     </div>
+                )}
+
+                {tab === 'incidents' && incidents && (
+                    <IncidentsTab incidents={incidents} />
                 )}
 
                 {tab === 'history' && history && (

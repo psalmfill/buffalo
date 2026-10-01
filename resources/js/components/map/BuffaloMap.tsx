@@ -3,6 +3,9 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { PMTiles } from 'pmtiles';
 import { leafletLayer } from 'protomaps-leaflet';
 import { useEffect, useRef, useState } from 'react';
@@ -47,15 +50,26 @@ export type MapMarker = {
      * hex colour from our own palette; never user input.
      */
     color?: string;
+    /** The dot's shape (e.g. one per incident category). */
+    shape?: MarkerShape;
 };
 
-/** A coloured dot marker (no image assets). */
-function dotIcon(color: string): L.DivIcon {
+export type MarkerShape = 'circle' | 'square' | 'diamond' | 'triangle' | 'ring';
+
+/** A coloured dot marker, optionally shaped (no image assets). */
+function dotIcon(color: string, shape: MarkerShape = 'circle'): L.DivIcon {
     const safe = /^#[0-9a-f]{6}$/i.test(color) ? color : '#475569';
+    const style: Record<MarkerShape, string> = {
+        circle: 'border-radius:9999px',
+        square: 'border-radius:2px',
+        diamond: 'border-radius:2px;transform:rotate(45deg) scale(.85)',
+        triangle: 'border-radius:2px;clip-path:polygon(50% 0,100% 100%,0 100%)',
+        ring: `border-radius:9999px;background:#fff !important;border:4px solid ${safe} !important`,
+    };
 
     return L.divIcon({
         className: '',
-        html: `<span style="display:block;width:14px;height:14px;border-radius:9999px;background:${safe};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45)"></span>`,
+        html: `<span style="display:block;width:14px;height:14px;background:${safe};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45);${style[shape]}"></span>`,
         iconSize: [14, 14],
         iconAnchor: [7, 7],
         popupAnchor: [0, -8],
@@ -81,11 +95,14 @@ type BuffaloMapProps = {
     center?: L.LatLngExpression;
     zoom?: number;
     className?: string;
-    /**
-     * Points to display. Plain markers: clustering would need a new package
-     * (see the Phase 2B handover).
-     */
+    /** Points to display. */
     markers?: MapMarker[];
+    /**
+     * Group nearby markers into clusters showing counts (leaflet.
+     * markercluster, Phase 5D): for layers that can hold many points.
+     * Decided when the map is created.
+     */
+    cluster?: boolean;
     /** Zoom to fit the markers once they are shown. */
     fitMarkers?: boolean;
     picker?: MapPicker;
@@ -121,6 +138,7 @@ export default function BuffaloMap({
     markers,
     fitMarkers = false,
     picker,
+    cluster = false,
 }: BuffaloMapProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<L.Map | null>(null);
@@ -157,7 +175,15 @@ export default function BuffaloMap({
         L.control.attribution({ prefix: 'Leaflet' }).addTo(map);
 
         mapRef.current = map;
-        markerLayerRef.current = L.layerGroup().addTo(map);
+        markerLayerRef.current = (
+            cluster
+                ? L.markerClusterGroup({
+                      chunkedLoading: true,
+                      showCoverageOnHover: false,
+                      maxClusterRadius: 50,
+                  })
+                : L.layerGroup()
+        ).addTo(map);
         map.on('click', (event: L.LeafletMouseEvent) => {
             pickerRef.current?.onChange([
                 Number(event.latlng.lat.toFixed(6)),
@@ -222,17 +248,22 @@ export default function BuffaloMap({
 
         layer.clearLayers();
 
-        for (const marker of markers ?? []) {
+        // Popups are built on demand: thousands of markers stay cheap.
+        const created = (markers ?? []).map((marker) =>
             L.marker(marker.position, {
                 title: marker.title,
                 ...(marker.color
-                    ? { icon: dotIcon(marker.color) }
+                    ? { icon: dotIcon(marker.color, marker.shape) }
                     : marker.kind === 'religious'
                       ? { icon: RELIGIOUS_ICON }
                       : {}),
-            })
-                .bindPopup(popupContent(marker))
-                .addTo(layer);
+            }).bindPopup(() => popupContent(marker)),
+        );
+
+        if (layer instanceof L.MarkerClusterGroup) {
+            layer.addLayers(created);
+        } else {
+            created.forEach((m) => m.addTo(layer));
         }
 
         if (fitMarkers && markers && markers.length > 0) {

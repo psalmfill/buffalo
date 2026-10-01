@@ -192,3 +192,97 @@ export type IncidentRecord = {
     properties: IncidentPropertyRow[];
     evidence: EvidenceProps;
 };
+
+/** A row of the incident list, record tabs and dashboards (Phase 5D). */
+export type IncidentListRow = {
+    ulid: string;
+    reference_no: string | null;
+    title: string;
+    type: { ulid: string; name: string; category: string };
+    lga: NamedRef;
+    state: NamedRef;
+    occurred_at: string;
+    severity: Option;
+    status: Option;
+    classification: { value: ClassificationLevel; label: string };
+    escalation: { acknowledged: boolean } | null;
+    /** e.g. "3 killed, 2 abducted". */
+    casualties: string;
+    reporting_officer: string | null;
+    /** Person tab only: their involvement. */
+    involvement?: string | null;
+    /** State dashboard only. */
+    overdue?: boolean;
+    submitted_at?: string | null;
+};
+
+/** Filter values as in the URL: ULIDs and enum values only. */
+export type IncidentFilterValues = {
+    q?: string;
+    types?: string[];
+    category?: string;
+    severities?: string[];
+    statuses?: string[];
+    escalated?: 'yes' | 'no' | 'unacknowledged';
+    from?: string;
+    to?: string;
+    state?: string;
+    lga?: string;
+    community?: string;
+    has_casualties?: '1';
+    outcome?: string;
+    overdue?: '1';
+    officer?: string;
+    group?: string;
+    mine?: '1';
+    no_location?: '1';
+    sort?: string;
+    dir?: 'asc' | 'desc';
+};
+
+export type IncidentFilterOptions = {
+    types: { value: string; label: string; category: string }[];
+    categories: Option[];
+    severities: Option[];
+    statuses: Option[];
+    outcomes: Option[];
+    states: Option[];
+    lgas: { value: string; label: string; state: string | null }[];
+};
+
+export type SavedIncidentFilter = {
+    ulid?: string;
+    name: string;
+    filters: IncidentFilterValues;
+};
+
+export type IncidentListShared = {
+    filters: IncidentFilterValues;
+    filterLabels: IncidentFilterLabels;
+    appliedStatuses: string[];
+    defaultStatuses: string[];
+    national: boolean;
+    filterOptions: IncidentFilterOptions;
+    savedFilters: SavedIncidentFilter[];
+    defaultFilters: SavedIncidentFilter[];
+    can: { create: boolean };
+};
+
+/** A map point: popup fields only. */
+export type IncidentMapPoint = {
+    ulid: string;
+    reference_no: string | null;
+    type: string;
+    category: string;
+    severity: string;
+    status: string;
+    occurred_at: string;
+    lat: number;
+    lng: number;
+};
+
+export type IncidentFilterLabels = {
+    community: string | null;
+    group: string | null;
+    officer: string | null;
+};

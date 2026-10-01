@@ -13,10 +13,12 @@ use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Models\CriminalGroup;
 use App\Models\CriminalGroupArea;
 use App\Models\CriminalGroupMember;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\Person;
 use App\Models\State;
 use App\Models\User;
+use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -33,7 +35,7 @@ use Spatie\Activitylog\Models\Activity;
  */
 class CriminalGroupController extends Controller
 {
-    public const TABS = ['overview', 'areas', 'members', 'history'];
+    public const TABS = ['overview', 'areas', 'members', 'incidents', 'history'];
 
     public function index(Request $request, JurisdictionOptions $options): Response
     {
@@ -100,7 +102,10 @@ class CriminalGroupController extends Controller
     {
         $this->authorize('view', $group);
         $user = $this->actor($request);
-        $tab = in_array($request->query('tab'), self::TABS, true) ? (string) $request->query('tab') : 'overview';
+        // Incidents linking the group (Phase 5D), hidden when there are none.
+        $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::group($group)->exists();
+        $tabs = $hasIncidents ? self::TABS : array_values(array_diff(self::TABS, ['incidents']));
+        $tab = in_array($request->query('tab'), $tabs, true) ? (string) $request->query('tab') : 'overview';
 
         $group->recordAccess(context: "tab:{$tab}");
         Inertia::encryptHistory();
@@ -119,7 +124,8 @@ class CriminalGroupController extends Controller
         return Inertia::render('criminal-groups/show', [
             'group' => CriminalGroupPresenter::detail($group),
             'tab' => $tab,
-            'tabs' => self::TABS,
+            'tabs' => $tabs,
+            'incidents' => $tab === 'incidents' ? IncidentLinks::rows(IncidentLinks::group($group)) : null,
             'areas' => $areas->map(fn (CriminalGroupArea $area) => CriminalGroupPresenter::area($area))->values(),
             'members' => $tab === 'members' || $tab === 'overview'
                 ? CriminalGroupMember::query()

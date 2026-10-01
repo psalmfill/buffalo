@@ -7,6 +7,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { StateOrganizations } from '@/components/dashboard/organization-figures';
 import { StateCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { StateIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
 import StatCard from '@/components/dashboard/stat-card';
@@ -20,6 +21,7 @@ import type { StateDashboardProps } from '@/types/dashboard';
 
 /** State Director and Deputy State Director. */
 export default function StateDashboard({
+    incidents,
     state,
     lgas,
     securityNotesByLga,
@@ -48,6 +50,8 @@ export default function StateDashboard({
                         .filter(Boolean)
                         .join(' · ')}
                 />
+
+                {incidents && <StateIncidents data={incidents} view={map} />}
 
                 {(can('poi.view') || can('criminal_groups.view')) && (
                     <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">

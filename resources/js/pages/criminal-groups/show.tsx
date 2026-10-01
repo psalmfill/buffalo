@@ -1,3 +1,5 @@
+import type { IncidentListRow } from '@/types/incidents';
+import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Crosshair, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -34,9 +36,11 @@ import type {
 } from '@/types/political';
 import type { ActivityEntry } from '@/types/users';
 
-type GroupTab = 'overview' | 'areas' | 'members' | 'history';
+type GroupTab = 'overview' | 'areas' | 'members' | 'incidents' | 'history';
 
 type Props = {
+    /** Phase 5D: linked incidents (the tab is hidden when there are none). */
+    incidents: Paginated<IncidentListRow> | null;
     group: GroupDetail;
     tab: GroupTab;
     tabs: GroupTab[];
@@ -52,6 +56,7 @@ const TAB_LABELS: Record<GroupTab, string> = {
     overview: 'Overview',
     areas: 'Areas of operation',
     members: 'Members',
+    incidents: 'Incidents',
     history: 'History',
 };
 
@@ -509,6 +514,7 @@ function MembersPanel({
 /** A criminal group. Every visit is recorded in the access log. */
 export default function CriminalGroupShow({
     group,
+    incidents,
     tab,
     tabs,
     areas,
@@ -659,6 +665,10 @@ export default function CriminalGroupShow({
                         canDesignatePoi={can.designatePoi}
                     />
                 )}
+                {tab === 'incidents' && incidents && (
+                    <IncidentsTab incidents={incidents} />
+                )}
+
                 {tab === 'history' && history && (
                     <div className="space-y-3">
                         <ActivityTable entries={history.data} />

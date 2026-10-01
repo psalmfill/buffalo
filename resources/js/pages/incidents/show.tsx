@@ -1,8 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
-import { Lock, Pencil, Siren } from 'lucide-react';
+import { Lock, Pencil, Printer, Siren } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
+import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import DynamicFieldsView from '@/components/dynamic-fields/dynamic-fields-view';
@@ -28,15 +29,27 @@ import type {
     TimelineEntry,
     WorkflowCan,
     WorkflowOptions,
+    WorkflowStep,
 } from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
 
-type Tab = 'overview' | 'timeline' | 'history';
+type Tab =
+    | 'overview'
+    | 'people'
+    | 'response'
+    | 'evidence'
+    | 'timeline'
+    | 'duplicates'
+    | 'history';
 
 const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
+    people: 'People',
+    response: 'Response',
+    evidence: 'Evidence',
     timeline: 'Timeline',
+    duplicates: 'Possible duplicates',
     history: 'History',
 };
 
@@ -165,6 +178,17 @@ export default function IncidentShow({
                                 </Link>
                             </Button>
                         )}
+                        <Button variant="outline" asChild>
+                            <a
+                                href={
+                                    IncidentController.print(incident.ulid).url
+                                }
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                <Printer /> Print
+                            </a>
+                        </Button>
                         <WorkflowActions
                             record={record}
                             can={can}
@@ -177,16 +201,23 @@ export default function IncidentShow({
 
                 <WorkflowFacts incident={incident} />
 
-                {possibleDuplicates.length > 0 && (
-                    <DuplicateList
-                        title="Possible duplicates"
-                        rows={possibleDuplicates}
-                        onPick={
-                            can.invalidate
-                                ? (row) => setInvalidating(row)
-                                : undefined
-                        }
-                    />
+                {possibleDuplicates.length > 0 && tab !== 'duplicates' && (
+                    <p
+                        role="status"
+                        className="rounded-lg border border-amber-500/50 bg-amber-50 p-3 text-sm dark:bg-amber-950"
+                    >
+                        {possibleDuplicates.length} possible duplicate
+                        {possibleDuplicates.length === 1 ? '' : 's'} among the
+                        incidents you can see.{' '}
+                        <Link
+                            href={IncidentController.show(incident.ulid, {
+                                query: { tab: 'duplicates' },
+                            })}
+                            className="underline"
+                        >
+                            Review
+                        </Link>
+                    </p>
                 )}
                 {invalidating && (
                     <InvalidateDialog
@@ -199,26 +230,36 @@ export default function IncidentShow({
                 )}
 
                 <nav className="flex gap-1 border-b" aria-label="Sections">
-                    {(['overview', 'timeline', 'history'] as Tab[]).map(
-                        (name) => (
-                            <Link
-                                key={name}
-                                href={IncidentController.show(incident.ulid, {
-                                    query: { tab: name },
-                                })}
-                                preserveScroll
-                                className={cn(
-                                    '-mb-px border-b-2 px-3 py-2 text-sm',
-                                    tab === name
-                                        ? 'border-primary font-medium'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground',
-                                )}
-                                aria-current={tab === name ? 'page' : undefined}
-                            >
-                                {TAB_LABELS[name]}
-                            </Link>
-                        ),
-                    )}
+                    {(
+                        [
+                            'overview',
+                            'people',
+                            'response',
+                            'evidence',
+                            'timeline',
+                            ...(can.verify || can.invalidate
+                                ? ['duplicates']
+                                : []),
+                            'history',
+                        ] as Tab[]
+                    ).map((name) => (
+                        <Link
+                            key={name}
+                            href={IncidentController.show(incident.ulid, {
+                                query: { tab: name },
+                            })}
+                            preserveScroll
+                            className={cn(
+                                '-mb-px border-b-2 px-3 py-2 text-sm',
+                                tab === name
+                                    ? 'border-primary font-medium'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                            )}
+                            aria-current={tab === name ? 'page' : undefined}
+                        >
+                            {TAB_LABELS[name]}
+                        </Link>
+                    ))}
                 </nav>
 
                 {tab === 'overview' && (
@@ -257,258 +298,7 @@ export default function IncidentShow({
                                     </Fact>
                                 </dl>
                             </Section>
-
-                            <Section title="Casualties">
-                                {casualties.length === 0 ? (
-                                    <Empty>No casualties recorded.</Empty>
-                                ) : (
-                                    <table className="w-full text-sm">
-                                        <thead className="text-left text-muted-foreground">
-                                            <tr>
-                                                <th className="py-1 font-medium">
-                                                    Outcome
-                                                </th>
-                                                <th className="py-1 font-medium">
-                                                    Who
-                                                </th>
-                                                <th className="py-1 text-right font-medium">
-                                                    Men
-                                                </th>
-                                                <th className="py-1 text-right font-medium">
-                                                    Women
-                                                </th>
-                                                <th className="py-1 text-right font-medium">
-                                                    Boys
-                                                </th>
-                                                <th className="py-1 text-right font-medium">
-                                                    Girls
-                                                </th>
-                                                <th className="py-1 text-right font-medium">
-                                                    Unknown
-                                                </th>
-                                                <th className="py-1 text-right font-medium">
-                                                    Total
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                            {casualties.map((c) => (
-                                                <tr key={c.ulid}>
-                                                    <td className="py-1">
-                                                        {c.outcome.label}
-                                                    </td>
-                                                    <td className="py-1">
-                                                        {c.group.label}
-                                                        {c.agency &&
-                                                            ` (${c.agency.short_name})`}
-                                                    </td>
-                                                    <td className="py-1 text-right">
-                                                        {c.adult_male}
-                                                    </td>
-                                                    <td className="py-1 text-right">
-                                                        {c.adult_female}
-                                                    </td>
-                                                    <td className="py-1 text-right">
-                                                        {c.child_male}
-                                                    </td>
-                                                    <td className="py-1 text-right">
-                                                        {c.child_female}
-                                                    </td>
-                                                    <td className="py-1 text-right">
-                                                        {c.unknown}
-                                                    </td>
-                                                    <td className="py-1 text-right font-medium">
-                                                        {c.total}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-                            </Section>
-
-                            <Section title="Persons involved">
-                                {persons.length === 0 ? (
-                                    <Empty>No persons recorded.</Empty>
-                                ) : (
-                                    <ul className="divide-y text-sm">
-                                        {persons.map((p) => (
-                                            <li
-                                                key={p.ulid}
-                                                className="flex flex-wrap items-center gap-2 py-2"
-                                            >
-                                                <Badge variant="outline">
-                                                    {p.involvement.label}
-                                                </Badge>
-                                                {p.person ? (
-                                                    <Link
-                                                        href={PersonController.show(
-                                                            p.person.ulid,
-                                                        )}
-                                                        className="font-medium hover:underline"
-                                                    >
-                                                        {p.person.name}
-                                                    </Link>
-                                                ) : p.person_hidden ? (
-                                                    <span className="text-muted-foreground italic">
-                                                        Person on record (not
-                                                        visible to you)
-                                                    </span>
-                                                ) : (
-                                                    <span>
-                                                        Unidentified:{' '}
-                                                        {
-                                                            p.unidentified_description
-                                                        }
-                                                    </span>
-                                                )}
-                                                {p.notes && (
-                                                    <span className="text-muted-foreground">
-                                                        — {p.notes}
-                                                    </span>
-                                                )}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </Section>
-
-                            <Section title="Criminal groups">
-                                {groups.length === 0 ? (
-                                    <Empty>No groups linked.</Empty>
-                                ) : (
-                                    <ul className="divide-y text-sm">
-                                        {groups.map((g) => (
-                                            <li
-                                                key={g.ulid}
-                                                className="flex flex-wrap items-center gap-2 py-2"
-                                            >
-                                                <Badge variant="outline">
-                                                    {g.role.label}
-                                                </Badge>
-                                                {g.group ? (
-                                                    g.group.name
-                                                ) : (
-                                                    <span className="text-muted-foreground italic">
-                                                        A group not visible to
-                                                        you
-                                                    </span>
-                                                )}
-                                                {g.notes && (
-                                                    <span className="text-muted-foreground">
-                                                        — {g.notes}
-                                                    </span>
-                                                )}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </Section>
-
-                            <Section title="Response">
-                                {agencies.length === 0 ? (
-                                    <Empty>No agencies recorded.</Empty>
-                                ) : (
-                                    <ul className="divide-y text-sm">
-                                        {agencies.map((a) => (
-                                            <li
-                                                key={a.ulid}
-                                                className="flex flex-wrap items-center gap-2 py-2"
-                                            >
-                                                <Badge variant="outline">
-                                                    {a.role.label}
-                                                </Badge>
-                                                <span className="font-medium">
-                                                    {a.agency.short_name}
-                                                </span>
-                                                {a.formation && (
-                                                    <span>
-                                                        {a.formation.name}
-                                                    </span>
-                                                )}
-                                                {a.formation_hidden && (
-                                                    <span className="text-muted-foreground italic">
-                                                        a formation not visible
-                                                        to you
-                                                    </span>
-                                                )}
-                                                {a.responded_at && (
-                                                    <span className="text-muted-foreground">
-                                                        responded{' '}
-                                                        {formatDateTime(
-                                                            a.responded_at,
-                                                        )}
-                                                    </span>
-                                                )}
-                                                {a.notes && (
-                                                    <span className="text-muted-foreground">
-                                                        — {a.notes}
-                                                    </span>
-                                                )}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                                {incident.action_taken && (
-                                    <dl className="text-sm">
-                                        <Fact label="Action taken">
-                                            {incident.action_taken}
-                                        </Fact>
-                                    </dl>
-                                )}
-                            </Section>
-
-                            <Section title="Property affected">
-                                {properties.length === 0 ? (
-                                    <Empty>No property recorded.</Empty>
-                                ) : (
-                                    <ul className="divide-y text-sm">
-                                        {properties.map((p) => (
-                                            <li
-                                                key={p.ulid}
-                                                className="flex flex-wrap items-center gap-2 py-2"
-                                            >
-                                                <span className="font-medium">
-                                                    {p.property_type.name}
-                                                </span>
-                                                {p.quantity !== null && (
-                                                    <span>× {p.quantity}</span>
-                                                )}
-                                                {p.description && (
-                                                    <span>{p.description}</span>
-                                                )}
-                                                {p.estimated_value_naira !==
-                                                    null && (
-                                                    <span className="text-muted-foreground">
-                                                        ₦
-                                                        {Number(
-                                                            p.estimated_value_naira,
-                                                        ).toLocaleString(
-                                                            'en-NG',
-                                                        )}
-                                                    </span>
-                                                )}
-                                                {p.site && (
-                                                    <span className="text-muted-foreground">
-                                                        at {p.site.name}
-                                                    </span>
-                                                )}
-                                                {p.site_hidden && (
-                                                    <span className="text-muted-foreground italic">
-                                                        at a site not visible to
-                                                        you
-                                                    </span>
-                                                )}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </Section>
-                            <EvidenceSection
-                                evidence={evidence}
-                                incidentUlid={incident.ulid}
-                                incidentLevel={incident.classification.value}
-                            />
+                            <WorkflowSummary incident={incident} />
                         </div>
                         <BuffaloMap
                             className="h-80"
@@ -533,6 +323,306 @@ export default function IncidentShow({
                         />
                     </div>
                 )}
+
+                {tab === 'people' && (
+                    <div className="max-w-5xl space-y-6">
+                        <Section title="Casualties">
+                            {casualties.length === 0 ? (
+                                <Empty>No casualties recorded.</Empty>
+                            ) : (
+                                <table className="w-full text-sm">
+                                    <thead className="text-left text-muted-foreground">
+                                        <tr>
+                                            <th className="py-1 font-medium">
+                                                Outcome
+                                            </th>
+                                            <th className="py-1 font-medium">
+                                                Who
+                                            </th>
+                                            <th className="py-1 text-right font-medium">
+                                                Men
+                                            </th>
+                                            <th className="py-1 text-right font-medium">
+                                                Women
+                                            </th>
+                                            <th className="py-1 text-right font-medium">
+                                                Boys
+                                            </th>
+                                            <th className="py-1 text-right font-medium">
+                                                Girls
+                                            </th>
+                                            <th className="py-1 text-right font-medium">
+                                                Unknown
+                                            </th>
+                                            <th className="py-1 text-right font-medium">
+                                                Total
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {casualties.map((c) => (
+                                            <tr key={c.ulid}>
+                                                <td className="py-1">
+                                                    {c.outcome.label}
+                                                </td>
+                                                <td className="py-1">
+                                                    {c.group.label}
+                                                    {c.agency &&
+                                                        ` (${c.agency.short_name})`}
+                                                </td>
+                                                <td className="py-1 text-right">
+                                                    {c.adult_male}
+                                                </td>
+                                                <td className="py-1 text-right">
+                                                    {c.adult_female}
+                                                </td>
+                                                <td className="py-1 text-right">
+                                                    {c.child_male}
+                                                </td>
+                                                <td className="py-1 text-right">
+                                                    {c.child_female}
+                                                </td>
+                                                <td className="py-1 text-right">
+                                                    {c.unknown}
+                                                </td>
+                                                <td className="py-1 text-right font-medium">
+                                                    {c.total}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="border-t font-medium">
+                                        <tr>
+                                            <td className="py-1" colSpan={2}>
+                                                Total
+                                            </td>
+                                            {(
+                                                [
+                                                    'adult_male',
+                                                    'adult_female',
+                                                    'child_male',
+                                                    'child_female',
+                                                    'unknown',
+                                                    'total',
+                                                ] as const
+                                            ).map((key) => (
+                                                <td
+                                                    key={key}
+                                                    className="py-1 text-right tabular-nums"
+                                                >
+                                                    {casualties.reduce(
+                                                        (sum, c) =>
+                                                            sum + c[key],
+                                                        0,
+                                                    )}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            )}
+                        </Section>
+                        <Section title="Persons involved">
+                            {persons.length === 0 ? (
+                                <Empty>No persons recorded.</Empty>
+                            ) : (
+                                <ul className="divide-y text-sm">
+                                    {persons.map((p) => (
+                                        <li
+                                            key={p.ulid}
+                                            className="flex flex-wrap items-center gap-2 py-2"
+                                        >
+                                            <Badge variant="outline">
+                                                {p.involvement.label}
+                                            </Badge>
+                                            {p.person ? (
+                                                <Link
+                                                    href={PersonController.show(
+                                                        p.person.ulid,
+                                                    )}
+                                                    className="font-medium hover:underline"
+                                                >
+                                                    {p.person.name}
+                                                </Link>
+                                            ) : p.person_hidden ? (
+                                                <span className="text-muted-foreground italic">
+                                                    Person on record (not
+                                                    visible to you)
+                                                </span>
+                                            ) : (
+                                                <span>
+                                                    Unidentified:{' '}
+                                                    {p.unidentified_description}
+                                                </span>
+                                            )}
+                                            {p.notes && (
+                                                <span className="text-muted-foreground">
+                                                    — {p.notes}
+                                                </span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </Section>
+                        <Section title="Criminal groups">
+                            {groups.length === 0 ? (
+                                <Empty>No groups linked.</Empty>
+                            ) : (
+                                <ul className="divide-y text-sm">
+                                    {groups.map((g) => (
+                                        <li
+                                            key={g.ulid}
+                                            className="flex flex-wrap items-center gap-2 py-2"
+                                        >
+                                            <Badge variant="outline">
+                                                {g.role.label}
+                                            </Badge>
+                                            {g.group ? (
+                                                g.group.name
+                                            ) : (
+                                                <span className="text-muted-foreground italic">
+                                                    A group not visible to you
+                                                </span>
+                                            )}
+                                            {g.notes && (
+                                                <span className="text-muted-foreground">
+                                                    — {g.notes}
+                                                </span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </Section>
+                    </div>
+                )}
+
+                {tab === 'response' && (
+                    <div className="max-w-5xl space-y-6">
+                        <Section title="Response">
+                            {agencies.length === 0 ? (
+                                <Empty>No agencies recorded.</Empty>
+                            ) : (
+                                <ul className="divide-y text-sm">
+                                    {agencies.map((a) => (
+                                        <li
+                                            key={a.ulid}
+                                            className="flex flex-wrap items-center gap-2 py-2"
+                                        >
+                                            <Badge variant="outline">
+                                                {a.role.label}
+                                            </Badge>
+                                            <span className="font-medium">
+                                                {a.agency.short_name}
+                                            </span>
+                                            {a.formation && (
+                                                <span>{a.formation.name}</span>
+                                            )}
+                                            {a.formation_hidden && (
+                                                <span className="text-muted-foreground italic">
+                                                    a formation not visible to
+                                                    you
+                                                </span>
+                                            )}
+                                            {a.responded_at && (
+                                                <span className="text-muted-foreground">
+                                                    responded{' '}
+                                                    {formatDateTime(
+                                                        a.responded_at,
+                                                    )}
+                                                </span>
+                                            )}
+                                            {a.notes && (
+                                                <span className="text-muted-foreground">
+                                                    — {a.notes}
+                                                </span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {incident.action_taken && (
+                                <dl className="text-sm">
+                                    <Fact label="Action taken">
+                                        {incident.action_taken}
+                                    </Fact>
+                                </dl>
+                            )}
+                        </Section>
+                        <Section title="Property affected">
+                            {properties.length === 0 ? (
+                                <Empty>No property recorded.</Empty>
+                            ) : (
+                                <ul className="divide-y text-sm">
+                                    {properties.map((p) => (
+                                        <li
+                                            key={p.ulid}
+                                            className="flex flex-wrap items-center gap-2 py-2"
+                                        >
+                                            <span className="font-medium">
+                                                {p.property_type.name}
+                                            </span>
+                                            {p.quantity !== null && (
+                                                <span>× {p.quantity}</span>
+                                            )}
+                                            {p.description && (
+                                                <span>{p.description}</span>
+                                            )}
+                                            {p.estimated_value_naira !==
+                                                null && (
+                                                <span className="text-muted-foreground">
+                                                    ₦
+                                                    {Number(
+                                                        p.estimated_value_naira,
+                                                    ).toLocaleString('en-NG')}
+                                                </span>
+                                            )}
+                                            {p.site && (
+                                                <span className="text-muted-foreground">
+                                                    at {p.site.name}
+                                                </span>
+                                            )}
+                                            {p.site_hidden && (
+                                                <span className="text-muted-foreground italic">
+                                                    at a site not visible to you
+                                                </span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </Section>
+                    </div>
+                )}
+
+                {tab === 'evidence' && (
+                    <div className="max-w-5xl">
+                        <EvidenceSection
+                            evidence={evidence}
+                            incidentUlid={incident.ulid}
+                            incidentLevel={incident.classification.value}
+                        />
+                    </div>
+                )}
+
+                {tab === 'duplicates' &&
+                    (possibleDuplicates.length > 0 ? (
+                        <DuplicateList
+                            title="Possible duplicates"
+                            rows={possibleDuplicates}
+                            onPick={
+                                can.invalidate
+                                    ? (row) => setInvalidating(row)
+                                    : undefined
+                            }
+                        />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            No possible duplicates among the incidents you can
+                            see.
+                        </p>
+                    ))}
 
                 {tab === 'timeline' && timeline && (
                     <IncidentTimeline
@@ -610,6 +700,45 @@ function LockBanner({ incident }: { incident: IncidentDetail }) {
     );
 }
 
+/** Who moved the incident through the workflow, and action taken (Overview). */
+function WorkflowSummary({ incident }: { incident: IncidentDetail }) {
+    const w = incident.workflow;
+    const steps: [string, WorkflowStep][] = [
+        ['Submitted', w.submitted],
+        ['Returned', w.returned],
+        ['Verified', w.verified],
+        ['Investigation started', w.investigation_started],
+        ['Resolved', w.resolved],
+        ['Closed', w.closed],
+        ['Marked invalid', w.invalidated],
+    ];
+    const done = steps.filter(([, step]) => step !== null);
+
+    return (
+        <Section title="Workflow and action taken">
+            {done.length === 0 ? (
+                <Empty>Not submitted yet.</Empty>
+            ) : (
+                <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                    {done.map(([label, step]) => (
+                        <Fact key={label} label={label}>
+                            {formatDateTime(step?.at)}
+                            {step?.by ? ` by ${step.by}` : ''}
+                        </Fact>
+                    ))}
+                </dl>
+            )}
+            {incident.action_taken && (
+                <dl className="text-sm">
+                    <Fact label="Action taken at the time of reporting">
+                        {incident.action_taken}
+                    </Fact>
+                </dl>
+            )}
+        </Section>
+    );
+}
+
 /** Return reasons and resolution summaries, when there are any. */
 function WorkflowFacts({ incident }: { incident: IncidentDetail }) {
     const w = incident.workflow;
@@ -671,5 +800,5 @@ function Empty({ children }: { children: ReactNode }) {
 }
 
 IncidentShow.layout = {
-    breadcrumbs: [{ title: 'Incidents', href: IncidentController.index() }],
+    breadcrumbs: [{ title: 'Incidents', href: IncidentListController.index() }],
 };

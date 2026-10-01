@@ -15,9 +15,7 @@ final class PlaceholderCards
     public static function for(string $scope): array
     {
         return [
-            ['key' => 'incidents', 'title' => 'Incidents (last 30 days)', 'scope' => $scope, 'availableFromPhase' => 5],
             ['key' => 'flashpoints', 'title' => 'Active flashpoints', 'scope' => $scope, 'availableFromPhase' => 6],
-            ['key' => 'escalations', 'title' => 'Pending escalations', 'scope' => $scope, 'availableFromPhase' => 5],
         ];
     }
 }

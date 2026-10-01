@@ -1,3 +1,5 @@
+import type { IncidentListRow } from '@/types/incidents';
+import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { KeyRound, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -51,9 +53,12 @@ type PersonTab =
     | 'political_offices'
     | 'poi'
     | 'group_memberships'
+    | 'incidents'
     | 'history';
 
 type Props = {
+    /** Phase 5D: incidents involving the person (own jurisdiction only). */
+    incidents: Paginated<IncidentListRow> | null;
     person: PersonDetail;
     photo: PersonPhoto | null;
     tab: PersonTab;
@@ -109,6 +114,7 @@ const TAB_LABELS: Record<PersonTab, string> = {
     political_offices: 'Political offices',
     poi: 'Person of interest',
     group_memberships: 'Group memberships',
+    incidents: 'Incidents',
     history: 'History',
 };
 
@@ -508,6 +514,7 @@ function PhotosPanel({
  */
 export default function PersonShow({
     person,
+    incidents,
     photo,
     tab,
     tabs,
@@ -877,6 +884,10 @@ export default function PersonShow({
                         ))}
                     </ul>
                 )}
+                {tab === 'incidents' && incidents && (
+                    <IncidentsTab incidents={incidents} showInvolvement />
+                )}
+
                 {tab === 'history' && history && (
                     <div className="space-y-3">
                         <ActivityTable entries={history.data} />

@@ -49,26 +49,11 @@ use Spatie\Activitylog\Models\Activity;
  */
 class IncidentController extends Controller
 {
+    /** Detail page tabs (Phase 5D); `duplicates` is for reviewers only. */
+    public const TABS = ['overview', 'people', 'response', 'evidence', 'timeline', 'duplicates', 'history'];
+
     /** Child models whose activity appears in the incident's history. */
     private const CHILDREN = [IncidentCasualty::class, IncidentPerson::class, IncidentCriminalGroup::class, IncidentAgency::class, IncidentProperty::class, IncidentEvidence::class];
-
-    /** The user's own drafts (the full list arrives in 5D). */
-    public function index(Request $request): Response
-    {
-        $this->authorize('viewAny', Incident::class);
-        $user = $this->actor($request);
-
-        $drafts = Incident::query()->with(['type', 'lga', 'state'])
-            ->where('created_by', $user->id)
-            ->where('status', IncidentStatus::Draft->value)
-            ->latest('updated_at')
-            ->paginate(25);
-
-        return Inertia::render('incidents/index', [
-            'incidents' => $drafts->through(fn (Incident $i) => IncidentPresenter::row($i)),
-            'can' => ['create' => $user->can('create', Incident::class)],
-        ]);
-    }
 
     public function create(Request $request, JurisdictionOptions $options): Response
     {
@@ -94,7 +79,7 @@ class IncidentController extends Controller
     {
         $this->authorize('view', $incident);
         $user = $this->actor($request);
-        $tab = in_array($request->query('tab'), ['history', 'timeline'], true) ? (string) $request->query('tab') : 'overview';
+        $tab = in_array($request->query('tab'), self::TABS, true) ? (string) $request->query('tab') : 'overview';
 
         if ($incident->logsViews()) {
             $incident->recordAccess(context: "tab:{$tab}");
@@ -118,8 +103,13 @@ class IncidentController extends Controller
         // Reviewers see possible duplicates of a submitted or verified report.
         $reviewing = $can['verify'] || $can['invalidate'];
 
+        if ($tab === 'duplicates' && ! $reviewing) {
+            $tab = 'overview';
+        }
+
         return Inertia::render('incidents/show', [
-            ...$this->props($incident, $user),
+            // Evidence views are logged only when the Evidence tab shows them.
+            ...$this->props($incident, $user, logEvidence: $tab === 'evidence'),
             'tab' => $tab,
             'history' => $tab === 'history' ? $this->history($incident) : null,
             'timeline' => $tab === 'timeline' ? IncidentTimeline::for($incident) : null,
@@ -137,6 +127,35 @@ class IncidentController extends Controller
             ],
             'openSubmit' => $request->boolean('submit') && $can['submit'],
             'can' => $can,
+        ]);
+    }
+
+    /**
+     * A print-friendly page (Phase 5D): overview, people, response and
+     * timeline, classification marked on every page, "Printed by … on …".
+     * Evidence is listed by title only. Everything goes through the same
+     * scopes as the page, so nothing above the viewer's clearance is
+     * included. Each print is access-logged (`print`).
+     */
+    public function print(Request $request, Incident $incident): Response
+    {
+        $this->authorize('view', $incident);
+        $user = $this->actor($request);
+        $incident->recordAccess(AccessAction::Print, 'print');
+        Inertia::encryptHistory();
+
+        $props = $this->props($incident, $user, logEvidence: false);
+
+        return Inertia::render('incidents/print', [
+            ...$props,
+            'evidence' => array_map(fn (array $item) => [
+                'title' => $item['title'],
+                'type' => $item['type'],
+                'classification' => $item['classification'],
+            ], $props['evidence']['items']),
+            'timeline' => IncidentTimeline::for($incident),
+            'printedBy' => $user->name,
+            'printedAt' => now()->toIso8601String(),
         ]);
     }
 
@@ -174,7 +193,7 @@ class IncidentController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function props(Incident $incident, User $user): array
+    private function props(Incident $incident, User $user, bool $logEvidence = true): array
     {
         $row = Incident::query()->withCoordinates()->whereKey($incident->id)->firstOrFail();
         $row->load(['type', 'lga', 'state', 'community']);
@@ -191,7 +210,7 @@ class IncidentController extends Controller
                 ->map(fn (IncidentAgency $a) => IncidentPresenter::agency($a))->values(),
             'properties' => IncidentProperty::query()->with(['propertyType', 'site'])->where('incident_id', $incident->id)->orderBy('id')->get()
                 ->map(fn (IncidentProperty $p) => IncidentPresenter::property($p))->values(),
-            'evidence' => $this->evidence($row, $user),
+            'evidence' => $this->evidence($row, $user, $logEvidence),
             'map' => MapView::for($row->lga),
         ];
     }
@@ -202,13 +221,15 @@ class IncidentController extends Controller
      *
      * @return array{items: list<array<string, mixed>>, levels: list<array{value: string, label: string}>, extensions: list<string>, max_mb: mixed, can_upload: bool}
      */
-    private function evidence(Incident $incident, User $user): array
+    private function evidence(Incident $incident, User $user, bool $log): array
     {
         $items = IncidentEvidence::query()->withCoordinates()->with('media')
             ->where('incident_id', $incident->id)->orderBy('id')->get();
 
-        foreach ($items as $item) {
-            $item->recordAccess(AccessAction::View, 'incident_page');
+        if ($log) {
+            foreach ($items as $item) {
+                $item->recordAccess(AccessAction::View, 'incident_page');
+            }
         }
 
         return [

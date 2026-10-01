@@ -5,6 +5,7 @@ namespace App\Actions\Dashboard;
 use App\Enums\SecurityNoteStatus;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\LgaProfile;
 use App\Models\PersonOfInterest;
@@ -12,6 +13,7 @@ use App\Models\ReligiousInstitution;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
+use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
@@ -60,6 +62,7 @@ final class BuildLgaDashboard
             'organizations' => app(OrganizationFigures::class)->forLga($user, $lga),
             'coverage' => app(CoverageFigures::class)->forLga($user, $lga),
             'map' => MapView::for($lga),
+            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forLga($user, $lga) : null,
             'placeholders' => PlaceholderCards::for($label),
         ];
     }

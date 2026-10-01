@@ -20,6 +20,7 @@ use App\Http\Requests\Persons\PersonSearchRequest;
 use App\Models\Community;
 use App\Models\CriminalGroup;
 use App\Models\CriminalGroupMember;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\Media;
 use App\Models\Person;
@@ -35,6 +36,7 @@ use App\Support\Audit\AuditLog;
 use App\Support\CrossJurisdiction\MatchCriteria;
 use App\Support\CrossJurisdiction\MatchResult;
 use App\Support\CrossJurisdiction\PersonMatchService;
+use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\AccessRequestParties;
 use App\Support\Jurisdiction\GrantAccessResolver;
 use App\Support\Jurisdiction\GrantedPersonView;
@@ -44,13 +46,13 @@ use App\Support\Persons\PersonSearch;
 use App\Support\Persons\PhoneNumber;
 use App\Support\Persons\SearchTerm;
 use App\Support\Persons\SimilarPersons;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -70,7 +72,7 @@ use Spatie\Activitylog\Models\Activity;
 class PersonController extends Controller
 {
     /** Tabs of the person page (3B adds political offices, POI details and group memberships; Phase 5 linked incidents). */
-    public const TABS = ['profile', 'aliases', 'associations', 'photos', 'political_offices', 'poi', 'group_memberships', 'history'];
+    public const TABS = ['profile', 'aliases', 'associations', 'photos', 'political_offices', 'poi', 'group_memberships', 'incidents', 'history'];
 
     /** Search results shown at most. */
     public const RESULT_LIMIT = 50;
@@ -207,7 +209,11 @@ class PersonController extends Controller
             return $this->showUnderGrant($request, $person, $actor, $grant, $grantedView);
         }
 
-        $tab = in_array($request->query('tab'), self::TABS, true) ? (string) $request->query('tab') : 'profile';
+        // Incidents involving the person (Phase 5D), hidden when there are none.
+        // Never shown under a grant: only the person is grantable.
+        $hasIncidents = $actor->can('viewAny', Incident::class) && IncidentLinks::person($person)->exists();
+        $tabs = $hasIncidents ? self::TABS : array_values(array_diff(self::TABS, ['incidents']));
+        $tab = in_array($request->query('tab'), $tabs, true) ? (string) $request->query('tab') : 'profile';
 
         // Every view of a person is access-logged (CLAUDE.md section 6).
         $person->recordAccess(context: "tab:{$tab}");
@@ -223,7 +229,8 @@ class PersonController extends Controller
             'person' => PersonPresenter::detail($person),
             'photo' => $current instanceof Media ? PersonPresenter::photo($person, $current, true) : null,
             'tab' => $tab,
-            'tabs' => self::TABS,
+            'tabs' => $tabs,
+            'incidents' => $tab === 'incidents' ? $this->incidents($person) : null,
             'options' => PersonPresenter::options(),
             'aliases' => $tab === 'aliases' || $tab === 'profile'
                 ? $person->aliases()->orderBy('alias')->get()->map(fn (PersonAlias $alias) => PersonPresenter::alias($alias))->all()
@@ -453,6 +460,20 @@ class PersonController extends Controller
             ...PersonPresenter::row($match['person']),
             'reasons' => $match['reasons'],
         ], $similar->find($candidate));
+    }
+
+    /**
+     * The person's incidents (Phase 5D), with their involvement in each.
+     *
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    private function incidents(Person $person): LengthAwarePaginator
+    {
+        $page = IncidentLinks::rows(IncidentLinks::person($person));
+        $involvement = IncidentLinks::involvements($person, array_column($page->items(), 'ulid'));
+
+        /** @var LengthAwarePaginator<int, array<string, mixed>> */
+        return $page->through(fn (array $row) => [...$row, 'involvement' => $involvement[$row['ulid']] ?? null]);
     }
 
     /**

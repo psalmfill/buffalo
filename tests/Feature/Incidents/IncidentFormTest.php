@@ -122,8 +122,8 @@ test('a draft is saved with its related rows, the reporter and the place', funct
     CrossFixtures::signIn($this->chief)->get("/incidents/{$incident->ulid}?tab=history")
         ->assertInertia(fn (Assert $page) => $page->component('incidents/show')->where('history.total', 7));
 
-    // Drafts list.
-    CrossFixtures::signIn($this->chief)->get('/incidents')
+    // Drafts list (since 5D: the list's "My drafts" view).
+    CrossFixtures::signIn($this->chief)->get('/incidents?statuses[]=draft&mine=1')
         ->assertInertia(fn (Assert $page) => $page->where('incidents.data.0.ulid', $incident->ulid));
 });
 

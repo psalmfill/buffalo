@@ -1,3 +1,6 @@
+import type { IncidentListRow } from '@/types/incidents';
+import type { Paginated } from '@/types/pagination';
+import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CheckCircle2, Plus, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -55,9 +58,15 @@ type Tab =
     | 'vulnerable_population'
     | 'security_notes'
     | 'security_presence'
-    | 'organizations';
+    | 'organizations'
+    | 'incidents';
 
 type Props = {
+    /** Phase 5D: incidents in the LGA, with the last 90 days by type. */
+    incidents: {
+        rows: Paginated<IncidentListRow>;
+        last90ByType: { type: string; count: number }[];
+    } | null;
     lga: LgaFacts;
     tab: Tab;
     tabs: Tab[];
@@ -97,6 +106,7 @@ const TAB_LABELS: Record<Tab, string> = {
     security_notes: 'Security notes',
     security_presence: 'Security presence',
     organizations: 'Organizations',
+    incidents: 'Incidents',
 };
 
 export default function LgaShow(props: Props) {
@@ -193,6 +203,39 @@ export default function LgaShow(props: Props) {
                 {tab === 'leadership' && props.leadership && (
                     <LeadershipPanel data={props.leadership} />
                 )}
+                {tab === 'incidents' && props.incidents && (
+                    <div className="space-y-4">
+                        <section
+                            className="rounded-lg border p-4"
+                            aria-label="Last 90 days by type"
+                        >
+                            <h2 className="mb-2 text-sm font-semibold">
+                                Last 90 days by type
+                            </h2>
+                            {props.incidents.last90ByType.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No incidents in the last 90 days.
+                                </p>
+                            ) : (
+                                <ul className="flex flex-wrap gap-2 text-sm">
+                                    {props.incidents.last90ByType.map((row) => (
+                                        <li
+                                            key={row.type}
+                                            className="rounded-full border px-3 py-1"
+                                        >
+                                            {row.type}{' '}
+                                            <span className="font-semibold tabular-nums">
+                                                {row.count}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </section>
+                        <IncidentsTab incidents={props.incidents.rows} />
+                    </div>
+                )}
+
                 {tab === 'organizations' && props.organizations && (
                     <LgaOrganizationsPanel
                         baseUrl={tabUrl(lga.ulid, tab)}
@@ -665,6 +708,7 @@ function CommunitiesTab({
                     <BuffaloMap
                         center={data.map.center ?? undefined}
                         zoom={data.map.zoom}
+                        cluster
                         markers={
                             showInstitutions
                                 ? [...data.markers, ...data.institutionMarkers]

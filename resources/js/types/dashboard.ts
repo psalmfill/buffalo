@@ -1,3 +1,4 @@
+import type { IncidentListRow, IncidentMapPoint } from '@/types/incidents';
 import type { AccessFiguresData } from '@/components/dashboard/access-figures';
 import type {
     LgaCoverageData,
@@ -47,6 +48,7 @@ export type SystemDashboardProps = {
 };
 
 export type NationalDashboardProps = {
+    incidents: NationalIncidentFigures | null;
     access: AccessFiguresData | null;
     coverage: NationalCoverageData | null;
     organizations: NationalOrganizationData | null;
@@ -70,6 +72,7 @@ export type NationalDashboardProps = {
 };
 
 export type StateDashboardProps = {
+    incidents: StateIncidentFigures | null;
     access: AccessFiguresData | null;
     coverage: StateCoverageData | null;
     organizations: StateOrganizationData | null;
@@ -103,6 +106,7 @@ export type StateDashboardProps = {
 };
 
 export type LgaDashboardProps = {
+    incidents: LgaIncidentFigures | null;
     access: AccessFiguresData | null;
     coverage: LgaCoverageData | null;
     organizations: LgaOrganizationData | null;
@@ -126,4 +130,46 @@ export type LgaDashboardProps = {
     };
     map: MapView;
     placeholders: PlaceholderCardData[];
+};
+
+// Incident figures (Phase 5D): drafts and invalid reports are never counted.
+type CountRow = { label: string; count: number };
+
+export type LgaIncidentFigures = {
+    byType30: CountRow[];
+    myOpenByStatus: {
+        status: { value: string; label: string };
+        count: number;
+    }[];
+    returned: IncidentListRow[];
+    drafts: {
+        count: number;
+        latest: { ulid: string; title: string; updated_at: string | null }[];
+    };
+    latest: IncidentListRow[];
+    channel: string;
+};
+
+export type StateIncidentFigures = {
+    awaiting: { count: number; overdue: number; rows: IncidentListRow[] };
+    criticalHigh: { count: number; rows: IncidentListRow[] };
+    byLga30: CountRow[];
+    byType30: CountRow[];
+    casualtiesByOutcome30: CountRow[];
+    escalated: IncidentListRow[];
+    map7: IncidentMapPoint[];
+    channel: string;
+};
+
+export type NationalIncidentFigures = {
+    escalatedUnacknowledged: { count: number; rows: IncidentListRow[] };
+    critical7: { count: number; rows: IncidentListRow[] };
+    byState30: CountRow[];
+    byCategory30: CountRow[];
+    casualtiesByOutcome30: CountRow[];
+    casualtiesByGroup30: CountRow[];
+    securityCasualtiesByAgency30: CountRow[];
+    statesOverdue: CountRow[];
+    map7: IncidentMapPoint[];
+    channel: string;
 };

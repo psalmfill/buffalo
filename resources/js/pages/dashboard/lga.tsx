@@ -4,6 +4,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { LgaOrganizations } from '@/components/dashboard/organization-figures';
 import { LgaCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { LgaIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
 import StatCard from '@/components/dashboard/stat-card';
@@ -25,6 +26,7 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 
 /** LGA Security Chief. */
 export default function LgaDashboard({
+    incidents,
     lga,
     profile,
     information,
@@ -40,6 +42,8 @@ export default function LgaDashboard({
             <Head title="Dashboard" />
             <div className="flex flex-col gap-6 p-4">
                 <DashboardHeader title={lga.label} subtitle={lga.state} />
+
+                {incidents && <LgaIncidents data={incidents} />}
 
                 <section
                     className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4"

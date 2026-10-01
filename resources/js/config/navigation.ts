@@ -13,6 +13,7 @@ import {
     Landmark,
     Library,
     Map as MapIcon,
+    MapPin,
     MapPinned,
     Network,
     ScrollText,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
+import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import AgencyFormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
@@ -78,7 +80,8 @@ export const NAVIGATION: NavSection[] = [
         title: 'Incidents',
         items: [
             { title: 'Report incident', icon: FilePlus2, href: IncidentController.create(), permission: 'incidents.create' },
-            { title: 'Incidents', icon: ClipboardList, href: IncidentController.index(), permission: 'incidents.view' },
+            { title: 'Incidents', icon: ClipboardList, href: IncidentListController.index(), permission: 'incidents.view' },
+            { title: 'Incident map', icon: MapPin, href: IncidentListController.map(), permission: 'incidents.view' },
         ],
     },
     {
