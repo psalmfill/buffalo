@@ -3,6 +3,7 @@
 namespace App\Actions\Incidents;
 
 use App\Actions\Evidence\RaiseEvidenceClassification;
+use App\Events\Incidents\IncidentUpdated;
 use App\Models\Incident;
 use App\Models\IncidentAgency;
 use App\Models\IncidentCasualty;
@@ -13,6 +14,7 @@ use App\Models\IncidentProperty;
 use App\Models\Lga;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
+use App\Support\Incidents\IncidentWorkflow;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,7 +26,10 @@ use Illuminate\Support\Facades\DB;
  */
 final class SaveIncident
 {
-    public function __construct(private readonly RaiseEvidenceClassification $raiseEvidence) {}
+    public function __construct(
+        private readonly RaiseEvidenceClassification $raiseEvidence,
+        private readonly IncidentWorkflow $workflow,
+    ) {}
 
     /** @var array<string, class-string<IncidentChild>> */
     private const CHILDREN = [
@@ -61,9 +66,10 @@ final class SaveIncident
     /**
      * @param  array<string, mixed>  $data  IncidentRequest::values()
      */
-    public function update(Incident $incident, Lga $lga, array $data, User $actor): void
+    public function update(Incident $incident, Lga $lga, array $data, User $actor, ?string $amendmentReason = null): void
     {
-        DB::transaction(function () use ($incident, $lga, $data, $actor): void {
+        DB::transaction(function () use ($incident, $lga, $data, $actor, $amendmentReason): void {
+            $fromLga = $incident->lga_id;
             $row = Incident::query()->withCoordinates()->whereKey($incident->id)->first();
             $before = $row?->latitude === null ? null : ['latitude' => round($row->latitude, 6), 'longitude' => round((float) $row->longitude, 6)];
             $after = self::coordinates($data);
@@ -86,6 +92,24 @@ final class SaveIncident
 
             $this->logLocation($incident, $before, $after, $actor);
             $this->syncChildren($incident, $data, $actor);
+
+            // A corrected LGA keeps the reference number (Phase 5C); the
+            // database moves every related row with it.
+            if ($fromLga !== $incident->lga_id) {
+                AuditLog::event('lga_changed', 'LGA corrected', $incident, [
+                    'old' => DB::table('lgas')->where('id', $fromLga)->value('name'),
+                    'new' => $lga->name,
+                    'reference' => $incident->reference_no,
+                ], $actor);
+            }
+
+            if ($amendmentReason !== null) {
+                AuditLog::event('amended', 'Incident amended after verification', $incident, ['reason' => $amendmentReason], $actor);
+            }
+
+            if ($incident->wasSubmitted()) {
+                IncidentUpdated::dispatch($incident, $this->workflow->stateUlid($incident));
+            }
         });
     }
 

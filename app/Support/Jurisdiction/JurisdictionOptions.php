@@ -129,4 +129,20 @@ final class JurisdictionOptions
             RestrictionType::Nothing => false,
         };
     }
+
+    /**
+     * Whether any part of $state is within $user's jurisdiction (an LGA chief
+     * covers their own LGA's state), e.g. for the state incident channel.
+     */
+    public function coversState(User $user, State $state): bool
+    {
+        $restriction = $this->rules->restrictionFor($user, visibleToSuperAdmin: false);
+
+        return match ($restriction->type) {
+            RestrictionType::Everything => true,
+            RestrictionType::States => in_array($state->id, $restriction->stateIds, true),
+            RestrictionType::Lga => Lga::query()->whereKey($restriction->lgaId)->value('state_id') === $state->id,
+            RestrictionType::Nothing => false,
+        };
+    }
 }

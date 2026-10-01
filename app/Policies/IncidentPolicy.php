@@ -15,8 +15,8 @@ use App\Support\Jurisdiction\JurisdictionOptions;
 /**
  * Incidents (Phase 5A): permission, the incident's own jurisdiction AND
  * classification. Incidents are never grantable across jurisdictions.
- * Until the workflow (5C), only drafts are edited: by their creator, or by
- * the State Director or Deputy of the state.
+ * Workflow abilities (Phase 5C) combine a permission, the status, the
+ * incident's own jurisdiction and classification, and the "who" rules.
  */
 final class IncidentPolicy
 {
@@ -48,12 +48,114 @@ final class IncidentPolicy
             && $this->options->lgaQuery($actor)->active()->whereKey($lga->id)->exists();
     }
 
+    /**
+     * Editing (Phase 5C): until verified, the creator, the reporting officer
+     * and the SD/DSD of the state; from verified until closed, holders of
+     * `incidents.amend` (with an amendment reason). Closed and invalid
+     * incidents are locked.
+     */
     public function update(User $actor, Incident $incident): bool
     {
-        return $incident->status === IncidentStatus::Draft
-            && $actor->checkPermissionTo(Permission::IncidentsUpdate->value)
+        if ($incident->isLocked() || ! $this->reachable($actor, $incident)) {
+            return false;
+        }
+
+        if (! $incident->requiresAmendmentReason()) {
+            return $actor->checkPermissionTo(Permission::IncidentsUpdate->value) && $this->isOwnOrStateLead($actor, $incident);
+        }
+
+        return $actor->checkPermissionTo(Permission::IncidentsAmend->value);
+    }
+
+    /** After submission the LGA is corrected only by the State Director and above. */
+    public function changeLga(User $actor, Incident $incident): bool
+    {
+        return ! $incident->wasSubmitted()
+            || in_array($actor->getRole(), [Role::StateDirector, Role::DeputyDirectorGeneral, Role::DirectorGeneral], true);
+    }
+
+    public function submit(User $actor, Incident $incident): bool
+    {
+        return in_array($incident->status, [IncidentStatus::Draft, IncidentStatus::Returned], true)
+            && $actor->checkPermissionTo(Permission::IncidentsSubmit->value)
             && $this->reachable($actor, $incident)
-            && ($incident->created_by === $actor->id || $this->isStateLead($actor, $incident));
+            && $this->isOwnOrStateLead($actor, $incident);
+    }
+
+    public function verify(User $actor, Incident $incident): bool
+    {
+        return $this->transition($actor, $incident, Permission::IncidentsVerify, [IncidentStatus::Submitted]);
+    }
+
+    public function return(User $actor, Incident $incident): bool
+    {
+        return $this->transition($actor, $incident, Permission::IncidentsVerify, [IncidentStatus::Submitted]);
+    }
+
+    public function startInvestigation(User $actor, Incident $incident): bool
+    {
+        return $this->transition($actor, $incident, Permission::IncidentsInvestigate, [IncidentStatus::Verified]);
+    }
+
+    public function resolve(User $actor, Incident $incident): bool
+    {
+        return $this->transition($actor, $incident, Permission::IncidentsInvestigate, [IncidentStatus::Verified, IncidentStatus::UnderInvestigation]);
+    }
+
+    public function reopen(User $actor, Incident $incident): bool
+    {
+        return $this->transition($actor, $incident, Permission::IncidentsClose, [IncidentStatus::Resolved]);
+    }
+
+    public function close(User $actor, Incident $incident): bool
+    {
+        return $this->transition($actor, $incident, Permission::IncidentsClose, [IncidentStatus::Resolved]);
+    }
+
+    public function invalidate(User $actor, Incident $incident): bool
+    {
+        return $this->transition($actor, $incident, Permission::IncidentsInvalidate, [IncidentStatus::Submitted, IncidentStatus::Verified]);
+    }
+
+    public function escalate(User $actor, Incident $incident): bool
+    {
+        return ! $incident->isEscalated()
+            && $this->transition($actor, $incident, Permission::IncidentsEscalate, [IncidentStatus::Submitted, IncidentStatus::Verified, IncidentStatus::UnderInvestigation]);
+    }
+
+    /** The DG, or a DDG covering the state (jurisdiction); status unchanged. */
+    public function acknowledge(User $actor, Incident $incident): bool
+    {
+        return $incident->isEscalated()
+            && $incident->escalation_acknowledged_at === null
+            && ! $incident->isLocked()
+            && $actor->checkPermissionTo(Permission::IncidentsAcknowledge->value)
+            && $this->reachable($actor, $incident);
+    }
+
+    /** Follow-ups: any status but closed and invalid. */
+    public function addUpdate(User $actor, Incident $incident): bool
+    {
+        return ! $incident->isLocked()
+            && $actor->checkPermissionTo(Permission::IncidentsUpdate->value)
+            && $this->reachable($actor, $incident);
+    }
+
+    /**
+     * @param  list<IncidentStatus>  $from
+     */
+    private function transition(User $actor, Incident $incident, Permission $permission, array $from): bool
+    {
+        return in_array($incident->status, $from, true)
+            && $actor->checkPermissionTo($permission->value)
+            && $this->reachable($actor, $incident);
+    }
+
+    private function isOwnOrStateLead(User $actor, Incident $incident): bool
+    {
+        return $incident->created_by === $actor->id
+            || $incident->reporting_officer_id === $actor->id
+            || $this->isStateLead($actor, $incident);
     }
 
     private function isStateLead(User $actor, Incident $incident): bool

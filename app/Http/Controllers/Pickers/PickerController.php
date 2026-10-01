@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Pickers;
 
+use App\Enums\IncidentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AgencyFormation;
 use App\Models\Community;
 use App\Models\CriminalGroup;
+use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\Organization;
 use App\Models\OrganizationSector;
@@ -123,6 +125,30 @@ class PickerController extends Controller
             ->limit(self::LIMIT)->get();
 
         return $this->respond($results->map(fn (OrganizationSite $s) => self::row($s->ulid, $s->name, "{$s->organization->name} · {$s->lga->name} LGA, {$s->state->name}")));
+    }
+
+    /**
+     * Submitted incidents the user can see (Phase 5C, e.g. the original of a
+     * duplicate): by reference (exact, case-insensitive) or title; never
+     * invalid ones or drafts.
+     */
+    public function incidents(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Incident::class);
+        $data = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'except' => ['nullable', 'string', 'max:30']]);
+        $term = trim((string) ($data['q'] ?? ''));
+
+        $results = Incident::query()->with(['type', 'lga'])
+            ->whereNotNull('reference_no')
+            ->where('status', '!=', IncidentStatus::Invalid->value)
+            ->when(isset($data['except']), fn (Builder $q) => $q->where('ulid', '!=', $data['except']))
+            ->when($term !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w
+                ->whereRaw('lower(reference_no) = lower(?)', [$term])
+                ->orWhere('title', 'ilike', '%'.addcslashes($term, '%_\\').'%')))
+            ->latest('submitted_at')
+            ->limit(self::LIMIT)->get();
+
+        return $this->respond($results->map(fn (Incident $i) => self::row($i->ulid, (string) $i->reference_no, "{$i->title} · {$i->type->name}, {$i->lga->name} LGA")));
     }
 
     public function groups(Request $request): JsonResponse

@@ -92,6 +92,16 @@ enum Permission: string
     case IncidentsCreate = 'incidents.create';
     case IncidentsUpdate = 'incidents.update';
 
+    // Incident workflow (Phase 5C).
+    case IncidentsSubmit = 'incidents.submit';
+    case IncidentsVerify = 'incidents.verify';
+    case IncidentsInvestigate = 'incidents.investigate';
+    case IncidentsClose = 'incidents.close';
+    case IncidentsInvalidate = 'incidents.invalidate';
+    case IncidentsEscalate = 'incidents.escalate';
+    case IncidentsAcknowledge = 'incidents.acknowledge';
+    case IncidentsAmend = 'incidents.amend';
+
     // Incident evidence (Phase 5B).
     case EvidenceUpload = 'evidence.upload';
     case EvidenceDownloadOriginal = 'evidence.download_original';

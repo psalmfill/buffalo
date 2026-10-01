@@ -5,10 +5,15 @@ namespace App\Http\Controllers\Incidents;
 use App\Actions\Incidents\SaveIncident;
 use App\Enums\AccessAction;
 use App\Enums\IncidentStatus;
+use App\Enums\IncidentUpdateType;
+use App\Enums\InvalidReason;
+use App\Enums\JurisdictionLevel;
+use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\EvidencePresenter;
 use App\Http\Presenters\IncidentPresenter;
+use App\Http\Presenters\IncidentTimeline;
 use App\Http\Presenters\PersonPresenter;
 use App\Http\Requests\Incidents\IncidentRequest;
 use App\Models\Incident;
@@ -24,11 +29,14 @@ use App\Models\RecordAccessRequest;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Evidence\EvidenceFileInspector;
+use App\Support\Incidents\PossibleDuplicates;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Jurisdiction\OfficerNames;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -77,25 +85,58 @@ class IncidentController extends Controller
 
         $incident = $save->create($lga, $request->values(), $this->actor($request));
 
-        return redirect()->route('incidents.show', $incident)->with('toast', ['type' => 'success', 'message' => 'Draft saved.']);
+        // "Save and submit": open the submission dialog on the incident page.
+        return redirect()->route('incidents.show', ['incident' => $incident, ...($request->boolean('then_submit') ? ['submit' => 1] : [])])
+            ->with('toast', ['type' => 'success', 'message' => 'Draft saved.']);
     }
 
-    public function show(Request $request, Incident $incident): Response
+    public function show(Request $request, Incident $incident, PossibleDuplicates $duplicates): Response
     {
         $this->authorize('view', $incident);
         $user = $this->actor($request);
-        $tab = $request->query('tab') === 'history' ? 'history' : 'overview';
+        $tab = in_array($request->query('tab'), ['history', 'timeline'], true) ? (string) $request->query('tab') : 'overview';
 
         if ($incident->logsViews()) {
             $incident->recordAccess(context: "tab:{$tab}");
         }
         Inertia::encryptHistory();
 
+        $can = [
+            'update' => $user->can('update', $incident),
+            'submit' => $user->can('submit', $incident),
+            'return' => $user->can('return', $incident),
+            'verify' => $user->can('verify', $incident),
+            'startInvestigation' => $user->can('startInvestigation', $incident),
+            'resolve' => $user->can('resolve', $incident),
+            'reopen' => $user->can('reopen', $incident),
+            'close' => $user->can('close', $incident),
+            'invalidate' => $user->can('invalidate', $incident),
+            'escalate' => $user->can('escalate', $incident),
+            'acknowledge' => $user->can('acknowledge', $incident),
+            'addUpdate' => $user->can('addUpdate', $incident),
+        ];
+        // Reviewers see possible duplicates of a submitted or verified report.
+        $reviewing = $can['verify'] || $can['invalidate'];
+
         return Inertia::render('incidents/show', [
             ...$this->props($incident, $user),
             'tab' => $tab,
             'history' => $tab === 'history' ? $this->history($incident) : null,
-            'can' => ['update' => $user->can('update', $incident)],
+            'timeline' => $tab === 'timeline' ? IncidentTimeline::for($incident) : null,
+            'possibleDuplicates' => $reviewing
+                ? $duplicates->for($incident)->map(fn (Incident $d) => IncidentPresenter::duplicate($d))->values()
+                : [],
+            'workflowOptions' => [
+                'invalidReasons' => array_map(fn (InvalidReason $r) => IncidentPresenter::option($r), InvalidReason::cases()),
+                'updateTypes' => array_map(fn (IncidentUpdateType $t) => IncidentPresenter::option($t), IncidentUpdateType::cases()),
+                'updateLevels' => EvidencePresenter::levels($incident, $user),
+            ],
+            'channels' => [
+                'state' => DB::table('states')->where('id', $incident->state_id)->value('ulid'),
+                'national' => $user->jurisdiction_level === JurisdictionLevel::National,
+            ],
+            'openSubmit' => $request->boolean('submit') && $can['submit'],
+            'can' => $can,
         ]);
     }
 
@@ -112,14 +153,20 @@ class IncidentController extends Controller
         /** @var Lga $lga */
         $lga = $request->lga();
 
-        // Moving the draft to another LGA needs that LGA to be within reach.
+        // Another LGA must be within reach; after submission only the State
+        // Director and above correct it (the reference number stays).
         if ($lga->id !== $incident->lga_id) {
             $this->authorize('createIn', [Incident::class, $lga]);
+            $this->authorize('changeLga', $incident);
         }
 
-        $save->update($incident, $lga, $request->values(), $this->actor($request));
+        $reason = $request->validated('amendment_reason');
+        $save->update($incident, $lga, $request->values(), $this->actor($request), is_string($reason) ? trim($reason) : null);
 
-        return redirect()->route('incidents.show', $incident)->with('toast', ['type' => 'success', 'message' => 'Draft saved.']);
+        $thenSubmit = $request->boolean('then_submit') && $this->actor($request)->can('submit', $incident->fresh() ?? $incident);
+
+        return redirect()->route('incidents.show', ['incident' => $incident, ...($thenSubmit ? ['submit' => 1] : [])])
+            ->with('toast', ['type' => 'success', 'message' => $incident->status === IncidentStatus::Draft ? 'Draft saved.' : 'Incident updated.']);
     }
 
     /**
@@ -185,6 +232,8 @@ class IncidentController extends Controller
             'options' => IncidentPresenter::options($incident?->type),
             'genders' => PersonPresenter::options()['genders'],
             'canCheckRecords' => $user->can('create', RecordAccessRequest::class),
+            'canChangeLga' => $incident === null || $user->can('changeLga', $incident),
+            'canSubmit' => $incident === null ? $user->checkPermissionTo(Permission::IncidentsSubmit->value) : $user->can('submit', $incident),
             'map' => MapView::for($incident?->lga),
         ]);
     }
@@ -197,7 +246,7 @@ class IncidentController extends Controller
      */
     private function history(Incident $incident): LengthAwarePaginator
     {
-        return Activity::query()->with(['causer', 'subject'])
+        $page = Activity::query()->with(['causer', 'subject'])
             ->where(function (Builder $q) use ($incident): void {
                 $q->where(fn (Builder $s) => $s->where('subject_type', $incident->getMorphClass())->where('subject_id', $incident->id));
 
@@ -209,8 +258,22 @@ class IncidentController extends Controller
             })
             ->latest('id')
             ->paginate(25, pageName: 'history_page')
-            ->withQueryString()
-            ->through(fn (Activity $a) => ActivityPresenter::present($a));
+            ->withQueryString();
+
+        // Officers outside the viewer's jurisdiction (e.g. the DG acting on a
+        // state incident) are named through the sanctioned names-only lookup.
+        $userType = (new User)->getMorphClass();
+        $names = OfficerNames::for(collect($page->items())->map(fn (Activity $a) => $a->causer_type === $userType ? (int) $a->causer_id : null));
+
+        return $page->through(function (Activity $a) use ($names, $userType): array {
+            $entry = ActivityPresenter::present($a);
+
+            if ($entry['causer'] === null && $a->causer_type === $userType && $names->has((int) $a->causer_id)) {
+                $entry['causer'] = ['label' => $names->get((int) $a->causer_id), 'ulid' => null, 'type' => 'User'];
+            }
+
+            return $entry;
+        });
     }
 
     private function actor(Request $request): User

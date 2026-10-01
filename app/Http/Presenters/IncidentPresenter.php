@@ -8,6 +8,8 @@ use App\Enums\Classification;
 use App\Enums\IncidentAgencyRole;
 use App\Enums\IncidentGroupRole;
 use App\Enums\IncidentStatus;
+use App\Enums\IncidentUpdateType;
+use App\Enums\InvalidReason;
 use App\Enums\OccurrencePrecision;
 use App\Enums\PersonInvolvement;
 use App\Enums\Severity;
@@ -21,6 +23,7 @@ use App\Models\IncidentProperty;
 use App\Models\IncidentType;
 use App\Models\PropertyType;
 use App\Models\User;
+use App\Support\Jurisdiction\OfficerNames;
 use Carbon\CarbonImmutable;
 
 /**
@@ -33,7 +36,7 @@ final class IncidentPresenter
     /**
      * @return array{value: string, label: string}
      */
-    public static function option(CasualtyGroup|CasualtyOutcome|Classification|IncidentAgencyRole|IncidentGroupRole|IncidentStatus|OccurrencePrecision|PersonInvolvement|Severity $value): array
+    public static function option(CasualtyGroup|CasualtyOutcome|Classification|IncidentAgencyRole|IncidentGroupRole|IncidentStatus|IncidentUpdateType|InvalidReason|OccurrencePrecision|PersonInvolvement|Severity $value): array
     {
         return ['value' => $value->value, 'label' => $value->label()];
     }
@@ -77,6 +80,66 @@ final class IncidentPresenter
             'location_description' => $incident->location_description,
             'action_taken' => $incident->action_taken,
             'created_at' => $incident->created_at?->toIso8601String(),
+            'workflow' => self::workflow($incident),
+        ];
+    }
+
+    /**
+     * Workflow facts (Phase 5C): who did what and when, escalation, and the
+     * text of returns, resolutions and invalidations. Officer names only.
+     *
+     * @return array<string, mixed>
+     */
+    public static function workflow(Incident $incident): array
+    {
+        $names = OfficerNames::for([
+            $incident->submitted_by, $incident->returned_by, $incident->verified_by, $incident->investigation_started_by,
+            $incident->resolved_by, $incident->closed_by, $incident->invalidated_by, $incident->escalated_by,
+            $incident->escalation_acknowledged_by,
+        ]);
+        $step = fn (?int $by, ?CarbonImmutable $at) => $at === null ? null : ['by' => $by === null ? null : $names->get($by), 'at' => $at->toIso8601String()];
+        // The original of a duplicate, only if the viewer can see it (scoped).
+        $original = $incident->duplicate_of_incident_id === null ? null : Incident::query()->find($incident->duplicate_of_incident_id);
+
+        return [
+            'submitted' => $step($incident->submitted_by, $incident->submitted_at),
+            'returned' => $step($incident->returned_by, $incident->returned_at),
+            'return_reason' => $incident->return_reason,
+            'verified' => $step($incident->verified_by, $incident->verified_at),
+            'investigation_started' => $step($incident->investigation_started_by, $incident->investigation_started_at),
+            'resolved' => $step($incident->resolved_by, $incident->resolved_at),
+            'resolution_summary' => $incident->resolution_summary,
+            'closed' => $step($incident->closed_by, $incident->closed_at),
+            'invalidated' => $step($incident->invalidated_by, $incident->invalidated_at),
+            'invalid_reason' => $incident->invalid_reason === null ? null : ['value' => $incident->invalid_reason->value, 'label' => $incident->invalid_reason->label()],
+            'invalid_note' => $incident->invalid_note,
+            'duplicate_of' => $original === null ? null : ['ulid' => $original->ulid, 'reference_no' => $original->reference_no, 'title' => $original->title],
+            'escalation' => $incident->escalated_at === null ? null : [
+                'at' => $incident->escalated_at->toIso8601String(),
+                'by' => $incident->escalated_by === null ? null : $names->get($incident->escalated_by),
+                'automatic' => $incident->escalated_by === null,
+                'reason' => $incident->escalation_reason,
+                'acknowledged' => $step($incident->escalation_acknowledged_by, $incident->escalation_acknowledged_at),
+            ],
+            'locked' => $incident->isLocked(),
+            'requires_amendment_reason' => $incident->requiresAmendmentReason(),
+        ];
+    }
+
+    /**
+     * A possible duplicate (Phase 5C): reference, title, time and status.
+     *
+     * @return array<string, mixed>
+     */
+    public static function duplicate(Incident $incident): array
+    {
+        return [
+            'ulid' => $incident->ulid,
+            'reference_no' => $incident->reference_no,
+            'title' => $incident->title,
+            'type' => $incident->type->name,
+            'occurred_at' => $incident->occurred_at->toIso8601String(),
+            'status' => self::option($incident->status),
         ];
     }
 

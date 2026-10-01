@@ -62,6 +62,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Incident workflow (Phase 5C)
+    |--------------------------------------------------------------------------
+    | Minutes after submission within which an incident should be verified,
+    | by severity. Past the deadline the SD and DSD are reminded once; at
+    | twice the deadline the DG and the DDGs covering the state are told.
+    */
+    'incidents' => [
+        'verify_within_minutes' => [
+            'critical' => (int) env('BUFFALO_VERIFY_CRITICAL_MINUTES', 60),
+            'high' => (int) env('BUFFALO_VERIFY_HIGH_MINUTES', 360),
+            'medium' => (int) env('BUFFALO_VERIFY_MEDIUM_MINUTES', 1440),
+            'low' => (int) env('BUFFALO_VERIFY_LOW_MINUTES', 2880),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Incident evidence (Phase 5B)
     |--------------------------------------------------------------------------
     | Limits in megabytes per evidence type. Keep them within nginx's

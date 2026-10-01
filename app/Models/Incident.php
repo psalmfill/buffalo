@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\JsonObject;
 use App\Enums\Classification;
 use App\Enums\IncidentStatus;
+use App\Enums\InvalidReason;
 use App\Enums\OccurrencePrecision;
 use App\Enums\Severity;
 use App\Models\Concerns\HasClassification;
@@ -54,6 +55,30 @@ use Illuminate\Support\Facades\DB;
  * @property IncidentStatus $status
  * @property Classification $classification
  * @property int $reporting_officer_id
+ * @property int|null $submitted_by
+ * @property CarbonImmutable|null $submitted_at
+ * @property int|null $returned_by
+ * @property CarbonImmutable|null $returned_at
+ * @property string|null $return_reason
+ * @property int|null $verified_by
+ * @property CarbonImmutable|null $verified_at
+ * @property int|null $investigation_started_by
+ * @property CarbonImmutable|null $investigation_started_at
+ * @property int|null $resolved_by
+ * @property CarbonImmutable|null $resolved_at
+ * @property string|null $resolution_summary
+ * @property int|null $closed_by
+ * @property CarbonImmutable|null $closed_at
+ * @property int|null $invalidated_by
+ * @property CarbonImmutable|null $invalidated_at
+ * @property InvalidReason|null $invalid_reason
+ * @property string|null $invalid_note
+ * @property int|null $duplicate_of_incident_id
+ * @property int|null $escalated_by
+ * @property CarbonImmutable|null $escalated_at
+ * @property string|null $escalation_reason
+ * @property int|null $escalation_acknowledged_by
+ * @property CarbonImmutable|null $escalation_acknowledged_at
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -82,7 +107,9 @@ class Incident extends Model implements Classified, JurisdictionScoped
 
     protected $hidden = [
         'id', 'incident_type_id', 'state_id', 'lga_id', 'community_id', 'location', 'search_vector',
-        'reporting_officer_id', 'created_by', 'updated_by',
+        'reporting_officer_id', 'created_by', 'updated_by', 'duplicate_of_incident_id',
+        'submitted_by', 'returned_by', 'verified_by', 'investigation_started_by', 'resolved_by',
+        'closed_by', 'invalidated_by', 'escalated_by', 'escalation_acknowledged_by',
     ];
 
     protected $attributes = [
@@ -104,6 +131,16 @@ class Incident extends Model implements Classified, JurisdictionScoped
             'classification' => Classification::class,
             'latitude' => 'float',
             'longitude' => 'float',
+            'submitted_at' => 'immutable_datetime',
+            'returned_at' => 'immutable_datetime',
+            'verified_at' => 'immutable_datetime',
+            'investigation_started_at' => 'immutable_datetime',
+            'resolved_at' => 'immutable_datetime',
+            'closed_at' => 'immutable_datetime',
+            'invalidated_at' => 'immutable_datetime',
+            'escalated_at' => 'immutable_datetime',
+            'escalation_acknowledged_at' => 'immutable_datetime',
+            'invalid_reason' => InvalidReason::class,
         ];
     }
 
@@ -234,5 +271,55 @@ class Incident extends Model implements Classified, JurisdictionScoped
     public function evidence(): HasMany
     {
         return $this->hasMany(IncidentEvidence::class);
+    }
+
+    /** Closed and invalid incidents are locked (Phase 5C; database triggers too). */
+    public function isLocked(): bool
+    {
+        return in_array($this->status, [IncidentStatus::Closed, IncidentStatus::Invalid], true);
+    }
+
+    /**
+     * From verification on, every save needs an amendment reason (until
+     * verified, the reporting side edits freely).
+     */
+    public function requiresAmendmentReason(): bool
+    {
+        return ! in_array($this->status, [IncidentStatus::Draft, IncidentStatus::Submitted, IncidentStatus::Returned], true);
+    }
+
+    public function isEscalated(): bool
+    {
+        return $this->escalated_at !== null;
+    }
+
+    /** Submitted at least once (it then has a reference number). */
+    public function wasSubmitted(): bool
+    {
+        return $this->reference_no !== null;
+    }
+
+    /**
+     * @return BelongsTo<Incident, $this>
+     */
+    public function duplicateOf(): BelongsTo
+    {
+        return $this->belongsTo(Incident::class, 'duplicate_of_incident_id');
+    }
+
+    /**
+     * @return HasMany<IncidentStatusHistory, $this>
+     */
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(IncidentStatusHistory::class);
+    }
+
+    /**
+     * @return HasMany<IncidentUpdate, $this>
+     */
+    public function updates(): HasMany
+    {
+        return $this->hasMany(IncidentUpdate::class);
     }
 }

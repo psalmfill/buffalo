@@ -63,6 +63,14 @@ export const PERMISSIONS = [
     'evidence.download_original',
     'evidence.verify',
     'evidence.delete',
+    'incidents.submit',
+    'incidents.verify',
+    'incidents.investigate',
+    'incidents.close',
+    'incidents.invalidate',
+    'incidents.escalate',
+    'incidents.acknowledge',
+    'incidents.amend',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

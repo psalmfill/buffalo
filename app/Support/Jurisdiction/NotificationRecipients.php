@@ -59,4 +59,20 @@ final class NotificationRecipients
                 : $query->where('state_id', $stateId)->get(),
         };
     }
+
+    /**
+     * Named users (e.g. an incident's reporting officer and creator),
+     * active only, whatever the sender may see.
+     *
+     * @param  list<int|null>  $ids
+     * @return Collection<int, User>
+     */
+    public function users(array $ids): Collection
+    {
+        return User::query()
+            ->withoutGlobalScope(JurisdictionScope::class)
+            ->whereKey(array_values(array_filter($ids, 'is_int')))
+            ->where('is_active', true)
+            ->get();
+    }
 }

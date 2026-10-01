@@ -225,6 +225,15 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permission::IncidentsView->value => self::INTELLIGENCE_ROLES,
                 Permission::IncidentsCreate->value => self::INTELLIGENCE_ROLES,
                 Permission::IncidentsUpdate->value => self::INTELLIGENCE_ROLES,
+                // Phase 5C — workflow (always with jurisdiction and the "who" rules)
+                Permission::IncidentsSubmit->value => self::INTELLIGENCE_ROLES,
+                Permission::IncidentsVerify->value => [Role::StateDirector, Role::DeputyStateDirector],
+                Permission::IncidentsInvestigate->value => [Role::DirectorGeneral, Role::DeputyDirectorGeneral, Role::StateDirector, Role::DeputyStateDirector],
+                Permission::IncidentsClose->value => self::DELETE_ROLES,
+                Permission::IncidentsInvalidate->value => self::DELETE_ROLES,
+                Permission::IncidentsEscalate->value => [Role::StateDirector, Role::DeputyStateDirector],
+                Permission::IncidentsAcknowledge->value => [Role::DirectorGeneral, Role::DeputyDirectorGeneral],
+                Permission::IncidentsAmend->value => [Role::DirectorGeneral, Role::DeputyDirectorGeneral, Role::StateDirector, Role::DeputyStateDirector],
             ],
 
             // ---------------------------------------------------------------

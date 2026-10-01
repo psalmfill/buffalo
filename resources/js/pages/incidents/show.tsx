@@ -1,11 +1,18 @@
 import { Head, Link } from '@inertiajs/react';
-import { Pencil } from 'lucide-react';
+import { Lock, Pencil, Siren } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import DynamicFieldsView from '@/components/dynamic-fields/dynamic-fields-view';
 import EvidenceSection from '@/components/evidence/evidence-section';
+import IncidentLiveRefresh from '@/components/incidents/incident-live-refresh';
+import IncidentTimeline from '@/components/incidents/incident-timeline';
+import WorkflowActions, {
+    DuplicateList,
+    InvalidateDialog,
+} from '@/components/incidents/workflow-actions';
 import BuffaloMap from '@/components/map/BuffaloMap';
 import Pagination from '@/components/pagination';
 import { Badge } from '@/components/ui/badge';
@@ -14,17 +21,35 @@ import ActivityTable from '@/components/users/activity-table';
 import { formatDateTime } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { MapView } from '@/types/dashboard';
-import type { IncidentRecord } from '@/types/incidents';
+import type {
+    DuplicateRow,
+    IncidentDetail,
+    IncidentRecord,
+    TimelineEntry,
+    WorkflowCan,
+    WorkflowOptions,
+} from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
 
-type Tab = 'overview' | 'history';
+type Tab = 'overview' | 'timeline' | 'history';
+
+const TAB_LABELS: Record<Tab, string> = {
+    overview: 'Overview',
+    timeline: 'Timeline',
+    history: 'History',
+};
 
 type Props = IncidentRecord & {
     tab: Tab;
     history: Paginated<ActivityEntry> | null;
+    timeline: TimelineEntry[] | null;
+    possibleDuplicates: DuplicateRow[];
+    workflowOptions: WorkflowOptions;
+    channels: { state: string; national: boolean };
+    openSubmit: boolean;
     map: MapView;
-    can: { update: boolean };
+    can: WorkflowCan;
 };
 
 /**
@@ -42,60 +67,158 @@ export default function IncidentShow({
     evidence,
     tab,
     history,
+    timeline,
+    possibleDuplicates,
+    workflowOptions,
+    channels,
+    openSubmit,
     map,
     can,
 }: Props) {
+    const record: IncidentRecord = {
+        incident,
+        casualties,
+        persons,
+        groups,
+        agencies,
+        properties,
+        evidence,
+    };
+    const workflow = incident.workflow;
+    const [invalidating, setInvalidating] = useState<DuplicateRow | null>(null);
+
     return (
         <>
-            <Head title={incident.title} />
+            <Head title={incident.reference_no ?? incident.title} />
+            <IncidentLiveRefresh
+                incidentUlid={incident.ulid}
+                channel={
+                    channels.national
+                        ? 'national.incidents'
+                        : `states.${channels.state}.incidents`
+                }
+            />
             <div className="space-y-6 p-4">
+                <LockBanner incident={incident} />
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="space-y-1">
+                        <p
+                            className="font-mono text-sm font-semibold"
+                            data-test="reference"
+                        >
+                            {incident.reference_no ??
+                                'Draft — no reference yet'}
+                        </p>
                         <div className="flex flex-wrap items-center gap-2">
                             <h1 className="text-xl font-semibold">
                                 {incident.title}
                             </h1>
-                            <ClassificationBadge
-                                level={incident.classification.value}
-                            />
                             <Badge variant="secondary">
                                 {incident.status.label}
                             </Badge>
+                            <Badge
+                                variant={
+                                    incident.severity.value === 'critical'
+                                        ? 'destructive'
+                                        : 'outline'
+                                }
+                            >
+                                {incident.severity.label}
+                            </Badge>
+                            {workflow.escalation && (
+                                <Badge
+                                    variant="destructive"
+                                    className="gap-1"
+                                    title={
+                                        workflow.escalation.reason ?? undefined
+                                    }
+                                >
+                                    <Siren className="size-3" /> Escalated
+                                    {workflow.escalation.acknowledged
+                                        ? ` · acknowledged by ${workflow.escalation.acknowledged.by ?? 'national level'}`
+                                        : ' · awaiting acknowledgement'}
+                                </Badge>
+                            )}
+                            <ClassificationBadge
+                                level={incident.classification.value}
+                            />
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            {incident.reference_no ?? 'No reference yet'} ·{' '}
-                            {incident.type.name} · {incident.severity.label} ·{' '}
-                            {incident.lga.name} LGA, {incident.state.name} State
+                            {incident.type.name} · {incident.lga.name} LGA,{' '}
+                            {incident.state.name} State
+                            {workflow.submitted &&
+                                ` · submitted ${formatDateTime(workflow.submitted.at)}${workflow.submitted.by ? ` by ${workflow.submitted.by}` : ''}`}
                         </p>
                     </div>
-                    {can.update && (
-                        <Button variant="outline" asChild>
-                            <Link href={IncidentController.edit(incident.ulid)}>
-                                <Pencil /> Edit draft
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-start gap-2">
+                        {can.update && (
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={IncidentController.edit(
+                                        incident.ulid,
+                                    )}
+                                >
+                                    <Pencil />{' '}
+                                    {incident.status.value === 'draft'
+                                        ? 'Edit draft'
+                                        : 'Edit'}
+                                </Link>
+                            </Button>
+                        )}
+                        <WorkflowActions
+                            record={record}
+                            can={can}
+                            options={workflowOptions}
+                            possibleDuplicates={possibleDuplicates}
+                            openSubmit={openSubmit}
+                        />
+                    </div>
                 </div>
 
+                <WorkflowFacts incident={incident} />
+
+                {possibleDuplicates.length > 0 && (
+                    <DuplicateList
+                        title="Possible duplicates"
+                        rows={possibleDuplicates}
+                        onPick={
+                            can.invalidate
+                                ? (row) => setInvalidating(row)
+                                : undefined
+                        }
+                    />
+                )}
+                {invalidating && (
+                    <InvalidateDialog
+                        incidentUlid={incident.ulid}
+                        reasons={workflowOptions.invalidReasons}
+                        possibleDuplicates={possibleDuplicates}
+                        preset={invalidating}
+                        onClose={() => setInvalidating(null)}
+                    />
+                )}
+
                 <nav className="flex gap-1 border-b" aria-label="Sections">
-                    {(['overview', 'history'] as Tab[]).map((name) => (
-                        <Link
-                            key={name}
-                            href={IncidentController.show(incident.ulid, {
-                                query: { tab: name },
-                            })}
-                            preserveScroll
-                            className={cn(
-                                '-mb-px border-b-2 px-3 py-2 text-sm',
-                                tab === name
-                                    ? 'border-primary font-medium'
-                                    : 'border-transparent text-muted-foreground hover:text-foreground',
-                            )}
-                            aria-current={tab === name ? 'page' : undefined}
-                        >
-                            {name === 'overview' ? 'Overview' : 'History'}
-                        </Link>
-                    ))}
+                    {(['overview', 'timeline', 'history'] as Tab[]).map(
+                        (name) => (
+                            <Link
+                                key={name}
+                                href={IncidentController.show(incident.ulid, {
+                                    query: { tab: name },
+                                })}
+                                preserveScroll
+                                className={cn(
+                                    '-mb-px border-b-2 px-3 py-2 text-sm',
+                                    tab === name
+                                        ? 'border-primary font-medium'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground',
+                                )}
+                                aria-current={tab === name ? 'page' : undefined}
+                            >
+                                {TAB_LABELS[name]}
+                            </Link>
+                        ),
+                    )}
                 </nav>
 
                 {tab === 'overview' && (
@@ -411,6 +534,16 @@ export default function IncidentShow({
                     </div>
                 )}
 
+                {tab === 'timeline' && timeline && (
+                    <IncidentTimeline
+                        incidentUlid={incident.ulid}
+                        incidentLevel={incident.classification.value}
+                        entries={timeline}
+                        options={workflowOptions}
+                        canAdd={can.addUpdate}
+                    />
+                )}
+
                 {tab === 'history' && history && (
                     <div className="space-y-2">
                         <ActivityTable entries={history.data} />
@@ -419,6 +552,99 @@ export default function IncidentShow({
                 )}
             </div>
         </>
+    );
+}
+
+/** A bold banner on closed and invalid incidents (locked). */
+function LockBanner({ incident }: { incident: IncidentDetail }) {
+    const w = incident.workflow;
+
+    if (!w.locked) {
+        return null;
+    }
+
+    const invalid = incident.status.value === 'invalid';
+
+    return (
+        <div
+            role="status"
+            className="flex flex-wrap items-center gap-2 rounded-lg border-2 border-foreground/80 bg-muted p-4 text-sm font-semibold"
+        >
+            <Lock className="size-4" />
+            {invalid ? (
+                <span>
+                    This incident was marked invalid (
+                    {w.invalid_reason?.label.toLowerCase()}) and is locked.
+                    {w.duplicate_of && (
+                        <>
+                            {' '}
+                            It duplicates{' '}
+                            <Link
+                                href={IncidentController.show(
+                                    w.duplicate_of.ulid,
+                                )}
+                                className="underline"
+                            >
+                                {w.duplicate_of.reference_no ??
+                                    w.duplicate_of.title}
+                            </Link>
+                            .
+                        </>
+                    )}
+                    {w.invalid_note && (
+                        <span className="block font-normal">
+                            {w.invalid_note}
+                        </span>
+                    )}
+                </span>
+            ) : (
+                <span>
+                    This incident is closed and locked
+                    {w.closed
+                        ? ` (closed ${formatDateTime(w.closed.at)}${w.closed.by ? ` by ${w.closed.by}` : ''})`
+                        : ''}
+                    .
+                </span>
+            )}
+        </div>
+    );
+}
+
+/** Return reasons and resolution summaries, when there are any. */
+function WorkflowFacts({ incident }: { incident: IncidentDetail }) {
+    const w = incident.workflow;
+    const facts: [string, string, string | null][] = [];
+
+    if (incident.status.value === 'returned' && w.return_reason) {
+        facts.push(['Returned', w.return_reason, w.returned?.by ?? null]);
+    }
+    if (
+        w.resolution_summary &&
+        ['resolved', 'closed'].includes(incident.status.value)
+    ) {
+        facts.push([
+            'Resolution',
+            w.resolution_summary,
+            w.resolved?.by ?? null,
+        ]);
+    }
+
+    if (facts.length === 0) {
+        return null;
+    }
+
+    return (
+        <dl className="grid gap-3 rounded-lg border p-4 text-sm">
+            {facts.map(([label, text, by]) => (
+                <div key={label}>
+                    <dt className="text-xs text-muted-foreground">
+                        {label}
+                        {by && ` by ${by}`}
+                    </dt>
+                    <dd className="whitespace-pre-line">{text}</dd>
+                </div>
+            ))}
+        </dl>
     );
 }
 

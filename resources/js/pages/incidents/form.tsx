@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import DynamicFields from '@/components/dynamic-fields/dynamic-fields';
@@ -48,6 +48,9 @@ type Props = Partial<IncidentRecord> & {
     options: IncidentOptions;
     genders: Option[];
     canCheckRecords: boolean;
+    /** After submission only the State Director and above correct the LGA. */
+    canChangeLga: boolean;
+    canSubmit: boolean;
     map: MapView;
 };
 
@@ -73,6 +76,8 @@ export default function IncidentForm(props: Props) {
         options,
         genders,
         canCheckRecords,
+        canChangeLga,
+        canSubmit,
         map,
     } = props;
     const editing = incident !== null;
@@ -90,7 +95,10 @@ export default function IncidentForm(props: Props) {
         location_description: incident?.location_description ?? '',
         action_taken: incident?.action_taken ?? '',
         classification: incident?.classification.value ?? 'restricted',
+        amendment_reason: '',
     });
+    // "Save and submit": the incident page then opens the submission dialog.
+    const thenSubmit = useRef(false);
     const [details, setDetails] = useState<DetailValues>(
         incident?.details ?? {},
     );
@@ -226,6 +234,8 @@ export default function IncidentForm(props: Props) {
 
         form.transform((data) => ({
             ...data,
+            amendment_reason: requiresReason ? data.amendment_reason : null,
+            then_submit: thenSubmit.current,
             details,
             community: community?.value ?? null,
             latitude: data.latitude || null,
@@ -295,6 +305,11 @@ export default function IncidentForm(props: Props) {
             form.post(IncidentController.store().url, { preserveScroll: true });
         }
     };
+    const requiresReason =
+        incident?.workflow.requires_amendment_reason ?? false;
+    const submittable =
+        canSubmit &&
+        (!editing || ['draft', 'returned'].includes(incident.status.value));
 
     const errors = form.errors as Record<string, string | undefined>;
     const firstError = Object.values(errors)[0];
@@ -489,6 +504,7 @@ export default function IncidentForm(props: Props) {
                         <Field id="lga" label="LGA" error={errors.lga}>
                             <NativeSelect
                                 id="lga"
+                                disabled={!canChangeLga}
                                 value={form.data.lga}
                                 onChange={(e) => {
                                     form.setData('lga', e.target.value);
@@ -655,11 +671,44 @@ export default function IncidentForm(props: Props) {
                     </div>
                 </section>
 
-                <div className="flex gap-2">
-                    <Button type="submit" disabled={form.processing}>
+                {requiresReason && (
+                    <Field
+                        id="amendment_reason"
+                        label="Reason for this amendment (required after verification)"
+                        error={errors.amendment_reason}
+                    >
+                        <Textarea
+                            id="amendment_reason"
+                            rows={2}
+                            value={form.data.amendment_reason}
+                            onChange={(e) =>
+                                form.setData('amendment_reason', e.target.value)
+                            }
+                        />
+                    </Field>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        type="submit"
+                        disabled={form.processing}
+                        onClick={() => (thenSubmit.current = false)}
+                    >
                         {form.processing && <Spinner />}
-                        Save draft
+                        {!editing || incident.status.value === 'draft'
+                            ? 'Save draft'
+                            : 'Save changes'}
                     </Button>
+                    {submittable && (
+                        <Button
+                            type="submit"
+                            variant="secondary"
+                            disabled={form.processing}
+                            onClick={() => (thenSubmit.current = true)}
+                        >
+                            Save and submit
+                        </Button>
+                    )}
                     <Button variant="ghost" asChild>
                         <Link
                             href={

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Evidence;
 use App\Enums\Classification;
 use App\Models\IncidentEvidence;
 use App\Models\User;
+use App\Support\Incidents\ChildClassification;
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use Closure;
@@ -46,7 +47,7 @@ class EvidenceUpdateRequest extends FormRequest
             'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
-                $problem = EvidenceUploadRequest::classificationProblem($this->user(), $this->evidence()->incident, Classification::tryFrom((string) $value));
+                $problem = ChildClassification::problem($this->user(), $this->evidence()->incident, Classification::tryFrom((string) $value), 'Evidence');
 
                 if ($problem !== null) {
                     $fail($problem);

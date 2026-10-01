@@ -7,8 +7,8 @@ use App\Enums\EvidenceType;
 use App\Models\Incident;
 use App\Models\IncidentEvidence;
 use App\Models\User;
-use App\Support\Classification\ClassificationGate;
 use App\Support\Evidence\EvidenceFileInspector;
+use App\Support\Incidents\ChildClassification;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
@@ -60,7 +60,7 @@ class EvidenceUploadRequest extends FormRequest
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:5000'],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
-                $problem = self::classificationProblem($this->user(), $this->incident(), Classification::tryFrom((string) $value));
+                $problem = ChildClassification::problem($this->user(), $this->incident(), Classification::tryFrom((string) $value), 'Evidence');
 
                 if ($problem !== null) {
                     $fail($problem);
@@ -99,23 +99,5 @@ class EvidenceUploadRequest extends FormRequest
             'description' => $description === '' ? null : $description,
             'classification' => Classification::from((string) $this->validated('classification')),
         ];
-    }
-
-    /** Why $level is not allowed for evidence on $incident, or null. */
-    public static function classificationProblem(mixed $user, Incident $incident, ?Classification $level): ?string
-    {
-        if (! $user instanceof User || $level === null) {
-            return null;
-        }
-
-        if ($level->rank() < $incident->classificationLevel()->rank()) {
-            return "Evidence cannot be classified below its incident ({$incident->classificationLevel()->label()}).";
-        }
-
-        if (! app(ClassificationGate::class)->canAssign($user, $level)) {
-            return 'You cannot classify a record above your own clearance.';
-        }
-
-        return null;
     }
 }

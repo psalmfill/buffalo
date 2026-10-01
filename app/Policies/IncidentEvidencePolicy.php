@@ -46,7 +46,7 @@ final class IncidentEvidencePolicy
 
     public function upload(User $actor, Incident $incident): bool
     {
-        if (! $actor->checkPermissionTo(Permission::EvidenceUpload->value) || $incident->status === IncidentStatus::Closed) {
+        if (! $actor->checkPermissionTo(Permission::EvidenceUpload->value) || $incident->isLocked()) {
             return false;
         }
 
@@ -59,7 +59,7 @@ final class IncidentEvidencePolicy
     {
         return $this->view($actor, $evidence)
             && $actor->checkPermissionTo(Permission::EvidenceUpload->value)
-            && $evidence->incident->status !== IncidentStatus::Closed
+            && ! $evidence->incident->isLocked()
             && ($evidence->uploaded_by === $actor->id || $this->isStateLead($actor, $evidence));
     }
 
@@ -75,7 +75,7 @@ final class IncidentEvidencePolicy
 
     public function delete(User $actor, IncidentEvidence $evidence): bool
     {
-        return $actor->checkPermissionTo(Permission::EvidenceDelete->value) && $this->view($actor, $evidence);
+        return $actor->checkPermissionTo(Permission::EvidenceDelete->value) && $this->view($actor, $evidence) && ! $evidence->incident->isLocked();
     }
 
     private function isStateLead(User $actor, IncidentEvidence $evidence): bool

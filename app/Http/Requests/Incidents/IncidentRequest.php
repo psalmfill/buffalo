@@ -154,6 +154,8 @@ class IncidentRequest extends FormRequest
             }],
             'location_description' => ['nullable', 'string', 'max:2000'],
             'action_taken' => ['nullable', 'string', 'max:20000'],
+            // After verification every save needs a reason (Phase 5C).
+            'amendment_reason' => $current?->requiresAmendmentReason() === true ? ['required', 'string', 'min:10', 'max:2000'] : ['prohibited'],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 $level = Classification::tryFrom((string) $value);
                 /** @var User $user */

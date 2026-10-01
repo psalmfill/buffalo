@@ -22,6 +22,7 @@ use App\Models\RecordMatchEvent;
 use App\Models\SecurityAgency;
 use App\Models\User;
 use App\Support\Jurisdiction\JurisdictionContext;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -260,9 +261,13 @@ test('draft editing: the creator, or the State Director or Deputy of the state; 
     saveIncident($this->world->users['state_director'], incidentPayload(['lga' => $this->world->lgas['B1']->ulid]), $incident)->assertSessionHasErrors('lga');
 
     CrossFixtures::system();
-    $incident->forceFill(['status' => IncidentStatus::Submitted])->save();
+    // Since 5C a submitted incident stays editable until verified; closed
+    // incidents are locked.
+    $incident->forceFill(['status' => IncidentStatus::Submitted, 'submitted_at' => now(), 'reference_no' => 'BUF/T/TST/2026/000001'])->save();
+    expect($edit('state_director'))->toBe(200);
+    DB::table('incidents')->where('id', $incident->id)->update(['status' => IncidentStatus::Closed->value]);
     expect($edit('state_director'))->toBe(403);
-    saveIncident($this->world->users['state_director'], incidentPayload(), $incident)->assertForbidden();
+    saveIncident($this->world->users['state_director'], incidentPayload(['amendment_reason' => 'Attempt on a closed incident.']), $incident)->assertForbidden();
 });
 
 test('an access request may cite an incident the requester can see; the approver sees only a summary line', function () {

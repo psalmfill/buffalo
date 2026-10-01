@@ -44,6 +44,76 @@ export type IncidentDetail = Omit<IncidentRow, 'type'> & {
     location_description: string | null;
     action_taken: string | null;
     created_at: string | null;
+    workflow: IncidentWorkflow;
+};
+
+export type WorkflowStep = { by: string | null; at: string } | null;
+
+export type IncidentWorkflow = {
+    submitted: WorkflowStep;
+    returned: WorkflowStep;
+    return_reason: string | null;
+    verified: WorkflowStep;
+    investigation_started: WorkflowStep;
+    resolved: WorkflowStep;
+    resolution_summary: string | null;
+    closed: WorkflowStep;
+    invalidated: WorkflowStep;
+    invalid_reason: Option | null;
+    invalid_note: string | null;
+    duplicate_of: {
+        ulid: string;
+        reference_no: string | null;
+        title: string;
+    } | null;
+    escalation: {
+        at: string;
+        by: string | null;
+        automatic: boolean;
+        reason: string | null;
+        acknowledged: WorkflowStep;
+    } | null;
+    locked: boolean;
+    requires_amendment_reason: boolean;
+};
+
+export type DuplicateRow = {
+    ulid: string;
+    reference_no: string | null;
+    title: string;
+    type: string;
+    occurred_at: string;
+    status: Option;
+};
+
+export type TimelineEntry = {
+    at: string;
+    kind: string;
+    label: string;
+    body: string | null;
+    who: string | null;
+    classification: { value: ClassificationLevel; label: string } | null;
+};
+
+export type WorkflowCan = {
+    update: boolean;
+    submit: boolean;
+    return: boolean;
+    verify: boolean;
+    startInvestigation: boolean;
+    resolve: boolean;
+    reopen: boolean;
+    close: boolean;
+    invalidate: boolean;
+    escalate: boolean;
+    acknowledge: boolean;
+    addUpdate: boolean;
+};
+
+export type WorkflowOptions = {
+    invalidReasons: Option[];
+    updateTypes: Option[];
+    updateLevels: Option[];
 };
 
 export type CasualtyRow = {
