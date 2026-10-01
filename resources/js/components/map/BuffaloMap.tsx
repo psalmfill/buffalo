@@ -56,6 +56,25 @@ export type MapMarker = {
     shape?: MarkerShape;
 };
 
+/**
+ * An area drawn as a circle (e.g. a flashpoint and its radius), with an
+ * optional popup and link.
+ */
+export type MapCircle = {
+    id: string;
+    center: [number, number];
+    /** Metres. */
+    radius: number;
+    /** Hex colour from our own palette; never user input. */
+    color: string;
+    title: string;
+    /** Plain text (never HTML). */
+    popup?: string;
+    href?: string;
+    /** Dashed outline (e.g. a dormant or resolved area). */
+    dashed?: boolean;
+};
+
 export type MarkerShape = 'circle' | 'square' | 'diamond' | 'triangle' | 'ring';
 
 /** A coloured dot marker, optionally shaped (no image assets). */
@@ -115,6 +134,10 @@ type BuffaloMapProps = {
     outline?: Geometry | null;
     /** Zoom to fit the outline once it is shown. */
     fitOutline?: boolean;
+    /** Areas drawn as circles, below the markers. */
+    circles?: MapCircle[];
+    /** Zoom to fit the circles once they are shown. */
+    fitCircles?: boolean;
 };
 
 /** Attribution strings are rendered as HTML by Leaflet: escape them. */
@@ -126,7 +149,9 @@ function escapeText(text: string): string {
 }
 
 /** Popup content built from text nodes, so names cannot inject HTML. */
-function popupContent(marker: MapMarker): HTMLElement {
+function popupContent(
+    marker: Pick<MapMarker, 'title' | 'popup' | 'href'>,
+): HTMLElement {
     const root = document.createElement('div');
     const title = document.createElement(marker.href ? 'a' : 'strong');
     title.textContent = marker.title;
@@ -158,12 +183,15 @@ export default function BuffaloMap({
     cluster = false,
     outline = null,
     fitOutline = false,
+    circles,
+    fitCircles = false,
 }: BuffaloMapProps) {
     const boundaryAttribution = usePage().props.boundaryAttribution;
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<L.Map | null>(null);
     const markerLayerRef = useRef<L.LayerGroup | null>(null);
     const outlineLayerRef = useRef<L.GeoJSON | null>(null);
+    const circleLayerRef = useRef<L.FeatureGroup | null>(null);
     const pickerMarkerRef = useRef<L.Marker | null>(null);
     // The latest picker callback, for the map's click handler.
     const pickerRef = useRef<MapPicker | undefined>(picker);
@@ -205,6 +233,7 @@ export default function BuffaloMap({
         }
 
         mapRef.current = map;
+        circleLayerRef.current = L.featureGroup().addTo(map);
         markerLayerRef.current = (
             cluster
                 ? L.markerClusterGroup({
@@ -259,6 +288,7 @@ export default function BuffaloMap({
             mapRef.current = null;
             markerLayerRef.current = null;
             outlineLayerRef.current = null;
+            circleLayerRef.current = null;
             pickerMarkerRef.current = null;
             setReady(false);
             map.remove();
@@ -298,6 +328,7 @@ export default function BuffaloMap({
         }
 
         if (fitMarkers && markers && markers.length > 0) {
+            map.invalidateSize();
             map.fitBounds(
                 L.latLngBounds(markers.map((marker) => marker.position)),
                 { padding: [24, 24], maxZoom: 13 },
@@ -333,9 +364,52 @@ export default function BuffaloMap({
         outlineLayerRef.current = layer;
 
         if (fitOutline) {
+            map.invalidateSize();
             map.fitBounds(layer.getBounds(), { padding: [16, 16] });
         }
     }, [ready, outline, fitOutline]);
+
+    // Display areas (circles), above the outline and below markers.
+    useEffect(() => {
+        const map = mapRef.current;
+        const layer = circleLayerRef.current;
+
+        if (!ready || !map || !layer) {
+            return;
+        }
+
+        layer.clearLayers();
+
+        for (const area of circles ?? []) {
+            const color = /^#[0-9a-f]{6}$/i.test(area.color)
+                ? area.color
+                : '#475569';
+
+            L.circle(area.center, {
+                radius: area.radius,
+                color,
+                weight: 2,
+                fillColor: color,
+                fillOpacity: 0.18,
+                dashArray: area.dashed ? '6 6' : undefined,
+            })
+                .bindTooltip(area.title)
+                .bindPopup(() => popupContent(area))
+                .addTo(layer);
+        }
+
+        if (fitCircles && (circles ?? []).length > 0) {
+            // Bounds from geometry: a circle's own getBounds() depends on
+            // its projection at the current zoom.
+            const bounds = (circles ?? []).reduce(
+                (all, area) =>
+                    all.extend(L.latLng(area.center).toBounds(area.radius * 2)),
+                L.latLngBounds([]),
+            );
+            map.invalidateSize();
+            map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
+        }
+    }, [ready, circles, fitCircles]);
 
     // The picker's draggable marker follows its value.
     const pickerValue = picker?.value ?? null;

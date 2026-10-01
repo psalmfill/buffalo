@@ -247,6 +247,16 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 6A — Flashpoints and blackspots
+            // ---------------------------------------------------------------
+            'flashpoints' => [
+                Permission::FlashpointsView->value => self::INTELLIGENCE_ROLES,
+                Permission::FlashpointsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::FlashpointsAssess->value => self::INTELLIGENCE_ROLES,
+                Permission::FlashpointsDelete->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

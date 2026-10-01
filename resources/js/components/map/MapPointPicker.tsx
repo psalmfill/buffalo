@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import BuffaloMap from '@/components/map/BuffaloMap';
-import type { MapMarker } from '@/components/map/BuffaloMap';
+import type { MapCircle, MapMarker } from '@/components/map/BuffaloMap';
 import { NIGERIA_BOUNDS } from '@/components/map/nigeria';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,7 @@ export default function MapPointPicker({
     zoom,
     markers,
     outline,
+    circles,
     errors = {},
     className = 'h-80',
 }: {
@@ -57,6 +58,8 @@ export default function MapPointPicker({
     markers?: MapMarker[];
     /** The LGA's boundary (MapView outline), for orientation. */
     outline?: Geometry | null;
+    /** Areas drawn around the point (e.g. a flashpoint's radius). */
+    circles?: MapCircle[];
     errors?: { latitude?: string; longitude?: string };
     className?: string;
 }) {
@@ -75,6 +78,7 @@ export default function MapPointPicker({
                 className={`${className} w-full rounded-lg border`}
                 markers={markers}
                 outline={outline}
+                circles={circles}
                 picker={{
                     value: point,
                     onChange: ([latitude, longitude]) => {

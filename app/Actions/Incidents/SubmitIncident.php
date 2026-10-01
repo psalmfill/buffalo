@@ -9,6 +9,7 @@ use App\Events\Incidents\IncidentEscalated;
 use App\Events\Incidents\IncidentSubmitted;
 use App\Models\Incident;
 use App\Models\User;
+use App\Support\Flashpoints\FlashpointAlerts;
 use App\Support\Incidents\IncidentNotifier;
 use App\Support\Incidents\IncidentReferenceAllocator;
 use App\Support\Incidents\IncidentWorkflow;
@@ -28,6 +29,8 @@ use Illuminate\Validation\ValidationException;
  * - A `critical` incident is escalated automatically ("Critical severity").
  * - The SD and DSD are notified (severity follows the incident's); a
  *   critical one also reaches the DG and the DDGs covering the state.
+ * - Inside the area of an active or monitoring flashpoint, the
+ *   flashpoint's owners are told (FlashpointAlerts, Phase 6A).
  */
 final class SubmitIncident
 {
@@ -36,6 +39,7 @@ final class SubmitIncident
         private readonly IncidentReferenceAllocator $references,
         private readonly PossibleDuplicates $duplicates,
         private readonly IncidentNotifier $notifier,
+        private readonly FlashpointAlerts $flashpoints,
     ) {}
 
     public function __invoke(Incident $incident, User $actor, bool $confirmDuplicates): Incident
@@ -88,6 +92,9 @@ final class SubmitIncident
         if ($critical) {
             $this->notifier->send($submitted, 'submitted_critical', $this->notifier->national($submitted), NotificationSeverity::Critical);
         }
+
+        // Inside a flashpoint area (Phase 6A): its owners are told once.
+        $this->flashpoints->incidentSubmitted($submitted);
 
         return $submitted;
     }

@@ -32,6 +32,8 @@ import LgaOrganizationsPanel from '@/components/organizations/lga-organizations-
 import type { LgaOrganizationsTab } from '@/components/organizations/lga-organizations-panel';
 import LeadershipPanel from '@/components/political/leadership-panel';
 import SecurityPresencePanel from '@/components/security/security-presence-panel';
+import LgaFlashpointsPanel from '@/components/flashpoints/lga-flashpoints-panel';
+import type { LgaFlashpointsTab } from '@/components/flashpoints/lga-flashpoints-panel';
 import type { SecurityPresenceTab } from '@/components/security/security-presence-panel';
 import { cn } from '@/lib/utils';
 import type {
@@ -60,7 +62,8 @@ type Tab =
     | 'security_notes'
     | 'security_presence'
     | 'organizations'
-    | 'incidents';
+    | 'incidents'
+    | 'flashpoints';
 
 type Props = {
     /** Phase 5D: incidents in the LGA, with the last 90 days by type. */
@@ -94,6 +97,8 @@ type Props = {
     leadership: LgaLeadership | null;
     securityPresence: SecurityPresenceTab | null;
     organizations: LgaOrganizationsTab | null;
+    /** Phase 6A. */
+    flashpoints: LgaFlashpointsTab | null;
 };
 
 // Later phases add their tabs here and in LgaController::TABS.
@@ -108,6 +113,7 @@ const TAB_LABELS: Record<Tab, string> = {
     security_presence: 'Security presence',
     organizations: 'Organizations',
     incidents: 'Incidents',
+    flashpoints: 'Flashpoints',
 };
 
 export default function LgaShow(props: Props) {
@@ -245,6 +251,12 @@ export default function LgaShow(props: Props) {
                     <LgaOrganizationsPanel
                         baseUrl={tabUrl(lga.ulid, tab)}
                         data={props.organizations}
+                    />
+                )}
+                {tab === 'flashpoints' && props.flashpoints && (
+                    <LgaFlashpointsPanel
+                        lgaUlid={lga.ulid}
+                        data={props.flashpoints}
                     />
                 )}
                 {tab === 'security_presence' && props.securityPresence && (

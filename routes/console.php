@@ -13,6 +13,7 @@ Schedule::command('buffalo:profile-review-reminders')->weeklyOn(1, '07:00');
 
 // Daily reminder of overdue person of interest reviews (Phase 3B).
 Schedule::command('buffalo:poi-review-reminders')->dailyAt('07:00');
+Schedule::command('buffalo:flashpoint-review-reminders')->dailyAt('07:10');
 
 // Cross-jurisdiction access (Phase 3C).
 Schedule::command('buffalo:escalate-access-requests')->everyFiveMinutes();

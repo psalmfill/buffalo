@@ -5,6 +5,7 @@ import {
     ClipboardCheck,
     ClipboardList,
     FilePlus2,
+    Flame,
     Crosshair,
     KeyRound,
     Gauge,
@@ -22,6 +23,7 @@ import {
     Users,
 } from 'lucide-react';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
+import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import AgencyFormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
@@ -82,6 +84,12 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Report incident', icon: FilePlus2, href: IncidentController.create(), permission: 'incidents.create' },
             { title: 'Incidents', icon: ClipboardList, href: IncidentListController.index(), permission: 'incidents.view' },
             { title: 'Incident map', icon: MapPin, href: IncidentListController.map(), permission: 'incidents.view' },
+        ],
+    },
+    {
+        title: 'Flashpoints',
+        items: [
+            { title: 'Flashpoints & blackspots', icon: Flame, href: FlashpointController.index(), permission: 'flashpoints.view' },
         ],
     },
     {

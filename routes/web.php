@@ -39,3 +39,4 @@ require __DIR__.'/organizations.php';
 require __DIR__.'/pickers.php';
 require __DIR__.'/incidents.php';
 require __DIR__.'/evidence.php';
+require __DIR__.'/flashpoints.php';

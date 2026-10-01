@@ -16,6 +16,7 @@ use App\Http\Presenters\IncidentPresenter;
 use App\Http\Presenters\IncidentTimeline;
 use App\Http\Presenters\PersonPresenter;
 use App\Http\Requests\Incidents\IncidentRequest;
+use App\Models\Flashpoint;
 use App\Models\Incident;
 use App\Models\IncidentAgency;
 use App\Models\IncidentCasualty;
@@ -29,6 +30,7 @@ use App\Models\RecordAccessRequest;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Evidence\EvidenceFileInspector;
+use App\Support\Flashpoints\FlashpointLinks;
 use App\Support\Incidents\PossibleDuplicates;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Jurisdiction\OfficerNames;
@@ -113,6 +115,8 @@ class IncidentController extends Controller
             'tab' => $tab,
             'history' => $tab === 'history' ? $this->history($incident) : null,
             'timeline' => $tab === 'timeline' ? IncidentTimeline::for($incident) : null,
+            // Linked and nearby flashpoints the viewer can see (Phase 6A).
+            'flashpoints' => $user->can('viewAny', Flashpoint::class) ? FlashpointLinks::forIncident($incident, $user) : null,
             'possibleDuplicates' => $reviewing
                 ? $duplicates->for($incident)->map(fn (Incident $d) => IncidentPresenter::duplicate($d))->values()
                 : [],

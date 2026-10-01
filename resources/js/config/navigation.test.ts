@@ -80,6 +80,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.invalidate',
         'incidents.acknowledge',
         'incidents.amend',
+        'flashpoints.view',
+        'flashpoints.manage',
+        'flashpoints.assess',
+        'flashpoints.delete',
     ],
     deputy_director_general: [
         'users.view',
@@ -133,6 +137,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.invalidate',
         'incidents.acknowledge',
         'incidents.amend',
+        'flashpoints.view',
+        'flashpoints.manage',
+        'flashpoints.assess',
+        'flashpoints.delete',
     ],
     state_director: [
         'users.view',
@@ -191,6 +199,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.invalidate',
         'incidents.escalate',
         'incidents.amend',
+        'flashpoints.view',
+        'flashpoints.manage',
+        'flashpoints.assess',
+        'flashpoints.delete',
     ],
     deputy_state_director: [
         'users.view',
@@ -233,6 +245,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.investigate',
         'incidents.escalate',
         'incidents.amend',
+        'flashpoints.view',
+        'flashpoints.manage',
+        'flashpoints.assess',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -267,6 +282,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'evidence.upload',
         'evidence.download_original',
         'incidents.submit',
+        'flashpoints.view',
+        'flashpoints.manage',
+        'flashpoints.assess',
     ],
 };
 
@@ -329,6 +347,7 @@ describe('navigation', () => {
             director_general: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Flashpoints: ['Flashpoints & blackspots'],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -350,6 +369,7 @@ describe('navigation', () => {
             deputy_director_general: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Flashpoints: ['Flashpoints & blackspots'],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -371,6 +391,7 @@ describe('navigation', () => {
             state_director: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Flashpoints: ['Flashpoints & blackspots'],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -392,6 +413,7 @@ describe('navigation', () => {
             deputy_state_director: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Flashpoints: ['Flashpoints & blackspots'],
                 'Local Government': [
                     'LGAs',
                     'Communities',
@@ -413,6 +435,7 @@ describe('navigation', () => {
             lga_security_chief: {
                 Overview: ['Dashboard'],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Flashpoints: ['Flashpoints & blackspots'],
                 'Local Government': [
                     'LGAs',
                     'Communities',

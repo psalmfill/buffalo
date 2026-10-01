@@ -11,12 +11,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Presenters\AgencyFormationPresenter;
 use App\Http\Presenters\CommunityInformationPresenter;
 use App\Http\Presenters\CommunityPresenter;
+use App\Http\Presenters\FlashpointPresenter;
 use App\Http\Presenters\LgaPresenter;
 use App\Http\Presenters\OrganizationPresenter;
 use App\Http\Requests\LocalGovernment\LgaProfileRequest;
 use App\Models\AgencyFormation;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
+use App\Models\Flashpoint;
 use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\LgaProfile;
@@ -49,7 +51,7 @@ class LgaController extends Controller
     /**
      * Tabs of an LGA page. Phase 2C and later phases add theirs here.
      */
-    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations', 'incidents'];
+    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations', 'incidents', 'flashpoints'];
 
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
@@ -112,7 +114,8 @@ class LgaController extends Controller
 
         // Incidents in the LGA (Phase 5D), hidden when there are none.
         $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::lga($lga)->exists();
-        $tabs = $hasIncidents ? self::TABS : array_values(array_diff(self::TABS, ['incidents']));
+        $hidden = [...($hasIncidents ? [] : ['incidents']), ...($user->can('viewAny', Flashpoint::class) ? [] : ['flashpoints'])];
+        $tabs = array_values(array_diff(self::TABS, $hidden));
         $tab = in_array($request->query('tab'), $tabs, true) ? $request->query('tab') : 'overview';
         $lga->loadMissing(['state', 'senatorialDistrict']);
 
@@ -183,6 +186,19 @@ class LgaController extends Controller
                         ->map(fn (AgencyFormation $f) => AgencyFormationPresenter::row($f))
                         ->values(),
                     'map' => MapView::for($lga),
+                ]
+                : null,
+            // Flashpoints and blackspots in the LGA (Phase 6A), through their own scopes.
+            'flashpoints' => $tab === 'flashpoints'
+                ? [
+                    'rows' => Flashpoint::query()->withCoordinates()->with(['threatType', 'lga', 'state'])
+                        ->where('flashpoints.lga_id', $lga->id)
+                        ->byConcern()
+                        ->get()
+                        ->map(fn (Flashpoint $f) => FlashpointPresenter::row($f))
+                        ->values(),
+                    'map' => MapView::for($lga),
+                    'canCreate' => $user->can('create', Flashpoint::class),
                 ]
                 : null,
         ]);

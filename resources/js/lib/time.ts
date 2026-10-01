@@ -38,3 +38,17 @@ export function formatDateTime(iso: string | null | undefined): string {
         timeStyle: 'short',
     });
 }
+
+/** A date-only value ("2026-10-31") as "31 Oct 2026", without time zone shifts. */
+export function formatDate(date: string | null | undefined): string {
+    if (!date) {
+        return '';
+    }
+
+    const [year, month, day] = date.slice(0, 10).split('-').map(Number);
+
+    return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(
+        'en-GB',
+        { dateStyle: 'medium', timeZone: 'UTC' },
+    );
+}

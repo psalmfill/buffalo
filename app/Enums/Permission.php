@@ -107,4 +107,10 @@ enum Permission: string
     case EvidenceDownloadOriginal = 'evidence.download_original';
     case EvidenceVerify = 'evidence.verify';
     case EvidenceDelete = 'evidence.delete';
+
+    // Flashpoints and blackspots (Phase 6A).
+    case FlashpointsView = 'flashpoints.view';
+    case FlashpointsManage = 'flashpoints.manage';
+    case FlashpointsAssess = 'flashpoints.assess';
+    case FlashpointsDelete = 'flashpoints.delete';
 }

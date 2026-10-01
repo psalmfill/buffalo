@@ -81,6 +81,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Flashpoints and blackspots (Phase 6A)
+    |--------------------------------------------------------------------------
+    | Days until the next review after each assessment, by concern level.
+    | Incident suggestions look this many months back. A blackspot with
+    | at least `escalation_incident_count` linked or nearby incidents within
+    | `escalation_window_days` triggers one reassessment notice per window.
+    */
+    'flashpoints' => [
+        'review_days' => [
+            'severe' => (int) env('BUFFALO_FLASHPOINT_REVIEW_SEVERE_DAYS', 30),
+            'high' => (int) env('BUFFALO_FLASHPOINT_REVIEW_HIGH_DAYS', 60),
+            'moderate' => (int) env('BUFFALO_FLASHPOINT_REVIEW_MODERATE_DAYS', 90),
+            'low' => (int) env('BUFFALO_FLASHPOINT_REVIEW_LOW_DAYS', 180),
+        ],
+        'suggestion_months' => (int) env('BUFFALO_FLASHPOINT_SUGGESTION_MONTHS', 12),
+        'escalation_incident_count' => (int) env('BUFFALO_FLASHPOINT_ESCALATION_COUNT', 3),
+        'escalation_window_days' => (int) env('BUFFALO_FLASHPOINT_ESCALATION_DAYS', 30),
+        // The flashpoint map and list map show at most this many areas.
+        'map_cap' => (int) env('BUFFALO_FLASHPOINT_MAP_CAP', 2000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Incident evidence (Phase 5B)
     |--------------------------------------------------------------------------
     | Limits in megabytes per evidence type. Keep them within nginx's

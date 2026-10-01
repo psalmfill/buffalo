@@ -1,7 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
 import { Lock, Pencil, Printer, Siren } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import type { IncidentFlashpoints } from '@/types/flashpoints';
+import { useMemo, useState } from 'react';
+import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
+import { flashpointCircles } from '@/components/flashpoints/flashpoint-areas';
+import IncidentFlashpointsSection, {
+    NearFlashpointBadge,
+} from '@/components/flashpoints/incident-flashpoints';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
@@ -62,6 +68,8 @@ type Props = IncidentRecord & {
     channels: { state: string; national: boolean };
     openSubmit: boolean;
     map: MapView;
+    /** Phase 6A: null without flashpoints.view. */
+    flashpoints: IncidentFlashpoints | null;
     can: WorkflowCan;
 };
 
@@ -86,6 +94,7 @@ export default function IncidentShow({
     channels,
     openSubmit,
     map,
+    flashpoints,
     can,
 }: Props) {
     const record: IncidentRecord = {
@@ -99,6 +108,16 @@ export default function IncidentShow({
     };
     const workflow = incident.workflow;
     const [invalidating, setInvalidating] = useState<DuplicateRow | null>(null);
+    const flashpointAreas = useMemo(
+        () =>
+            flashpoints
+                ? flashpointCircles(
+                      [...flashpoints.linked, ...flashpoints.near],
+                      (ulid) => FlashpointController.show(ulid).url,
+                  )
+                : [],
+        [flashpoints],
+    );
 
     return (
         <>
@@ -126,6 +145,7 @@ export default function IncidentShow({
                             <h1 className="text-xl font-semibold">
                                 {incident.title}
                             </h1>
+                            <NearFlashpointBadge data={flashpoints} />
                             <Badge variant="secondary">
                                 {incident.status.label}
                             </Badge>
@@ -299,12 +319,19 @@ export default function IncidentShow({
                                 </dl>
                             </Section>
                             <WorkflowSummary incident={incident} />
+                            {flashpoints && (
+                                <IncidentFlashpointsSection
+                                    data={flashpoints}
+                                    incidentUlid={incident.ulid}
+                                />
+                            )}
                         </div>
                         <BuffaloMap
                             className="h-80"
                             center={map.center ?? undefined}
                             zoom={map.zoom}
                             outline={map.outline}
+                            circles={flashpointAreas}
                             fitMarkers
                             markers={
                                 incident.latitude !== null &&
