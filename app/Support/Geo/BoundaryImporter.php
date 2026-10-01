@@ -3,6 +3,7 @@
 namespace App\Support\Geo;
 
 use App\Support\LocalGovernment\Nigeria;
+use App\Support\Map\LayerCache;
 use Illuminate\Support\Facades\DB;
 use JsonException;
 
@@ -115,6 +116,8 @@ final class BoundaryImporter
         });
 
         BoundaryAttribution::forget();
+        // Choropleths and outlines depend on the boundaries (Phase 6C).
+        LayerCache::bumpAll();
 
         return $result;
     }

@@ -80,6 +80,9 @@ export const PERMISSIONS = [
     'threats.manage',
     'threats.reactivate',
     'threats.delete',
+    'map.view',
+    'blackspots.suggestions',
+    'blackspots.refresh',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

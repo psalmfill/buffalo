@@ -97,7 +97,7 @@ final class BuildStateDashboard
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forState($user, $state) : null,
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forState($state) : null,
-            'placeholders' => PlaceholderCards::for($label),
+            'placeholders' => PlaceholderCards::for($label, $user),
         ];
     }
 

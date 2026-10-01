@@ -73,9 +73,7 @@ export default function NationalDashboard({
                         riskLevels={threats.riskLevels}
                     />
 
-                    {incidents && (
-                        <NationalIncidents data={incidents} view={map} />
-                    )}
+                    {incidents && <NationalIncidents data={incidents} />}
                     <GroupsByType rows={threats.groupsByType} />
                 </div>
 
@@ -152,7 +150,7 @@ export default function NationalDashboard({
                 </section>
 
                 <div className="grid gap-4 xl:grid-cols-2">
-                    <DashboardMap view={map} />
+                    <DashboardMap view={map} mode="national" />
                     <section className="rounded-xl border bg-card">
                         <h2 className="border-b px-4 py-3 text-sm font-medium">
                             LGA profile completeness by state (lowest first)

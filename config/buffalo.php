@@ -122,6 +122,59 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Operational map (Phase 6C)
+    |--------------------------------------------------------------------------
+    | Aggregated layers are cached per scope signature for `cache_seconds`.
+    | Zoom buckets: up to `max_zoom`, hexagons of `hex_meters` (flat-to-flat,
+    | Web Mercator), computed per `tile_degrees` tile of a fixed grid.
+    */
+    'map' => [
+        'cache_seconds' => (int) env('BUFFALO_MAP_CACHE_SECONDS', 300),
+        'default_days' => (int) env('BUFFALO_MAP_DEFAULT_DAYS', 90),
+        'zoom_buckets' => [
+            ['max_zoom' => 6, 'hex_meters' => 50000, 'tile_degrees' => 8.0],
+            ['max_zoom' => 8, 'hex_meters' => 20000, 'tile_degrees' => 4.0],
+            ['max_zoom' => 10, 'hex_meters' => 5000, 'tile_degrees' => 1.0],
+            ['max_zoom' => 12, 'hex_meters' => 2000, 'tile_degrees' => 0.5],
+            ['max_zoom' => 99, 'hex_meters' => 500, 'tile_degrees' => 0.1],
+        ],
+        // Hard caps per layer response (features), to keep payloads small.
+        'max_features' => (int) env('BUFFALO_MAP_MAX_FEATURES', 4000),
+        'max_tiles' => (int) env('BUFFALO_MAP_MAX_TILES', 16),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Blackspot suggestions (Phase 6C)
+    |--------------------------------------------------------------------------
+    | Nightly DBSCAN clustering of counted incidents (last `days` days) per
+    | state: clusters of at least `min_points` incidents within `eps_meters`
+    | of each other. Dismissed suggestions are not regenerated within
+    | `dismiss_radius_meters` for `dismiss_days`.
+    */
+    'blackspots' => [
+        'eps_meters' => (int) env('BUFFALO_BLACKSPOT_EPS_METERS', 1000),
+        'min_points' => (int) env('BUFFALO_BLACKSPOT_MIN_POINTS', 5),
+        'days' => (int) env('BUFFALO_BLACKSPOT_DAYS', 180),
+        'per_category' => (bool) env('BUFFALO_BLACKSPOT_PER_CATEGORY', false),
+        'min_radius_meters' => 500,
+        // A cluster wider than this is diffuse activity, not a spot: it is
+        // re-clustered with half the eps (up to `refinements` times), and
+        // dropped if still too wide.
+        'max_radius_meters' => (int) env('BUFFALO_BLACKSPOT_MAX_RADIUS_METERS', 5000),
+        'refinements' => 3,
+        // A cluster must be denser than chance: under the state's background
+        // density (Poisson), the probability of so many incidents in a
+        // circle of its radius must be below `significance` divided by the
+        // number of incidents considered (Bonferroni), so that chance
+        // groupings in diffuse activity are not suggested.
+        'significance' => (float) env('BUFFALO_BLACKSPOT_SIGNIFICANCE', 0.05),
+        'dismiss_days' => (int) env('BUFFALO_BLACKSPOT_DISMISS_DAYS', 90),
+        'dismiss_radius_meters' => 500,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Incident evidence (Phase 5B)
     |--------------------------------------------------------------------------
     | Limits in megabytes per evidence type. Keep them within nginx's

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Flashpoints;
 
+use App\Actions\Blackspots\AcceptBlackspotSuggestion;
 use App\Actions\CommunityInformation\DeleteWithReason;
 use App\Actions\Flashpoints\SaveFlashpoint;
 use App\Enums\ConcernLevel;
@@ -12,6 +13,7 @@ use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\FlashpointPresenter;
 use App\Http\Requests\Flashpoints\FlashpointRequest;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
+use App\Models\BlackspotSuggestion;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
 use App\Models\Flashpoint;
@@ -30,6 +32,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -118,20 +121,42 @@ class FlashpointController extends Controller
     public function create(Request $request, JurisdictionOptions $options): Response
     {
         $this->authorize('create', Flashpoint::class);
+        $suggestion = $this->suggestion($request->query('suggestion'));
 
-        return $this->form($this->actor($request), $options, null, $request->query('lga'));
+        return $this->form($this->actor($request), $options, null, $suggestion?->lga->ulid ?? $request->query('lga'), $suggestion);
     }
 
-    public function store(FlashpointRequest $request, SaveFlashpoint $save): RedirectResponse
+    public function store(FlashpointRequest $request, SaveFlashpoint $save, AcceptBlackspotSuggestion $accept): RedirectResponse
     {
         $this->authorize('create', Flashpoint::class);
+        $user = $this->actor($request);
+        // From a suggested blackspot (Phase 6C): its visible incidents are linked.
+        $suggestion = $this->suggestion($request->input('suggestion'));
 
         /** @var Lga $lga */
         $lga = $request->lga();
-        $flashpoint = $save->create($lga, $request->values(), $request->firstAssessment(), $this->actor($request));
+        [$flashpoint, $linked] = DB::transaction(function () use ($save, $accept, $lga, $request, $user, $suggestion): array {
+            $flashpoint = $save->create($lga, $request->values(), $request->firstAssessment(), $user);
 
-        return redirect()->route('flashpoints.show', $flashpoint)
-            ->with('toast', ['type' => 'success', 'message' => "{$flashpoint->kind->label()} \"{$flashpoint->name}\" recorded."]);
+            return [$flashpoint, $suggestion === null ? 0 : $accept($suggestion, $flashpoint, $user)];
+        });
+
+        $message = "{$flashpoint->kind->label()} \"{$flashpoint->name}\" recorded.".($suggestion !== null ? " {$linked} incidents linked." : '');
+
+        return redirect()->route('flashpoints.show', $flashpoint)->with('toast', ['type' => 'success', 'message' => $message]);
+    }
+
+    /** An open suggestion the user may decide on, from its ULID (or 404/403). */
+    private function suggestion(mixed $ulid): ?BlackspotSuggestion
+    {
+        if (! is_string($ulid) || $ulid === '') {
+            return null;
+        }
+
+        $suggestion = BlackspotSuggestion::query()->withCoordinates()->with(['lga', 'dominantType'])->where('ulid', $ulid)->firstOrFail();
+        $this->authorize('decide', $suggestion);
+
+        return $suggestion;
     }
 
     public function show(Request $request, Flashpoint $flashpoint): Response
@@ -223,7 +248,7 @@ class FlashpointController extends Controller
         return redirect()->route('flashpoints.index')->with('toast', ['type' => 'success', 'message' => "\"{$name}\" deleted."]);
     }
 
-    private function form(User $user, JurisdictionOptions $options, ?Flashpoint $flashpoint, mixed $lgaUlid): Response
+    private function form(User $user, JurisdictionOptions $options, ?Flashpoint $flashpoint, mixed $lgaUlid, ?BlackspotSuggestion $suggestion = null): Response
     {
         $row = $flashpoint === null ? null : Flashpoint::query()->withCoordinates()->whereKey($flashpoint->id)->firstOrFail();
         $row?->load(['threatType', 'lga', 'state', 'community']);
@@ -240,6 +265,16 @@ class FlashpointController extends Controller
             'communities' => $lga === null ? [] : Community::query()->where('lga_id', $lga->id)->orderBy('name')->get(['ulid', 'name'])->map(fn (Community $c) => ['value' => $c->ulid, 'label' => $c->name]),
             'options' => FlashpointPresenter::options($row?->threatType),
             'map' => MapView::for($lga),
+            // Pre-filled from a suggested blackspot (Phase 6C).
+            'suggestion' => $suggestion === null ? null : [
+                'ulid' => $suggestion->ulid,
+                'latitude' => $suggestion->latitude,
+                'longitude' => $suggestion->longitude,
+                'radius_meters' => $suggestion->radius_meters,
+                'threat_type' => $suggestion->dominantType === null ? null : ThreatType::query()->where('is_active', true)
+                    ->where('category', $suggestion->dominantType->category->value)->orderBy('sort_order')->orderBy('name')->value('ulid'),
+                'dominant_type' => $suggestion->dominantType?->name,
+            ],
         ]);
     }
 

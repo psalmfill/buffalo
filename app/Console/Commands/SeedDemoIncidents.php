@@ -24,7 +24,12 @@ use Illuminate\Support\Str;
  */
 class SeedDemoIncidents extends Command
 {
-    protected $signature = 'buffalo:seed-demo-incidents {--count=50000 : Number of incidents} {--purge : Remove all demo incidents instead}';
+    protected $signature = 'buffalo:seed-demo-incidents
+        {--count=50000 : Number of incidents}
+        {--purge : Remove all demo incidents instead}
+        {--hotspot= : "lat,lng": add a tight cluster of demo incidents there instead (Phase 6C)}
+        {--hotspot-count=20 : Incidents in the hotspot}
+        {--hotspot-type=Kidnapping : Incident type name for the hotspot}';
 
     protected $description = 'LOCAL ONLY: seed synthetic incidents for performance checks';
 
@@ -41,6 +46,10 @@ class SeedDemoIncidents extends Command
 
         if ($this->option('purge')) {
             return $this->purge();
+        }
+
+        if (is_string($this->option('hotspot'))) {
+            return $this->hotspot((string) $this->option('hotspot'));
         }
 
         $count = max(1, (int) $this->option('count'));
@@ -152,6 +161,67 @@ class SeedDemoIncidents extends Command
         DB::statement('ANALYZE incidents');
         DB::statement('ANALYZE incident_casualties');
         $this->components->info("{$count} demo incidents added.");
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * A tight cluster of verified demo incidents (within about 250 m) in the
+     * LGA whose boundary contains the point, over the last 60 days: a
+     * blackspot for the Phase 6C suggestion job to find.
+     */
+    private function hotspot(string $point): int
+    {
+        [$lat, $lng] = array_map('floatval', explode(',', $point));
+        $lga = DB::table('lgas')->join('states', 'states.id', '=', 'lgas.state_id')
+            ->whereNotNull('lgas.boundary')
+            ->whereRaw('ST_Covers(lgas.boundary, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography)', [$lng, $lat])
+            ->first(['lgas.id', 'lgas.state_id', 'lgas.code as lga_code', 'states.code as state_code']);
+        $type = DB::table('incident_types')->where('name', $this->option('hotspot-type'))->value('id');
+        $officer = DB::table('users')->where('state_id', $lga->state_id ?? 0)->value('id') ?? DB::table('users')->value('id');
+
+        if ($lga === null || $type === null) {
+            $this->components->error('The point must lie inside an LGA boundary, and the incident type must exist.');
+
+            return self::FAILURE;
+        }
+
+        $now = CarbonImmutable::now();
+        // After the highest demo sequence (drafts have no reference, so not a count).
+        $sequence = (int) DB::table('incidents')->where('reference_no', 'like', 'DEMO/%')
+            ->selectRaw("max(split_part(reference_no, '/', 5)::int) AS last")->value('last');
+        $rows = [];
+
+        foreach (range(1, max(1, (int) $this->option('hotspot-count'))) as $_) {
+            $sequence++;
+            $occurred = $now->subMinutes(mt_rand(60, 60 * 24 * 60));
+            $rows[] = [
+                'ulid' => strtolower((string) Str::ulid()),
+                'reference_no' => sprintf('DEMO/%s/%s/%d/%07d', $lga->state_code, $lga->lga_code, $occurred->year, $sequence),
+                'incident_type_id' => $type,
+                'details' => '{}',
+                'details_schema_version' => 1,
+                'title' => '[Demo] Hotspot incident '.$sequence,
+                'description' => 'Synthetic hotspot incident generated for blackspot suggestions. Not real.',
+                'severity' => 'high',
+                'occurred_at' => $occurred,
+                'occurred_at_precision' => 'approximate',
+                'state_id' => $lga->state_id,
+                'lga_id' => $lga->id,
+                'location' => Incident::pointFrom($lat + mt_rand(-200, 200) / 100000, $lng + mt_rand(-200, 200) / 100000),
+                'status' => 'verified',
+                'classification' => 'restricted',
+                'reporting_officer_id' => $officer,
+                'created_by' => $officer,
+                'submitted_by' => $officer,
+                'submitted_at' => $occurred->addMinutes(30),
+                'created_at' => $occurred,
+                'updated_at' => $occurred->addMinutes(30),
+            ];
+        }
+
+        DB::table('incidents')->insert($rows);
+        $this->components->info(count($rows).' demo hotspot incidents added.');
 
         return self::SUCCESS;
     }

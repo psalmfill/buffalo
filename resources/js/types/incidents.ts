@@ -236,6 +236,9 @@ export type IncidentFilterValues = {
     group?: string;
     mine?: '1';
     no_location?: '1';
+    /** Phase 6C: an area from the operational map ("w,s,e,n" or a hexagon id). */
+    bbox?: string;
+    hex?: string;
     sort?: string;
     dir?: 'asc' | 'desc';
 };

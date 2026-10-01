@@ -32,6 +32,15 @@ type Props = {
     communities: Option[];
     options: FlashpointOptions;
     map: MapView;
+    /** Phase 6C: pre-filled from a suggested blackspot being accepted. */
+    suggestion: {
+        ulid: string;
+        latitude: number | null;
+        longitude: number | null;
+        radius_meters: number;
+        threat_type: string | null;
+        dominant_type: string | null;
+    } | null;
 };
 
 const MIN_RADIUS = 100;
@@ -50,17 +59,27 @@ export default function FlashpointForm({
     communities,
     options,
     map,
+    suggestion,
 }: Props) {
     const editing = flashpoint !== null;
     const form = useForm({
         lga: lga?.ulid ?? '',
-        kind: flashpoint?.kind.value ?? 'flashpoint',
+        kind:
+            flashpoint?.kind.value ?? (suggestion ? 'blackspot' : 'flashpoint'),
         name: flashpoint?.name ?? '',
-        threat_type: flashpoint?.threat_type.ulid ?? '',
+        threat_type:
+            flashpoint?.threat_type.ulid ?? suggestion?.threat_type ?? '',
         community: flashpoint?.community?.ulid ?? '',
-        latitude: flashpoint?.latitude.toString() ?? '',
-        longitude: flashpoint?.longitude.toString() ?? '',
-        radius_meters: flashpoint?.radius_meters ?? 1000,
+        latitude:
+            flashpoint?.latitude.toString() ??
+            suggestion?.latitude?.toString() ??
+            '',
+        longitude:
+            flashpoint?.longitude.toString() ??
+            suggestion?.longitude?.toString() ??
+            '',
+        radius_meters:
+            flashpoint?.radius_meters ?? suggestion?.radius_meters ?? 1000,
         description: flashpoint?.description ?? '',
         classification: flashpoint?.classification.value ?? 'restricted',
         concern_level: 'moderate' as ConcernLevel,
@@ -125,6 +144,7 @@ export default function FlashpointForm({
             const values: Record<string, unknown> = {
                 ...data,
                 community: data.community === '' ? null : data.community,
+                ...(suggestion ? { suggestion: suggestion.ulid } : {}),
             };
 
             if (editing) {
@@ -203,6 +223,19 @@ export default function FlashpointForm({
             <Head title={title} />
             <form onSubmit={submit} className="max-w-6xl space-y-6 p-4">
                 <h1 className="text-xl font-semibold">{title}</h1>
+                {suggestion && (
+                    <p
+                        className="rounded-md border border-violet-600/30 bg-violet-50 p-3 text-sm dark:bg-violet-950"
+                        data-test="from-suggestion"
+                    >
+                        From a suggested blackspot
+                        {suggestion.dominant_type
+                            ? ` (mostly ${suggestion.dominant_type})`
+                            : ''}
+                        . Its incidents that you can see will be linked when you
+                        record it.
+                    </p>
+                )}
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     <section className="space-y-4">
@@ -379,7 +412,7 @@ export default function FlashpointForm({
                                     type="number"
                                     min={MIN_RADIUS}
                                     max={MAX_RADIUS}
-                                    step={100}
+                                    step={1}
                                     value={radius}
                                     onChange={(e) =>
                                         form.setData(

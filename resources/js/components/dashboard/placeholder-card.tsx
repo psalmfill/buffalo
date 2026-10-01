@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import { Clock } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { PlaceholderCardData } from '@/types/dashboard';
@@ -41,7 +42,23 @@ export function PlaceholderCardGrid({
     return (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {cards.map((card) => (
-                <PlaceholderCard key={card.key} card={card} />
+                <PlaceholderCard key={card.key} card={card}>
+                    {card.count !== undefined && card.count !== null ? (
+                        <div className="flex items-end justify-between">
+                            <span className="text-3xl font-semibold tabular-nums">
+                                {card.count}
+                            </span>
+                            {card.href && (
+                                <Link
+                                    href={card.href}
+                                    className="text-xs text-muted-foreground underline"
+                                >
+                                    Open
+                                </Link>
+                            )}
+                        </div>
+                    ) : undefined}
+                </PlaceholderCard>
             ))}
         </div>
     );

@@ -117,6 +117,8 @@ test('national dashboards show placeholders and national or zonal counts', funct
         ->has('placeholders', 1)
         ->where('placeholders.0.title', 'Active flashpoints')
         ->where('placeholders.0.availableFromPhase', 6)
+        // Phase 6 delivered it: the count of active flashpoints in reach.
+        ->where('placeholders.0.count', 0)
         ->has('incidents.escalatedUnacknowledged.count'));
 
     $zoneA = $world->zones['A'];

@@ -80,7 +80,6 @@ final class IncidentFigures
             'casualtiesByOutcome30' => $this->casualtiesBy($this->since(30)->where('incidents.state_id', $state->id), 'outcome'),
             'escalated' => IncidentRows::present($inState()->whereNotNull('incidents.escalated_at')->whereIn('incidents.status', self::OPEN)
                 ->with(['type', 'lga', 'state'])->orderByDesc('incidents.escalated_at')->limit(10)->get()),
-            'map7' => $this->markers($this->since(7)->where('incidents.state_id', $state->id)),
             'channel' => 'states.'.$state->ulid.'.incidents',
         ];
     }
@@ -111,7 +110,6 @@ final class IncidentFigures
                 ->groupBy('states.name')->orderByRaw('COUNT(*) DESC')
                 ->get([DB::raw('states.name AS label'), DB::raw('COUNT(*) AS count')])
                 ->map(fn (Incident $r) => ['label' => (string) $r->getAttribute('label'), 'count' => (int) $r->getAttribute('count')])->values(),
-            'map7' => $this->markers($this->since(7)->whereIn('incidents.severity', ['critical', 'high'])),
             'channel' => 'national.incidents',
         ];
     }
@@ -211,35 +209,6 @@ final class IncidentFigures
             ->get([DB::raw('security_agencies.short_name AS label'), DB::raw('SUM(adult_male + adult_female + child_male + child_female + "unknown") AS count')])
             ->map(fn (object $r) => ['label' => (string) $r->label, 'count' => (int) $r->count])
             ->all());
-    }
-
-    /**
-     * Map points: popup fields only, newest first, at most 500.
-     *
-     * @param  Builder<Incident>  $query
-     * @return list<array<string, mixed>>
-     */
-    private function markers(Builder $query): array
-    {
-        return array_values($query->whereNotNull('incidents.location')
-            ->join('incident_types', 'incident_types.id', '=', 'incidents.incident_type_id')
-            ->orderByDesc('incidents.occurred_at')->limit(500)
-            ->get([
-                'incidents.ulid', 'incidents.reference_no', 'incidents.severity', 'incidents.status', 'incidents.occurred_at',
-                'incident_types.name as type_name', 'incident_types.category as category',
-                DB::raw('ST_Y(incidents.location::geometry) AS lat'), DB::raw('ST_X(incidents.location::geometry) AS lng'),
-            ])
-            ->map(fn (Incident $i) => [
-                'ulid' => $i->ulid,
-                'reference_no' => $i->reference_no,
-                'type' => (string) $i->getAttribute('type_name'),
-                'category' => (string) $i->getAttribute('category'),
-                'severity' => $i->severity->value,
-                'status' => $i->status->label(),
-                'occurred_at' => $i->occurred_at->toIso8601String(),
-                'lat' => round((float) $i->getAttribute('lat'), 5),
-                'lng' => round((float) $i->getAttribute('lng'), 5),
-            ])->all());
     }
 
     /**

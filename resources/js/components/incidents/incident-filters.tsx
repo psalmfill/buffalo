@@ -344,6 +344,25 @@ export default function IncidentFilters({
                     checked={values.no_location === '1'}
                     onChange={(c) => set('no_location', c ? '1' : undefined)}
                 />
+                {(values.hex || values.bbox) && (
+                    <CheckRow
+                        label={
+                            values.hex
+                                ? 'Map area: one hexagon of the operational map'
+                                : 'Map area: from the operational map'
+                        }
+                        checked
+                        onChange={(c) => {
+                            if (!c) {
+                                setValues((v) => ({
+                                    ...v,
+                                    hex: undefined,
+                                    bbox: undefined,
+                                }));
+                            }
+                        }}
+                    />
+                )}
             </div>
 
             {saving && (

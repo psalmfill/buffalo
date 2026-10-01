@@ -7,7 +7,7 @@ import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { usePage } from '@inertiajs/react';
-import type { Geometry } from 'geojson';
+import type { FeatureCollection, Geometry } from 'geojson';
 import { PMTiles } from 'pmtiles';
 import { leafletLayer } from 'protomaps-leaflet';
 import { useEffect, useRef, useState } from 'react';
@@ -75,6 +75,31 @@ export type MapCircle = {
     dashed?: boolean;
 };
 
+/**
+ * A GeoJSON layer drawn below the markers (Phase 6C: aggregated layers and
+ * point layers of the operational map). Points are drawn as circle
+ * markers; polygons with the style returned for each feature.
+ */
+export type GeoLayer = {
+    id: string;
+    data: FeatureCollection;
+    style: (properties: Record<string, unknown>) => L.PathOptions;
+    /** Pixel radius for point features (default 6). */
+    pointRadius?: (properties: Record<string, unknown>) => number;
+    /** Popup content for a feature; null for none. */
+    popup?: (properties: Record<string, unknown>) => HTMLElement | null;
+    /** Tooltip text on hover. */
+    tooltip?: (properties: Record<string, unknown>) => string | null;
+};
+
+/** The visible area, reported after each move or zoom. */
+export type MapViewChange = {
+    /** west, south, east, north */
+    bbox: [number, number, number, number];
+    zoom: number;
+    center: [number, number];
+};
+
 export type MarkerShape = 'circle' | 'square' | 'diamond' | 'triangle' | 'ring';
 
 /** A coloured dot marker, optionally shaped (no image assets). */
@@ -138,6 +163,10 @@ type BuffaloMapProps = {
     circles?: MapCircle[];
     /** Zoom to fit the circles once they are shown. */
     fitCircles?: boolean;
+    /** GeoJSON layers, in drawing order (first at the bottom). */
+    geoLayers?: GeoLayer[];
+    /** Called when the map is ready and after every move or zoom. */
+    onViewChange?: (view: MapViewChange) => void;
 };
 
 /** Attribution strings are rendered as HTML by Leaflet: escape them. */
@@ -185,6 +214,8 @@ export default function BuffaloMap({
     fitOutline = false,
     circles,
     fitCircles = false,
+    geoLayers,
+    onViewChange,
 }: BuffaloMapProps) {
     const boundaryAttribution = usePage().props.boundaryAttribution;
     const containerRef = useRef<HTMLDivElement>(null);
@@ -192,6 +223,9 @@ export default function BuffaloMap({
     const markerLayerRef = useRef<L.LayerGroup | null>(null);
     const outlineLayerRef = useRef<L.GeoJSON | null>(null);
     const circleLayerRef = useRef<L.FeatureGroup | null>(null);
+    const geoPaneRef = useRef<L.LayerGroup | null>(null);
+    // The latest view callback, for the map's moveend handler.
+    const viewChangeRef = useRef(onViewChange);
     const pickerMarkerRef = useRef<L.Marker | null>(null);
     // The latest picker callback, for the map's click handler.
     const pickerRef = useRef<MapPicker | undefined>(picker);
@@ -200,6 +234,7 @@ export default function BuffaloMap({
 
     useEffect(() => {
         pickerRef.current = picker;
+        viewChangeRef.current = onViewChange;
     });
 
     useEffect(() => {
@@ -234,6 +269,25 @@ export default function BuffaloMap({
 
         mapRef.current = map;
         circleLayerRef.current = L.featureGroup().addTo(map);
+        geoPaneRef.current = L.layerGroup().addTo(map);
+
+        const reportView = () => {
+            const b = map.getBounds();
+            const c = map.getCenter();
+
+            viewChangeRef.current?.({
+                bbox: [
+                    Number(b.getWest().toFixed(5)),
+                    Number(b.getSouth().toFixed(5)),
+                    Number(b.getEast().toFixed(5)),
+                    Number(b.getNorth().toFixed(5)),
+                ],
+                zoom: map.getZoom(),
+                center: [Number(c.lat.toFixed(5)), Number(c.lng.toFixed(5))],
+            });
+        };
+        map.on('moveend', reportView);
+        map.whenReady(() => window.setTimeout(reportView, 0));
         markerLayerRef.current = (
             cluster
                 ? L.markerClusterGroup({
@@ -289,6 +343,7 @@ export default function BuffaloMap({
             markerLayerRef.current = null;
             outlineLayerRef.current = null;
             circleLayerRef.current = null;
+            geoPaneRef.current = null;
             pickerMarkerRef.current = null;
             setReady(false);
             map.remove();
@@ -368,6 +423,57 @@ export default function BuffaloMap({
             map.fitBounds(layer.getBounds(), { padding: [16, 16] });
         }
     }, [ready, outline, fitOutline]);
+
+    // GeoJSON layers (aggregations and point layers), below markers.
+    useEffect(() => {
+        const group = geoPaneRef.current;
+
+        if (!ready || !group) {
+            return;
+        }
+
+        group.clearLayers();
+
+        for (const layer of geoLayers ?? []) {
+            L.geoJSON(layer.data, {
+                style: (feature) =>
+                    layer.style(
+                        (feature?.properties ?? {}) as Record<string, unknown>,
+                    ),
+                pointToLayer: (feature, latlng) =>
+                    L.circleMarker(latlng, {
+                        ...layer.style(
+                            (feature.properties ?? {}) as Record<
+                                string,
+                                unknown
+                            >,
+                        ),
+                        radius:
+                            layer.pointRadius?.(
+                                (feature.properties ?? {}) as Record<
+                                    string,
+                                    unknown
+                                >,
+                            ) ?? 6,
+                    }),
+                onEachFeature: (feature, created) => {
+                    const properties = (feature.properties ?? {}) as Record<
+                        string,
+                        unknown
+                    >;
+                    const tip = layer.tooltip?.(properties);
+                    const content = layer.popup?.(properties);
+
+                    if (tip) {
+                        created.bindTooltip(tip, { sticky: true });
+                    }
+                    if (content) {
+                        created.bindPopup(content);
+                    }
+                },
+            }).addTo(group);
+        }
+    }, [ready, geoLayers]);
 
     // Display areas (circles), above the outline and below markers.
     useEffect(() => {

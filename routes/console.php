@@ -16,6 +16,7 @@ Schedule::command('buffalo:poi-review-reminders')->dailyAt('07:00');
 Schedule::command('buffalo:flashpoint-review-reminders')->dailyAt('07:10');
 Schedule::command('buffalo:expire-threat-reports')->everyFifteenMinutes();
 Schedule::command('buffalo:threat-digest')->dailyAt('07:00');
+Schedule::command('buffalo:suggest-blackspots')->dailyAt('02:00')->withoutOverlapping();
 
 // Cross-jurisdiction access (Phase 3C).
 Schedule::command('buffalo:escalate-access-requests')->everyFiveMinutes();

@@ -11,6 +11,7 @@ import {
     Gauge,
     History,
     LayoutGrid,
+    Layers,
     Landmark,
     Library,
     Map as MapIcon,
@@ -18,6 +19,7 @@ import {
     MapPinned,
     Network,
     ScrollText,
+    Sparkles,
     Shield,
     TriangleAlert,
     UserSearch,
@@ -25,6 +27,8 @@ import {
 } from 'lucide-react';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
+import BlackspotSuggestionController from '@/actions/App/Http/Controllers/Map/BlackspotSuggestionController';
+import MapController from '@/actions/App/Http/Controllers/Map/MapController';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import ThreatReportController from '@/actions/App/Http/Controllers/Threats/ThreatReportController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
@@ -78,6 +82,7 @@ export const NAVIGATION: NavSection[] = [
         title: 'Overview',
         items: [
             { title: 'Dashboard', icon: LayoutGrid, href: dashboard(), permission: null },
+            { title: 'Operational map', icon: Layers, href: MapController.show(), permission: 'map.view' },
         ],
     },
     {
@@ -93,6 +98,7 @@ export const NAVIGATION: NavSection[] = [
         items: [
             { title: 'Threat reports', icon: TriangleAlert, href: ThreatReportController.index(), permission: 'threats.view', badge: 'immediateThreats' },
             { title: 'Flashpoints & blackspots', icon: Flame, href: FlashpointController.index(), permission: 'flashpoints.view' },
+            { title: 'Suggested blackspots', icon: Sparkles, href: BlackspotSuggestionController.index(), permission: 'blackspots.suggestions' },
         ],
     },
     {

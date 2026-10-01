@@ -54,7 +54,7 @@ export default function StateDashboard({
                 />
 
                 {threatReports && <StateThreats data={threatReports} />}
-                {incidents && <StateIncidents data={incidents} view={map} />}
+                {incidents && <StateIncidents data={incidents} />}
 
                 {(can('poi.view') || can('criminal_groups.view')) && (
                     <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
@@ -195,7 +195,7 @@ export default function StateDashboard({
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-2">
-                    <DashboardMap view={map} />
+                    <DashboardMap view={map} mode="state" />
 
                     <section className="rounded-xl border bg-card">
                         <h2 className="border-b px-4 py-3 text-sm font-medium">

@@ -8,6 +8,7 @@ use App\Enums\IncidentStatus;
 use App\Enums\Severity;
 use App\Models\Incident;
 use App\Models\User;
+use App\Support\Map\HexGrid;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ final class IncidentFilters
     public const SORTS = ['occurred_at', 'reference', 'severity', 'status', 'type'];
 
     /** Keys that may appear in a filter URL or a saved filter. */
-    public const KEYS = ['q', 'types', 'category', 'severities', 'statuses', 'escalated', 'from', 'to', 'state', 'lga', 'community', 'has_casualties', 'outcome', 'overdue', 'officer', 'group', 'mine', 'no_location', 'sort', 'dir'];
+    public const KEYS = ['q', 'types', 'category', 'severities', 'statuses', 'escalated', 'from', 'to', 'state', 'lga', 'community', 'has_casualties', 'outcome', 'overdue', 'officer', 'group', 'mine', 'no_location', 'bbox', 'hex', 'sort', 'dir'];
 
     /**
      * @param  array<string, mixed>  $values  validated
@@ -77,6 +78,9 @@ final class IncidentFilters
             'group' => ['string', 'max:30'],
             'mine' => [Rule::in(['1'])],
             'no_location' => [Rule::in(['1'])],
+            // Phase 6C: an area of the operational map.
+            'bbox' => ['string', 'regex:/^-?\\d+(\\.\\d+)?(,-?\\d+(\\.\\d+)?){3}$/'],
+            'hex' => ['string', 'regex:/^\\d+:-?\\d+:-?\\d+$/'],
             'sort' => [Rule::in(self::SORTS)],
             'dir' => [Rule::in(['asc', 'desc'])],
         ];
@@ -188,6 +192,17 @@ final class IncidentFilters
         }
         if (isset($v['no_location'])) {
             $query->whereNull('incidents.location');
+        }
+        if (isset($v['bbox'])) {
+            [$w, $s, $e, $n] = array_map('floatval', explode(',', $v['bbox']));
+            $query->whereRaw('incidents.location && ST_MakeEnvelope(?, ?, ?, ?, 4326)::geography', [$w, $s, $e, $n]);
+        }
+        if (isset($v['hex']) && ($hex = HexGrid::parse($v['hex'])) !== null) {
+            // Exactly the incidents the density layer counted in this hexagon.
+            $query->whereRaw('incidents.location && ST_Transform(ST_SetSRID(ST_Hexagon(?, ?, ?), 3857), 4326)::geography', [$hex['size'], $hex['i'], $hex['j']])
+                // HexGrid SQL is built from code and integers only: nothing to inject.
+                // @phpstan-ignore argument.type
+                ->whereRaw('ROW(?, ?) = (SELECT cell.i, cell.j FROM '.HexGrid::cellSql('ST_Transform(incidents.location::geometry, 3857)', $hex['size']).' AS cell)', [$hex['i'], $hex['j']]);
         }
 
         $ranked = false;

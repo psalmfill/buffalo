@@ -612,7 +612,7 @@ export default function ThreatForm({
                                             type="number"
                                             min={100}
                                             max={50000}
-                                            step={100}
+                                            step={1}
                                             value={radius}
                                             onChange={(e) =>
                                                 form.setData(

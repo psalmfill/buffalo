@@ -154,7 +154,7 @@ export default function LgaDashboard({
                         </dl>
                     </section>
                     <div className="xl:col-span-2">
-                        <DashboardMap view={map} />
+                        <DashboardMap view={map} mode="lga" />
                     </div>
                 </div>
             </div>

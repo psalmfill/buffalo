@@ -120,4 +120,9 @@ enum Permission: string
     case ThreatsManage = 'threats.manage';
     case ThreatsReactivate = 'threats.reactivate';
     case ThreatsDelete = 'threats.delete';
+
+    // Operational map and blackspot suggestions (Phase 6C).
+    case MapView = 'map.view';
+    case BlackspotsSuggestions = 'blackspots.suggestions';
+    case BlackspotsRefresh = 'blackspots.refresh';
 }

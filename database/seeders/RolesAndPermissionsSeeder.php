@@ -269,6 +269,16 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 6C — Operational map and blackspot suggestions (each map
+            // layer also needs its module's view permission)
+            // ---------------------------------------------------------------
+            'map' => [
+                Permission::MapView->value => self::INTELLIGENCE_ROLES,
+                Permission::BlackspotsSuggestions->value => [Role::DirectorGeneral, Role::DeputyDirectorGeneral, Role::StateDirector, Role::DeputyStateDirector],
+                Permission::BlackspotsRefresh->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

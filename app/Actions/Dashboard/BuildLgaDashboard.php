@@ -67,7 +67,7 @@ final class BuildLgaDashboard
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forLga($user, $lga) : null,
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forLga($lga) : null,
-            'placeholders' => PlaceholderCards::for($label),
+            'placeholders' => PlaceholderCards::for($label, $user),
         ];
     }
 

@@ -113,6 +113,8 @@ class FlashpointRequest extends FormRequest
                     $fail('You cannot classify a record above your own clearance.');
                 }
             }],
+            // A suggested blackspot being accepted (creation only, Phase 6C).
+            'suggestion' => $creating ? ['nullable', 'string', 'size:26'] : ['prohibited'],
             // The first assessment (creation only).
             'concern_level' => $creating ? ['required', Rule::enum(ConcernLevel::class)] : ['prohibited'],
             'status' => $creating ? ['required', Rule::enum(FlashpointStatus::class)] : ['prohibited'],

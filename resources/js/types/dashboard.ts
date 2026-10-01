@@ -4,7 +4,7 @@ import type {
     StateThreatFigures,
 } from '@/types/threats';
 import type { Geometry } from 'geojson';
-import type { IncidentListRow, IncidentMapPoint } from '@/types/incidents';
+import type { IncidentListRow } from '@/types/incidents';
 import type { AccessFiguresData } from '@/components/dashboard/access-figures';
 import type {
     LgaCoverageData,
@@ -37,6 +37,9 @@ export type PlaceholderCardData = {
     title: string;
     scope: string;
     availableFromPhase: number;
+    /** Real content once the phase has delivered it (Phase 6: flashpoints). */
+    count?: number | null;
+    href?: string | null;
 };
 
 export type QueueStatus = 'running' | 'paused' | 'inactive';
@@ -168,7 +171,6 @@ export type StateIncidentFigures = {
     byType30: CountRow[];
     casualtiesByOutcome30: CountRow[];
     escalated: IncidentListRow[];
-    map7: IncidentMapPoint[];
     channel: string;
 };
 
@@ -181,6 +183,5 @@ export type NationalIncidentFigures = {
     casualtiesByGroup30: CountRow[];
     securityCasualtiesByAgency30: CountRow[];
     statesOverdue: CountRow[];
-    map7: IncidentMapPoint[];
     channel: string;
 };

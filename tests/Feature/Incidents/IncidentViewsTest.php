@@ -232,8 +232,8 @@ test('state dashboard figures follow clearance and exclude drafts and invalid re
         ->and(collect($sd['casualtiesByOutcome30'])->firstWhere('label', 'Killed')['count'])->toBe(2)
         ->and(collect($sd['casualtiesByOutcome30'])->firstWhere('label', 'Abducted')['count'])->toBe(4)
         ->and(array_column($sd['escalated'], 'title'))->toBe(['Critical attack'])
-        ->and(count($sd['map7']))->toBe(2)
-        ->and(array_keys($sd['map7'][0]))->toEqualCanonicalizing(['ulid', 'reference_no', 'type', 'category', 'severity', 'status', 'occurred_at', 'lat', 'lng'])
+        // Phase 6C: dashboards carry no raw incident points (aggregated map layers instead).
+        ->and($sd)->not->toHaveKey('map7')
         ->and(collect($sd['awaiting']['rows'])->every(fn (array $r) => ! array_key_exists('id', $r)))->toBeTrue();
 });
 

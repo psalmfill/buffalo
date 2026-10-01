@@ -1,18 +1,15 @@
 import { Link, router } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import BarChart from '@/components/charts/bar-chart';
 import StatCard from '@/components/dashboard/stat-card';
 import IncidentTable from '@/components/incidents/incident-table';
-import BuffaloMap from '@/components/map/BuffaloMap';
 import { formatDateTime, timeAgo } from '@/lib/time';
-import { incidentMarkers } from '@/components/incidents/incident-markers';
 import type {
     LgaIncidentFigures,
-    MapView,
     NationalIncidentFigures,
     StateIncidentFigures,
 } from '@/types/dashboard';
@@ -91,30 +88,6 @@ function ListLink({
         >
             {children}
         </Link>
-    );
-}
-
-function IncidentMapPanel({
-    title,
-    points,
-    view,
-}: {
-    title: string;
-    points: StateIncidentFigures['map7'];
-    view: MapView;
-}) {
-    const markers = useMemo(() => incidentMarkers(points), [points]);
-
-    return (
-        <Panel title={title}>
-            <BuffaloMap
-                className="h-80 rounded-b-xl"
-                center={view.center ?? undefined}
-                zoom={view.zoom}
-                markers={markers}
-                cluster
-            />
-        </Panel>
     );
 }
 
@@ -205,13 +178,7 @@ export function LgaIncidents({ data }: { data: LgaIncidentFigures }) {
 }
 
 /** State Director and Deputy. */
-export function StateIncidents({
-    data,
-    view,
-}: {
-    data: StateIncidentFigures;
-    view: MapView;
-}) {
+export function StateIncidents({ data }: { data: StateIncidentFigures }) {
     useLiveIncidents(data.channel);
 
     return (
@@ -306,23 +273,12 @@ export function StateIncidents({
                     />
                 </Panel>
             </div>
-            <IncidentMapPanel
-                title="Incidents in the last 7 days"
-                points={data.map7}
-                view={view}
-            />
         </div>
     );
 }
 
 /** DG and DDGs (national or their zones). */
-export function NationalIncidents({
-    data,
-    view,
-}: {
-    data: NationalIncidentFigures;
-    view: MapView;
-}) {
+export function NationalIncidents({ data }: { data: NationalIncidentFigures }) {
     useLiveIncidents(data.channel);
 
     return (
@@ -425,11 +381,6 @@ export function NationalIncidents({
                         </ul>
                     )}
                 </Panel>
-                <IncidentMapPanel
-                    title="Critical and high incidents, last 7 days"
-                    points={data.map7}
-                    view={view}
-                />
             </div>
             <p className="text-xs text-muted-foreground">
                 Updated {formatDateTime(new Date().toISOString())}. Drafts and
