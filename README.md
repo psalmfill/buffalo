@@ -399,6 +399,37 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - Without boundaries the maps fall back to density. Each map links to the operational map with the same view.
 - **Demo data (local only):** `make artisan cmd="buffalo:seed-demo-incidents --hotspot=6.34,3.10 --hotspot-count=20"` adds a tight cluster of demo incidents for the suggestion job to find.
 
+## Dissemination of threats and flashpoints (Phase 7A)
+
+- **What it is:** the owning state deliberately pushes **read-only** access to a threat report or flashpoint to named states or LGAs whose area it reaches. Classification stays a hard ceiling: recipients see the record only within their clearance, and the form warns the sender which officers of a target cannot.
+- **Who receives what:**
+  - a state target: its State Director and Deputy;
+  - an LGA target: that LGA's chief, plus the SD and DSD of its state (an LGA of the owner's own state is a valid target);
+  - the owner's state as a whole, or its own LGA, cannot be targeted.
+- **Who may act:**
+
+  | Action | Who |
+  |---|---|
+  | Disseminate | SD/DSD of the owning state, DG, DDGs covering it |
+  | Request dissemination | the LGA chief of the owning LGA (sent to the SD and DSD, who action or decline it) |
+  | Forward (onward) | SD/DSD of a recipient state, to LGAs of their own state only |
+  | Acknowledge | a recipient |
+  | Renew (flashpoints, 90 days) | the disseminating state's SD/DSD, DG, DDG |
+  | Revoke (also revokes forwarded copies) | the disseminator, the owning SD, DG, DDGs |
+
+- **Expiry:** threat report disseminations follow the threat's expiry (extend or reactivate it and they follow); flashpoint ones last 90 days.
+- **Ending:** when access ends (revoked or expired), open pages close at once.
+- **Where to find it:**
+  - Threats & flashpoints → **Shared threats & flashpoints** (badge: not yet acknowledged): "Shared with us", "Shared by us", and dissemination requests for the SD/DSD;
+  - each record's "Shared with" panel (owners) or read-only banner (recipients);
+  - "Shared with us" filters on the threat and flashpoint lists;
+  - a teal outline on maps.
+- **Suggested targets:** the LGAs and states a record's area reaches, from boundaries (else LGA centroids within the radius plus 20 km). Creating an urgent threat or a high/severe flashpoint that crosses a border prompts the creator to disseminate (SD/DSD) or to request it (LGA chief).
+- **Scheduled jobs:**
+  - `buffalo:process-disseminations` (every 15 minutes): expiry notices, and one reminder for unacknowledged records (after 2 hours for immediate threats, 24 hours otherwise);
+  - `buffalo:check-dissemination-gaps` (daily, 07:20): tells the SD/DSD once about urgent cross-border records not yet shared.
+- **Settings:** `config/buffalo.php` → `disseminations`.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
