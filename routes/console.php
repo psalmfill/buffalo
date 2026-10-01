@@ -18,6 +18,10 @@ Schedule::command('buffalo:expire-threat-reports')->everyFifteenMinutes();
 Schedule::command('buffalo:threat-digest')->dailyAt('07:00');
 Schedule::command('buffalo:suggest-blackspots')->dailyAt('02:00')->withoutOverlapping();
 
+// Phase 7A — Dissemination
+Schedule::command('buffalo:process-disseminations')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('buffalo:check-dissemination-gaps')->dailyAt('07:20');
+
 // Cross-jurisdiction access (Phase 3C).
 Schedule::command('buffalo:escalate-access-requests')->everyFiveMinutes();
 Schedule::command('buffalo:expire-access-grants')->everyFifteenMinutes();

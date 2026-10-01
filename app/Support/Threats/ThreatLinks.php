@@ -14,12 +14,14 @@ use App\Models\ThreatReportCriminalGroup;
 use App\Models\ThreatReportFlashpoint;
 use App\Models\ThreatReportIncident;
 use App\Models\User;
+use App\Support\Jurisdiction\DisseminatedLinks;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Threat report links for pages (Phase 6B). Every query runs through the
  * viewer's scopes: a link appears only when both sides are visible, and no
- * list or count includes hidden records.
+ * list or count includes hidden records. For a recipient of a disseminated
+ * report, link rows are read through DisseminatedLinks (Phase 7A).
  */
 final class ThreatLinks
 {
@@ -28,7 +30,7 @@ final class ThreatLinks
      */
     public static function flashpoints(ThreatReport $threat): array
     {
-        $links = ThreatReportFlashpoint::query()->where('threat_report_flashpoints.threat_report_id', $threat->id)->get(['id', 'ulid', 'flashpoint_id']);
+        $links = DisseminatedLinks::of(ThreatReportFlashpoint::query()->where('threat_report_flashpoints.threat_report_id', $threat->id), $threat)->get(['id', 'ulid', 'flashpoint_id']);
         $rows = Flashpoint::query()->withCoordinates()->with(['threatType', 'lga', 'state'])
             ->whereKey($links->pluck('flashpoint_id')->all())->byConcern()->get();
         $byFlashpoint = $links->keyBy('flashpoint_id');
@@ -44,8 +46,8 @@ final class ThreatLinks
      */
     public static function groups(ThreatReport $threat): array
     {
-        return array_values(ThreatReportCriminalGroup::query()
-            ->where('threat_report_criminal_groups.threat_report_id', $threat->id)
+        return array_values(DisseminatedLinks::of(ThreatReportCriminalGroup::query()
+            ->where('threat_report_criminal_groups.threat_report_id', $threat->id), $threat)
             ->with(['criminalGroup.lga', 'criminalGroup.state'])
             ->orderBy('linked_at')
             ->get()
@@ -61,8 +63,8 @@ final class ThreatLinks
      */
     public static function incidents(ThreatReport $threat): array
     {
-        $links = ThreatReportIncident::query()
-            ->where('threat_report_incidents.threat_report_id', $threat->id)
+        $links = DisseminatedLinks::of(ThreatReportIncident::query()
+            ->where('threat_report_incidents.threat_report_id', $threat->id), $threat)
             ->with(['incident.type', 'incident.lga', 'incident.state'])
             ->get()
             ->sortByDesc(fn (ThreatReportIncident $l) => $l->incident->occurred_at)
@@ -110,7 +112,7 @@ final class ThreatLinks
      */
     public static function forFlashpoint(Flashpoint $flashpoint): array
     {
-        $ids = ThreatReportFlashpoint::query()->where('threat_report_flashpoints.flashpoint_id', $flashpoint->id)->pluck('threat_report_id')->all();
+        $ids = DisseminatedLinks::of(ThreatReportFlashpoint::query()->where('threat_report_flashpoints.flashpoint_id', $flashpoint->id), $flashpoint)->pluck('threat_report_id')->all();
 
         return array_values(ThreatReport::query()->withCoordinates()->with(['threatType', 'lga', 'state'])
             ->whereKey($ids)->byUrgency()->get()

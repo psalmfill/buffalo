@@ -15,6 +15,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 const BADGE_LABELS = {
     coverageReview: 'awaiting your review',
     immediateThreats: 'active immediate threats',
+    disseminations: 'shared with you, not yet acknowledged',
 } as const;
 
 export function NavMain({ sections }: { sections: NavSection[] }) {

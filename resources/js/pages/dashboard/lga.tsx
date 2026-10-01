@@ -5,6 +5,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { LgaOrganizations } from '@/components/dashboard/organization-figures';
 import { LgaCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
 import { LgaIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
@@ -29,6 +30,7 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 export default function LgaDashboard({
     incidents,
     threatReports,
+    sharedWithUs,
     lga,
     profile,
     information,
@@ -45,6 +47,7 @@ export default function LgaDashboard({
             <div className="flex flex-col gap-6 p-4">
                 <DashboardHeader title={lga.label} subtitle={lga.state} />
 
+                {sharedWithUs && <SharedWithUs data={sharedWithUs} />}
                 {threatReports && <LgaThreats data={threatReports} />}
                 {incidents && <LgaIncidents data={incidents} />}
 

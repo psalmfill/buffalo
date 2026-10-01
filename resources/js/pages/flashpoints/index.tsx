@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDate } from '@/lib/time';
 import type { MapView } from '@/types/dashboard';
+import SharedMarker from '@/components/disseminations/shared-marker';
 import type { FlashpointOptions, FlashpointRow } from '@/types/flashpoints';
 import type { Option } from '@/types/local-government';
 import type { Paginated } from '@/types/pagination';
@@ -35,6 +36,7 @@ type Filters = {
     state: string;
     lga: string;
     overdue: string;
+    shared: string;
 };
 
 /** Flashpoints and blackspots within the user's jurisdiction, with a map. */
@@ -146,6 +148,12 @@ export default function FlashpointsIndex({
                         [{ value: '1', label: 'Review overdue' }],
                         'Any',
                     )}
+                    {select(
+                        'shared',
+                        'Origin',
+                        [{ value: '1', label: 'Shared with us' }],
+                        'All',
+                    )}
                 </FilterBar>
 
                 <div className="space-y-2">
@@ -208,8 +216,9 @@ export default function FlashpointsIndex({
                                         >
                                             {f.name}
                                         </Link>
-                                        <div className="text-xs text-muted-foreground">
+                                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                             {f.kind.label}
+                                            {f.shared && <SharedMarker />}
                                         </div>
                                     </td>
                                     <td className="px-3 py-2">

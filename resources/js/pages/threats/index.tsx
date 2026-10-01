@@ -18,6 +18,7 @@ import {
 } from '@/components/threats/threat-display';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import SharedMarker from '@/components/disseminations/shared-marker';
 import type { MapView } from '@/types/dashboard';
 import type { Option } from '@/types/local-government';
 import type { Paginated } from '@/types/pagination';
@@ -31,6 +32,7 @@ type Filters = {
     state: string;
     lga: string;
     expiring: string;
+    shared: string;
 };
 
 /** Threat reports within the user's jurisdiction: active ones by default. */
@@ -138,6 +140,12 @@ export default function ThreatsIndex({
                         [{ value: '1', label: 'Expiring within 48 hours' }],
                         'Any',
                     )}
+                    {select(
+                        'shared',
+                        'Origin',
+                        [{ value: '1', label: 'Shared with us' }],
+                        'All',
+                    )}
                 </FilterBar>
 
                 <div className="space-y-2">
@@ -235,8 +243,9 @@ export default function ThreatsIndex({
                                         >
                                             {t.title}
                                         </Link>
-                                        <div className="text-xs text-muted-foreground">
+                                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                             {t.threat_type.name}
+                                            {t.shared && <SharedMarker />}
                                         </div>
                                     </td>
                                     <td className="px-3 py-2">

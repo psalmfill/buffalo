@@ -19,10 +19,11 @@ export function flashpointCircles(
         center: [f.latitude, f.longitude],
         radius: f.radius_meters,
         color: CONCERN_COLOURS[f.concern_level.value],
-        title: f.name,
+        title: f.shared ? `${f.name} (shared with you)` : f.name,
         popup: `${f.kind.label} · ${f.threat_type.name} · ${f.concern_level.label} concern · ${f.status.label}`,
         href: href(f.ulid),
         dashed: f.status.value === 'dormant' || f.status.value === 'resolved',
+        shared: f.shared === true,
     }));
 }
 

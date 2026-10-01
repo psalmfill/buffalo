@@ -9,7 +9,11 @@ import IncidentController from '@/actions/App/Http/Controllers/Incidents/Inciden
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import ThreatLinkController from '@/actions/App/Http/Controllers/Threats/ThreatLinkController';
 import ThreatReportController from '@/actions/App/Http/Controllers/Threats/ThreatReportController';
+import DisseminationController from '@/actions/App/Http/Controllers/Disseminations/DisseminationController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
+import DisseminationPrompt from '@/components/disseminations/dissemination-prompt';
+import SharedBanner from '@/components/disseminations/shared-banner';
+import SharingPanel from '@/components/disseminations/sharing-panel';
 import EmptyState from '@/components/empty-state';
 import LinkRows from '@/components/flashpoints/link-rows';
 import type { LinkRow } from '@/components/flashpoints/link-rows';
@@ -37,6 +41,7 @@ import ConfirmActionDialog from '@/components/users/confirm-action-dialog';
 import { formatDateTime } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { MapView } from '@/types/dashboard';
+import type { DisseminationProps } from '@/types/disseminations';
 import type { Paginated } from '@/types/pagination';
 import type {
     ThreatDetail,
@@ -55,7 +60,7 @@ const TAB_LABELS: Record<Tab, string> = {
     history: 'History',
 };
 
-type Props = {
+type Props = DisseminationProps & {
     threat: ThreatDetail;
     tab: Tab;
     map: MapView;
@@ -182,25 +187,57 @@ export default function ThreatShow(props: Props) {
                     </div>
                 </div>
 
+                {props.dissemination && (
+                    <SharedBanner banner={props.dissemination} />
+                )}
+                {props.sharing && tab === 'overview' && (
+                    <SharingPanel
+                        sharing={props.sharing}
+                        disseminateUrl={DisseminationController.storeThreat.url(
+                            threat.ulid,
+                        )}
+                        requestUrl={DisseminationController.requestThreat.url(
+                            threat.ulid,
+                        )}
+                    />
+                )}
+                {props.sharing && props.disseminationPrompt && (
+                    <DisseminationPrompt
+                        prompt={props.disseminationPrompt}
+                        sharing={props.sharing}
+                        disseminateUrl={DisseminationController.storeThreat.url(
+                            threat.ulid,
+                        )}
+                        requestUrl={DisseminationController.requestThreat.url(
+                            threat.ulid,
+                        )}
+                    />
+                )}
+
                 <nav className="flex gap-1 border-b" aria-label="Sections">
-                    {(Object.keys(TAB_LABELS) as Tab[]).map((name) => (
-                        <Link
-                            key={name}
-                            href={ThreatReportController.show(threat.ulid, {
-                                query: { tab: name },
-                            })}
-                            preserveScroll
-                            className={cn(
-                                '-mb-px border-b-2 px-3 py-2 text-sm',
-                                tab === name
-                                    ? 'border-primary font-medium'
-                                    : 'border-transparent text-muted-foreground hover:text-foreground',
-                            )}
-                            aria-current={tab === name ? 'page' : undefined}
-                        >
-                            {TAB_LABELS[name]}
-                        </Link>
-                    ))}
+                    {(Object.keys(TAB_LABELS) as Tab[])
+                        .filter(
+                            (name) =>
+                                name !== 'history' || !props.dissemination,
+                        )
+                        .map((name) => (
+                            <Link
+                                key={name}
+                                href={ThreatReportController.show(threat.ulid, {
+                                    query: { tab: name },
+                                })}
+                                preserveScroll
+                                className={cn(
+                                    '-mb-px border-b-2 px-3 py-2 text-sm',
+                                    tab === name
+                                        ? 'border-primary font-medium'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground',
+                                )}
+                                aria-current={tab === name ? 'page' : undefined}
+                            >
+                                {TAB_LABELS[name]}
+                            </Link>
+                        ))}
                 </nav>
 
                 {tab === 'overview' && <OverviewTab {...props} />}

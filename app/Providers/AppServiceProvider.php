@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Console\Commands\DisabledCipherSweetGenerateKeyCommand;
 use App\Console\Commands\DisabledCleanActivitylogCommand;
+use App\Models\RecordDissemination;
 use App\Models\User;
+use App\Policies\DisseminationPolicy;
 use App\Policies\ReferenceDataPolicy;
 use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
@@ -12,9 +14,9 @@ use App\Support\CommunityInformation\ReferenceUsageChecks;
 use App\Support\Flashpoints\ReferenceUsageChecks as FlashpointsReferenceUsageChecks;
 use App\Support\Incidents\ReferenceUsageChecks as IncidentsReferenceUsageChecks;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
+use App\Support\Jurisdiction\CombinedAccessResolver;
 use App\Support\Jurisdiction\ContextMode;
 use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
-use App\Support\Jurisdiction\GrantAccessResolver;
 use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\RestrictionType;
@@ -81,8 +83,9 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
-        // Cross-jurisdiction access grants (Phase 3C): persons only.
-        $this->app->bind(AccessGrantResolver::class, GrantAccessResolver::class);
+        // Cross-jurisdiction access grants (Phase 3C, persons) and
+        // dissemination (Phase 7A, threat reports and flashpoints).
+        $this->app->bind(AccessGrantResolver::class, CombinedAccessResolver::class);
     }
 
     /**
@@ -112,6 +115,13 @@ class AppServiceProvider extends ServiceProvider
         foreach (ReferenceTable::cases() as $table) {
             Gate::policy($table->modelClass(), ReferenceDataPolicy::class);
         }
+
+        // Dissemination (Phase 7A): the rows themselves, and the abilities on
+        // the disseminated records (ThreatReport, Flashpoint).
+        Gate::policy(RecordDissemination::class, DisseminationPolicy::class);
+        Gate::define('disseminate', [DisseminationPolicy::class, 'disseminate']);
+        Gate::define('request', [DisseminationPolicy::class, 'request']);
+        Gate::define('decideRequest', [DisseminationPolicy::class, 'decideRequest']);
 
         Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
         Gate::define('viewLoginHistory', fn (User $user): bool => AuditAccess::canViewLoginHistory($user));

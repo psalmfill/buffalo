@@ -83,6 +83,10 @@ export const PERMISSIONS = [
     'map.view',
     'blackspots.suggestions',
     'blackspots.refresh',
+    'disseminations.view',
+    'disseminations.create',
+    'disseminations.request',
+    'disseminations.revoke',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

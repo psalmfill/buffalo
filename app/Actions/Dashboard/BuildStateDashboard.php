@@ -18,6 +18,7 @@ use App\Models\VulnerablePopulationStat;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
+use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
@@ -97,6 +98,8 @@ final class BuildStateDashboard
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forState($user, $state) : null,
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forState($state) : null,
+            // Dissemination (Phase 7A).
+            'sharedWithUs' => app(DisseminationFigures::class)->unacknowledged($user),
             'placeholders' => PlaceholderCards::for($label, $user),
         ];
     }

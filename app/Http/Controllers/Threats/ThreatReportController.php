@@ -10,6 +10,7 @@ use App\Enums\ThreatStatus;
 use App\Enums\ThreatUrgency;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\DisseminationPresenter;
 use App\Http\Presenters\ThreatReportPresenter;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Threats\ThreatReportRequest;
@@ -23,6 +24,8 @@ use App\Models\ThreatReport;
 use App\Models\ThreatType;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Jurisdiction\DisseminationResolver;
+use App\Support\Jurisdiction\JurisdictionGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Threats\ThreatLinks;
 use Carbon\CarbonImmutable;
@@ -42,7 +45,7 @@ class ThreatReportController extends Controller
 {
     private const TABS = ['overview', 'links', 'timeline', 'history'];
 
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, DisseminationResolver $disseminations): Response
     {
         $this->authorize('viewAny', ThreatReport::class);
         $user = $this->actor($request);
@@ -57,6 +60,8 @@ class ThreatReportController extends Controller
             'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
             'lga' => ['nullable', 'string', 'size:26'],
             'expiring' => ['nullable', Rule::in(['1'])],
+            // Records shared with the user by another jurisdiction (Phase 7A).
+            'shared' => ['nullable', Rule::in(['1'])],
         ]);
         $status = $filters['status'] ?? ThreatStatus::Active->value;
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
@@ -72,15 +77,19 @@ class ThreatReportController extends Controller
             ->when($state, fn (Builder $q) => $q->where('threat_reports.state_id', $state?->id))
             ->when($lga, fn (Builder $q) => $q->where('threat_reports.lga_id', $lga?->id))
             ->when(isset($filters['expiring']), fn (Builder $q) => $q->active()
-                ->where('threat_reports.expires_at', '<=', CarbonImmutable::now()->addHours((int) config('buffalo.threats.expiring_soon_hours'))));
+                ->where('threat_reports.expires_at', '<=', CarbonImmutable::now()->addHours((int) config('buffalo.threats.expiring_soon_hours'))))
+            ->when(isset($filters['shared']), fn (Builder $q) => $disseminations->sharedOnly($q, $user));
 
         $threats = $query()->withCoordinates()->with(['threatType', 'lga', 'state'])->byUrgency()->paginate(25)->withQueryString();
         $points = $query()->withCoordinates()->with(['threatType', 'lga', 'state'])->whereNotNull('threat_reports.location')
             ->byUrgency()->limit((int) config('buffalo.threats.map_cap'))->get();
 
+        $shared = $disseminations->sharedMarkers([...$threats->items(), ...$points->all()], $user);
+        $row = fn (ThreatReport $t) => [...ThreatReportPresenter::row($t), 'shared' => isset($shared[$t->id])];
+
         return Inertia::render('threats/index', [
-            'threats' => $threats->through(fn (ThreatReport $t) => ThreatReportPresenter::row($t)),
-            'points' => $points->map(fn (ThreatReport $t) => ThreatReportPresenter::row($t))->values(),
+            'threats' => $threats->through($row),
+            'points' => $points->map($row)->values(),
             'filters' => [
                 'status' => $status,
                 'threat_type' => $filters['threat_type'] ?? '',
@@ -89,6 +98,7 @@ class ThreatReportController extends Controller
                 'state' => $filters['state'] ?? '',
                 'lga' => $filters['lga'] ?? '',
                 'expiring' => $filters['expiring'] ?? '',
+                'shared' => $filters['shared'] ?? '',
             ],
             'options' => ThreatReportPresenter::options(),
             'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
@@ -111,7 +121,7 @@ class ThreatReportController extends Controller
         $user = $this->actor($request);
 
         foreach ($request->flashpoints() as $flashpoint) {
-            $this->authorize('view', $flashpoint);
+            $this->authorize('link', $flashpoint);
         }
         foreach ($request->groups() as $row) {
             $this->authorize('view', $row['group']);
@@ -122,16 +132,22 @@ class ThreatReportController extends Controller
         $threat = $create($lga, $request->values(), $request->flashpoints(), $request->groups(), $user);
 
         return redirect()->route('threats.show', $threat)
-            ->with('toast', ['type' => 'success', 'message' => "Threat report {$threat->reference_no} recorded."]);
+            ->with('toast', ['type' => 'success', 'message' => "Threat report {$threat->reference_no} recorded."])
+            ->with('dissemination_prompt', true);
     }
 
-    public function show(Request $request, ThreatReport $threat): Response
+    public function show(Request $request, ThreatReport $threat, JurisdictionGate $gate, DisseminationPresenter $disseminations): Response
     {
         $this->authorize('view', $threat);
         $user = $this->actor($request);
-        $tab = in_array($request->query('tab'), self::TABS, true) ? (string) $request->query('tab') : 'overview';
+        // Seen only through a dissemination (Phase 7A): read-only, always logged.
+        $shared = $gate->viaGrantOnly($user, $threat);
+        $tabs = $shared ? array_values(array_diff(self::TABS, ['history'])) : self::TABS;
+        $tab = in_array($request->query('tab'), $tabs, true) ? (string) $request->query('tab') : 'overview';
 
-        if ($threat->logsViews()) {
+        if ($shared) {
+            $threat->recordAccess(context: 'dissemination');
+        } elseif ($threat->logsViews()) {
             $threat->recordAccess(context: "tab:{$tab}");
         }
 
@@ -150,7 +166,7 @@ class ThreatReportController extends Controller
                 'incidents' => $user->can('viewAny', Incident::class) ? ThreatLinks::incidents($threat) : [],
             ] : null,
             'timeline' => $tab === 'timeline' ? ThreatReportPresenter::timeline($threat) : null,
-            'history' => $tab === 'history'
+            'history' => $tab === 'history' && ! $shared
                 ? Activity::query()->with(['causer', 'subject'])
                     ->where('subject_type', $threat->getMorphClass())->where('subject_id', $threat->id)
                     ->latest('id')
@@ -159,7 +175,10 @@ class ThreatReportController extends Controller
                     ->through(fn (Activity $a) => ActivityPresenter::present($a))
                 : null,
             'options' => ThreatReportPresenter::options(),
-            'channel' => 'states.'.$row->state->ulid.'.threats',
+            // Recipients of a dissemination cannot join the owning state's
+            // channel: they listen on their own (for the end of sharing).
+            'channel' => $shared ? 'users.'.$user->ulid : 'states.'.$row->state->ulid.'.threats',
+            ...$disseminations->forPage($threat, $user, (bool) $request->session()->get('dissemination_prompt')),
             'can' => [
                 'update' => $user->can('update', $threat),
                 'reactivate' => $user->can('reactivate', $threat),

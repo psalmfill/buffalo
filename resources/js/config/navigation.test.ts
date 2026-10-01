@@ -92,6 +92,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'map.view',
         'blackspots.suggestions',
         'blackspots.refresh',
+        'disseminations.view',
+        'disseminations.create',
+        'disseminations.revoke',
     ],
     deputy_director_general: [
         'users.view',
@@ -157,6 +160,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'map.view',
         'blackspots.suggestions',
         'blackspots.refresh',
+        'disseminations.view',
+        'disseminations.create',
+        'disseminations.revoke',
     ],
     state_director: [
         'users.view',
@@ -227,6 +233,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'map.view',
         'blackspots.suggestions',
         'blackspots.refresh',
+        'disseminations.view',
+        'disseminations.create',
+        'disseminations.revoke',
     ],
     deputy_state_director: [
         'users.view',
@@ -277,6 +286,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'threats.manage',
         'map.view',
         'blackspots.suggestions',
+        'disseminations.view',
+        'disseminations.create',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -318,6 +329,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'threats.create',
         'threats.manage',
         'map.view',
+        'disseminations.view',
+        'disseminations.request',
     ],
 };
 
@@ -383,6 +396,7 @@ describe('navigation', () => {
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
+                    'Shared threats & flashpoints',
                     'Suggested blackspots',
                 ],
                 'Local Government': [
@@ -409,6 +423,7 @@ describe('navigation', () => {
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
+                    'Shared threats & flashpoints',
                     'Suggested blackspots',
                 ],
                 'Local Government': [
@@ -435,6 +450,7 @@ describe('navigation', () => {
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
+                    'Shared threats & flashpoints',
                     'Suggested blackspots',
                 ],
                 'Local Government': [
@@ -461,6 +477,7 @@ describe('navigation', () => {
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
+                    'Shared threats & flashpoints',
                     'Suggested blackspots',
                 ],
                 'Local Government': [
@@ -487,6 +504,7 @@ describe('navigation', () => {
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
+                    'Shared threats & flashpoints',
                 ],
                 'Local Government': [
                     'LGAs',

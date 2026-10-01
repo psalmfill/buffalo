@@ -72,10 +72,11 @@ export function threatMapLayers(rows: ThreatRow[]): {
                 center: [t.latitude as number, t.longitude as number],
                 radius: t.radius_meters as number,
                 color: URGENCY_COLOURS[t.urgency.value],
-                title: `${t.reference_no} — ${t.title}`,
+                title: `${t.reference_no} — ${t.title}${t.shared ? ' (shared with you)' : ''}`,
                 popup: `${t.threat_type.name} · ${t.urgency.label} · ${t.credibility.label}`,
                 href: href(t.ulid),
                 dashed: t.status.value !== 'active',
+                shared: t.shared === true,
             })),
         markers: located.map((t) => ({
             id: t.ulid,

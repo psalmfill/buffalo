@@ -15,6 +15,7 @@ use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
+use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
@@ -74,6 +75,8 @@ final class BuildNationalDashboard
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->national($user) : null,
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->national() : null,
+            // Dissemination (Phase 7A).
+            'crossBorder' => app(DisseminationFigures::class)->crossBorderGaps($user),
             'placeholders' => PlaceholderCards::for($label, $user),
         ];
     }

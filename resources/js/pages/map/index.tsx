@@ -9,7 +9,7 @@ import {
     useState,
 } from 'react';
 import { incidentMarkers } from '@/components/incidents/incident-markers';
-import BuffaloMap from '@/components/map/BuffaloMap';
+import BuffaloMap, { SHARED_COLOUR } from '@/components/map/BuffaloMap';
 import type { GeoLayer, MapViewChange } from '@/components/map/BuffaloMap';
 import {
     LAYER_KEYS,
@@ -540,6 +540,19 @@ export default function OperationalMap(props: Props) {
                                 drafts and invalid reports are never counted.
                             </p>
                         </section>
+                    )}
+
+                    {(layers.includes('flashpoints') ||
+                        layers.includes('threats')) && (
+                        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span
+                                aria-hidden
+                                className="inline-block size-3 rounded-full border-4"
+                                style={{ borderColor: SHARED_COLOUR }}
+                            />
+                            Teal outline: shared with you by another state or
+                            LGA (read-only).
+                        </p>
                     )}
 
                     <section className="space-y-3">

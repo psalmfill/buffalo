@@ -6,13 +6,15 @@ use App\Enums\Classification;
 use App\Enums\ConcernLevel;
 use App\Enums\FlashpointKind;
 use App\Enums\FlashpointStatus;
+use App\Enums\NotificationSeverity;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Models\Concerns\IsDisseminable;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Models\Concerns\LogsReads;
 use App\Support\Classification\Contracts\Classified;
-use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
+use App\Support\Jurisdiction\Contracts\Disseminable;
 use Carbon\CarbonImmutable;
 use Database\Factories\FlashpointFactory;
 use Illuminate\Contracts\Database\Query\Expression;
@@ -65,7 +67,7 @@ use Illuminate\Support\Facades\DB;
  * @property-read Community|null $community
  * @property-read User|null $assessor
  */
-class Flashpoint extends Model implements Classified, JurisdictionScoped
+class Flashpoint extends Model implements Classified, Disseminable
 {
     use HasClassification;
 
@@ -74,6 +76,7 @@ class Flashpoint extends Model implements Classified, JurisdictionScoped
 
     use HasJurisdiction;
     use HasUlidRouteKey;
+    use IsDisseminable;
     use LogsBuffaloActivity;
     use LogsReads;
     use SoftDeletes;
@@ -152,6 +155,46 @@ class Flashpoint extends Model implements Classified, JurisdictionScoped
         // Only floats, formatted with %F (locale-independent): nothing to inject.
         // @phpstan-ignore argument.type
         return DB::raw(sprintf('ST_SetSRID(ST_MakePoint(%F, %F), 4326)::geography', $longitude, $latitude));
+    }
+
+    public function disseminationType(): string
+    {
+        return 'flashpoint';
+    }
+
+    public function disseminationLabel(): string
+    {
+        return $this->name;
+    }
+
+    public function disseminationKind(): string
+    {
+        return $this->kind->label();
+    }
+
+    public function disseminationPath(): string
+    {
+        return '/flashpoints/'.$this->ulid;
+    }
+
+    public function disseminationSeverity(): NotificationSeverity
+    {
+        return match ($this->concern_level) {
+            ConcernLevel::Severe => NotificationSeverity::Critical,
+            ConcernLevel::High => NotificationSeverity::Warning,
+            default => NotificationSeverity::Info,
+        };
+    }
+
+    public function warrantsDissemination(): bool
+    {
+        return in_array($this->status, [FlashpointStatus::Active, FlashpointStatus::Monitoring], true)
+            && in_array($this->concern_level, [ConcernLevel::High, ConcernLevel::Severe], true);
+    }
+
+    public function acknowledgementHours(): int
+    {
+        return (int) config('buffalo.disseminations.remind_other_hours');
     }
 
     public function isReviewOverdue(): bool

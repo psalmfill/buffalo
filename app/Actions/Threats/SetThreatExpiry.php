@@ -2,6 +2,7 @@
 
 namespace App\Actions\Threats;
 
+use App\Actions\Disseminations\SyncThreatDisseminations;
 use App\Enums\ThreatStatus;
 use App\Events\Threats\ThreatReportChanged;
 use App\Models\ThreatReport;
@@ -15,10 +16,13 @@ use Illuminate\Validation\ValidationException;
  * Extends an active threat report, or reactivates an expired, mitigated or
  * withdrawn one (Phase 6B), with a new expiry (within the maximum from
  * today, checked by the request) and a required comment. Named events
- * "extended" and "reactivated". The 24-hour warning is re-armed.
+ * "extended" and "reactivated". The 24-hour warning is re-armed, and its
+ * disseminations take the new expiry (Phase 7A).
  */
 final class SetThreatExpiry
 {
+    public function __construct(private readonly SyncThreatDisseminations $disseminations) {}
+
     public function extend(ThreatReport $threat, CarbonImmutable $expiresAt, string $comment, User $actor): void
     {
         $this->apply($threat, $expiresAt, $comment, $actor, reactivate: false);
@@ -55,6 +59,9 @@ final class SetThreatExpiry
                 ['old' => $old, 'new' => ['status' => $locked->status->value, 'expires_at' => $expiresAt->toIso8601String()], 'comment' => $comment],
                 $actor,
             );
+
+            // Disseminations follow the threat's expiry (Phase 7A).
+            ($this->disseminations)($locked);
 
             ThreatReportChanged::dispatch($locked);
         });

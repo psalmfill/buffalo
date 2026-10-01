@@ -8,6 +8,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { StateOrganizations } from '@/components/dashboard/organization-figures';
 import { StateCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
 import { StateIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
@@ -24,6 +25,7 @@ import type { StateDashboardProps } from '@/types/dashboard';
 export default function StateDashboard({
     incidents,
     threatReports,
+    sharedWithUs,
     state,
     lgas,
     securityNotesByLga,
@@ -53,6 +55,7 @@ export default function StateDashboard({
                         .join(' · ')}
                 />
 
+                {sharedWithUs && <SharedWithUs data={sharedWithUs} />}
                 {threatReports && <StateThreats data={threatReports} />}
                 {incidents && <StateIncidents data={incidents} />}
 

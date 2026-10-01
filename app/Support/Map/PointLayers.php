@@ -9,6 +9,8 @@ use App\Models\Community;
 use App\Models\Flashpoint;
 use App\Models\OrganizationSite;
 use App\Models\ThreatReport;
+use App\Support\Jurisdiction\DisseminationResolver;
+use App\Support\Jurisdiction\JurisdictionContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -17,9 +19,18 @@ use Illuminate\Database\Eloquent\Model;
  * reports, formations, organization sites and communities inside the
  * requested bounding box, through each module's own scopes. Properties are
  * what the existing popups show (no descriptions), plus a link.
+ *
+ * Flashpoints and threat reports disseminated to the viewer (Phase 7A) come
+ * through the same scopes and carry `shared: true` for a distinct style.
+ * These layers are not cached, so nothing else is needed for them.
  */
 final class PointLayers
 {
+    public function __construct(
+        private readonly DisseminationResolver $disseminations,
+        private readonly JurisdictionContext $context,
+    ) {}
+
     /**
      * @param  array{0: float, 1: float, 2: float, 3: float}  $bbox
      * @return array<string, mixed>
@@ -27,6 +38,7 @@ final class PointLayers
     public function flashpoints(array $bbox): array
     {
         $rows = $this->within(Flashpoint::query()->withCoordinates()->with('threatType'), 'flashpoints.location', $bbox)->byConcern()->get();
+        $shared = $this->shared($rows->all());
 
         return $this->collection($rows, fn (Flashpoint $f) => [
             'ulid' => $f->ulid,
@@ -37,6 +49,7 @@ final class PointLayers
             'concern_label' => $f->concern_level->label(),
             'status' => $f->status->value,
             'radius_meters' => $f->radius_meters,
+            'shared' => isset($shared[$f->id]),
             'href' => "/flashpoints/{$f->ulid}",
         ]);
     }
@@ -71,6 +84,8 @@ final class PointLayers
             ->limit((int) config('buffalo.map.max_features'))
             ->get();
 
+        $shared = $this->shared([...$located->all(), ...$area->all()]);
+
         $properties = fn (ThreatReport $t) => [
             'ulid' => $t->ulid,
             'reference_no' => $t->reference_no,
@@ -83,6 +98,7 @@ final class PointLayers
             'radius_meters' => $t->radius_meters,
             'area' => $t->location === null ? ($t->community_id !== null ? 'community' : 'lga') : 'point',
             'lga' => $t->lga->name,
+            'shared' => isset($shared[$t->id]),
             'href' => "/threats/{$t->ulid}",
         ];
 
@@ -96,6 +112,17 @@ final class PointLayers
         ];
 
         return ['type' => 'FeatureCollection', 'features' => array_values(array_filter($features, fn (array $f) => $f['geometry'] !== null)), 'meta' => []];
+    }
+
+    /**
+     * @param  iterable<Flashpoint|ThreatReport>  $records
+     * @return array<int, true>
+     */
+    private function shared(iterable $records): array
+    {
+        $user = $this->context->currentUser();
+
+        return $user === null ? [] : $this->disseminations->sharedMarkers($records, $user);
     }
 
     /**

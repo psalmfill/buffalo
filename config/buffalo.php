@@ -175,6 +175,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Dissemination (Phase 7A)
+    |--------------------------------------------------------------------------
+    | Flashpoint disseminations last `flashpoint_days` and can be renewed;
+    | threat report disseminations follow the threat's expiry. Recipients
+    | who have not acknowledged are reminded once after the given hours.
+    | Suggested targets without boundaries: LGAs whose centroid lies within
+    | the area plus `centroid_margin_meters`.
+    */
+    'disseminations' => [
+        'flashpoint_days' => (int) env('BUFFALO_DISSEMINATION_FLASHPOINT_DAYS', 90),
+        'remind_immediate_hours' => (int) env('BUFFALO_DISSEMINATION_REMIND_IMMEDIATE_HOURS', 2),
+        'remind_other_hours' => (int) env('BUFFALO_DISSEMINATION_REMIND_OTHER_HOURS', 24),
+        'centroid_margin_meters' => (int) env('BUFFALO_DISSEMINATION_CENTROID_MARGIN', 20000),
+        'reason_min_length' => 20,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Incident evidence (Phase 5B)
     |--------------------------------------------------------------------------
     | Limits in megabytes per evidence type. Keep them within nginx's

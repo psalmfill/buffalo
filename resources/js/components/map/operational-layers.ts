@@ -1,5 +1,6 @@
 import type { FeatureCollection } from 'geojson';
 import { CONCERN_COLOURS } from '@/components/flashpoints/flashpoint-areas';
+import { SHARED_COLOUR } from '@/components/map/BuffaloMap';
 import type { GeoLayer } from '@/components/map/BuffaloMap';
 import { URGENCY_COLOURS } from '@/components/threats/threat-display';
 
@@ -251,16 +252,25 @@ export function toGeoLayer(
             return {
                 id: key,
                 data,
-                style: (p) => ({
-                    color:
+                style: (p) => {
+                    const colour =
                         CONCERN_COLOURS[
                             str(p.concern) as keyof typeof CONCERN_COLOURS
-                        ] ?? '#475569',
-                    weight: 2,
-                    fillOpacity: 0.7,
-                }),
+                        ] ?? '#475569';
+
+                    // Shared with the viewer (Phase 7A): teal outline.
+                    return {
+                        color: p.shared === true ? SHARED_COLOUR : colour,
+                        fillColor: colour,
+                        weight: p.shared === true ? 4 : 2,
+                        fillOpacity: 0.7,
+                    };
+                },
                 pointRadius: () => 7,
-                tooltip: (p) => str(p.name),
+                tooltip: (p) =>
+                    p.shared === true
+                        ? `${str(p.name)} (shared with you)`
+                        : str(p.name),
                 popup: (p) =>
                     popupElement(
                         str(p.name),
@@ -285,15 +295,16 @@ export function toGeoLayer(
                         ] ?? '#475569';
 
                     return {
-                        color: colour,
-                        weight: 2,
+                        color: p.shared === true ? SHARED_COLOUR : colour,
+                        weight: p.shared === true ? 4 : 2,
                         fillColor: colour,
                         fillOpacity: p.area === 'lga' ? 0.08 : 0.7,
                         dashArray: p.area === 'lga' ? '6 4' : undefined,
                     };
                 },
                 pointRadius: () => 8,
-                tooltip: (p) => `${str(p.reference_no)} — ${str(p.title)}`,
+                tooltip: (p) =>
+                    `${str(p.reference_no)} — ${str(p.title)}${p.shared === true ? ' (shared with you)' : ''}`,
                 popup: (p) =>
                     popupElement(
                         `${str(p.reference_no)} — ${str(p.title)}`,

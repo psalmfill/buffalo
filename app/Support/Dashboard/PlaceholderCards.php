@@ -12,7 +12,8 @@ use App\Models\User;
  *
  * Phase 6 delivered flashpoints: the card counts the active and monitoring
  * flashpoints and blackspots the user can see (null without the
- * permission, which keeps the placeholder).
+ * permission, which keeps the placeholder). Own records only: flashpoints
+ * shared with the user are shown separately (Phase 7A).
  */
 final class PlaceholderCards
 {
@@ -22,7 +23,7 @@ final class PlaceholderCards
     public static function for(string $scope, ?User $user = null): array
     {
         $flashpoints = $user !== null && $user->can('viewAny', Flashpoint::class)
-            ? Flashpoint::query()->watched()->count()
+            ? Flashpoint::query()->ownJurisdiction($user)->watched()->count()
             : null;
 
         return [

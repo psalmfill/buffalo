@@ -13,7 +13,8 @@ use App\Support\Jurisdiction\JurisdictionOptions;
 
 /**
  * Flashpoints and blackspots (Phase 6A): permission, the flashpoint's own
- * jurisdiction AND classification. Never grantable across jurisdictions.
+ * jurisdiction AND classification. Never grantable to individuals; disseminable (Phase 7A):
+ * `view` also passes through an active dissemination, read-only.
  *
  * Linking needs flashpoints.manage on the flashpoint AND `view` on the
  * record linked (an incident or a security note), so a link never points
@@ -34,6 +35,19 @@ final class FlashpointPolicy
     }
 
     public function view(User $actor, Flashpoint $flashpoint): bool
+    {
+        // Own jurisdiction OR an active dissemination to the viewer (Phase 7A);
+        // classification is always checked. Every other ability is own-only.
+        return $this->viewAny($actor)
+            && $this->jurisdiction->canAccess($actor, $flashpoint)
+            && $this->classification->canSee($actor, $flashpoint);
+    }
+
+    /**
+     * Reference this flashpoint from another record (a threat report link):
+     * own jurisdiction only, never through a dissemination (Phase 7A).
+     */
+    public function link(User $actor, Flashpoint $flashpoint): bool
     {
         return $this->viewAny($actor) && $this->reachable($actor, $flashpoint);
     }

@@ -20,6 +20,7 @@ import type {
     PoiPlaceRow,
     RiskCount,
 } from '@/components/dashboard/threat-figures';
+import type { CrossBorderItem, SharedItem } from '@/types/disseminations';
 import type { Option } from '@/types/local-government';
 import type { RoleName } from '@/types/auth';
 import type { ActivityEntry } from '@/types/users';
@@ -61,6 +62,7 @@ export type SystemDashboardProps = {
 export type NationalDashboardProps = {
     incidents: NationalIncidentFigures | null;
     threatReports: NationalThreatFigures | null;
+    crossBorder: { count: number; rows: CrossBorderItem[] } | null;
     access: AccessFiguresData | null;
     coverage: NationalCoverageData | null;
     organizations: NationalOrganizationData | null;
@@ -86,6 +88,7 @@ export type NationalDashboardProps = {
 export type StateDashboardProps = {
     incidents: StateIncidentFigures | null;
     threatReports: StateThreatFigures | null;
+    sharedWithUs: { count: number; rows: SharedItem[] } | null;
     access: AccessFiguresData | null;
     coverage: StateCoverageData | null;
     organizations: StateOrganizationData | null;
@@ -121,6 +124,7 @@ export type StateDashboardProps = {
 export type LgaDashboardProps = {
     incidents: LgaIncidentFigures | null;
     threatReports: LgaThreatFigures | null;
+    sharedWithUs: { count: number; rows: SharedItem[] } | null;
     access: AccessFiguresData | null;
     coverage: LgaCoverageData | null;
     organizations: LgaOrganizationData | null;

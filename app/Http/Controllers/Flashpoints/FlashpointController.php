@@ -10,6 +10,7 @@ use App\Enums\FlashpointKind;
 use App\Enums\FlashpointStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\DisseminationPresenter;
 use App\Http\Presenters\FlashpointPresenter;
 use App\Http\Requests\Flashpoints\FlashpointRequest;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
@@ -26,6 +27,9 @@ use App\Models\ThreatType;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Flashpoints\FlashpointLinks;
+use App\Support\Jurisdiction\DisseminatedLinks;
+use App\Support\Jurisdiction\DisseminationResolver;
+use App\Support\Jurisdiction\JurisdictionGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Threats\ThreatLinks;
 use Carbon\CarbonImmutable;
@@ -50,7 +54,7 @@ class FlashpointController extends Controller
     /** Suggestion windows offered on the Incidents tab (the default is configured). */
     private const SUGGESTION_MONTHS = [3, 6, 12, 24];
 
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, DisseminationResolver $disseminations): Response
     {
         $this->authorize('viewAny', Flashpoint::class);
         $user = $this->actor($request);
@@ -65,6 +69,8 @@ class FlashpointController extends Controller
             'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
             'lga' => ['nullable', 'string', 'size:26'],
             'overdue' => ['nullable', Rule::in(['1'])],
+            // Records shared with the user by another jurisdiction (Phase 7A).
+            'shared' => ['nullable', Rule::in(['1'])],
         ]);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
         $lgas = $options->lgas($user, $state);
@@ -81,7 +87,8 @@ class FlashpointController extends Controller
             ->when(isset($filters['overdue']), fn (Builder $q) => $q
                 ->where('flashpoints.status', '!=', FlashpointStatus::Resolved->value)
                 ->where('flashpoints.review_due_at', '<', CarbonImmutable::today()->toDateString()))
-            ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->search($term));
+            ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->search($term))
+            ->when(isset($filters['shared']), fn (Builder $q) => $disseminations->sharedOnly($q, $user));
 
         $flashpoints = $query()
             ->withCoordinates()
@@ -97,9 +104,12 @@ class FlashpointController extends Controller
             ->limit((int) config('buffalo.flashpoints.map_cap'))
             ->get();
 
+        $shared = $disseminations->sharedMarkers([...$flashpoints->items(), ...$areas->all()], $user);
+        $row = fn (Flashpoint $f) => [...FlashpointPresenter::row($f), 'shared' => isset($shared[$f->id])];
+
         return Inertia::render('flashpoints/index', [
-            'flashpoints' => $flashpoints->through(fn (Flashpoint $f) => FlashpointPresenter::row($f)),
-            'areas' => $areas->map(fn (Flashpoint $f) => FlashpointPresenter::row($f))->values(),
+            'flashpoints' => $flashpoints->through($row),
+            'areas' => $areas->map($row)->values(),
             'filters' => [
                 'q' => $filters['q'] ?? '',
                 'kind' => $filters['kind'] ?? '',
@@ -109,6 +119,7 @@ class FlashpointController extends Controller
                 'state' => $filters['state'] ?? '',
                 'lga' => $filters['lga'] ?? '',
                 'overdue' => $filters['overdue'] ?? '',
+                'shared' => $filters['shared'] ?? '',
             ],
             'options' => FlashpointPresenter::options(),
             'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
@@ -143,7 +154,8 @@ class FlashpointController extends Controller
 
         $message = "{$flashpoint->kind->label()} \"{$flashpoint->name}\" recorded.".($suggestion !== null ? " {$linked} incidents linked." : '');
 
-        return redirect()->route('flashpoints.show', $flashpoint)->with('toast', ['type' => 'success', 'message' => $message]);
+        return redirect()->route('flashpoints.show', $flashpoint)->with('toast', ['type' => 'success', 'message' => $message])
+            ->with('dissemination_prompt', true);
     }
 
     /** An open suggestion the user may decide on, from its ULID (or 404/403). */
@@ -159,15 +171,23 @@ class FlashpointController extends Controller
         return $suggestion;
     }
 
-    public function show(Request $request, Flashpoint $flashpoint): Response
+    public function show(Request $request, Flashpoint $flashpoint, JurisdictionGate $gate, DisseminationPresenter $disseminations): Response
     {
         $this->authorize('view', $flashpoint);
         $user = $this->actor($request);
-        $tab = in_array($request->query('tab'), self::TABS, true) ? (string) $request->query('tab') : 'overview';
+        // Seen only through a dissemination (Phase 7A): read-only, always logged.
+        $shared = $gate->viaGrantOnly($user, $flashpoint);
+        $tabs = $shared ? array_values(array_diff(self::TABS, ['history'])) : self::TABS;
+        $tab = in_array($request->query('tab'), $tabs, true) ? (string) $request->query('tab') : 'overview';
 
-        if ($flashpoint->logsViews()) {
+        if ($shared) {
+            $flashpoint->recordAccess(context: 'dissemination');
+        } elseif ($flashpoint->logsViews()) {
             $flashpoint->recordAccess(context: "tab:{$tab}");
         }
+
+        // Assessments sit on the flashpoint's place, like its links.
+        $assessments = fn () => DisseminatedLinks::of(FlashpointAssessment::query()->where('flashpoint_id', $flashpoint->id), $flashpoint)->latest('assessed_at')->latest('id');
 
         Inertia::encryptHistory();
 
@@ -184,11 +204,8 @@ class FlashpointController extends Controller
             'map' => MapView::for($row->lga),
             // Linked incidents on the overview map (visible ones only).
             'incidentMarkers' => $tab === 'overview' && $user->can('viewAny', Incident::class) ? FlashpointLinks::incidentMarkers($flashpoint) : [],
-            'latest' => FlashpointPresenter::assessments(FlashpointAssessment::query()
-                ->where('flashpoint_id', $flashpoint->id)->latest('assessed_at')->latest('id')->limit(1)->get())[0] ?? null,
-            'assessments' => $tab === 'assessments'
-                ? FlashpointPresenter::assessments(FlashpointAssessment::query()->where('flashpoint_id', $flashpoint->id)->latest('assessed_at')->latest('id')->get())
-                : null,
+            'latest' => FlashpointPresenter::assessments($assessments()->limit(1)->get())[0] ?? null,
+            'assessments' => $tab === 'assessments' ? FlashpointPresenter::assessments($assessments()->get()) : null,
             'incidents' => $tab === 'incidents' && $user->can('viewAny', Incident::class) ? [
                 'linked' => FlashpointLinks::incidents($flashpoint),
                 'suggestions' => $canLink ? FlashpointLinks::incidentSuggestions($row, $sameCategory, $months) : [],
@@ -202,7 +219,7 @@ class FlashpointController extends Controller
             ] : null,
             // Threat reports linked to it (Phase 6B), through their scopes.
             'threatReports' => $tab === 'threats' && $user->can('viewAny', ThreatReport::class) ? ThreatLinks::forFlashpoint($flashpoint) : null,
-            'history' => $tab === 'history'
+            'history' => $tab === 'history' && ! $shared
                 ? Activity::query()->with(['causer', 'subject'])
                     ->where('subject_type', $flashpoint->getMorphClass())->where('subject_id', $flashpoint->id)
                     ->latest('id')
@@ -211,6 +228,7 @@ class FlashpointController extends Controller
                     ->through(fn (Activity $a) => ActivityPresenter::present($a))
                 : null,
             'options' => $tab === 'overview' || $tab === 'assessments' ? FlashpointPresenter::options() : null,
+            ...$disseminations->forPage($flashpoint, $user, (bool) $request->session()->get('dissemination_prompt')),
             'can' => [
                 'update' => $canLink,
                 'assess' => $user->can('assess', $flashpoint),

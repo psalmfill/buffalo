@@ -7,7 +7,11 @@ import SecurityNoteController from '@/actions/App/Http/Controllers/CommunityInfo
 import FlashpointAssessmentController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointAssessmentController';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
 import FlashpointLinkController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointLinkController';
+import DisseminationController from '@/actions/App/Http/Controllers/Disseminations/DisseminationController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
+import DisseminationPrompt from '@/components/disseminations/dissemination-prompt';
+import SharedBanner from '@/components/disseminations/shared-banner';
+import SharingPanel from '@/components/disseminations/sharing-panel';
 import EmptyState from '@/components/empty-state';
 import ConcernBadge from '@/components/flashpoints/concern-badge';
 import {
@@ -34,6 +38,7 @@ import { formatDate, formatDateTime } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type { NoteRow } from '@/types/community-information';
 import type { MapView } from '@/types/dashboard';
+import type { DisseminationProps } from '@/types/disseminations';
 import type {
     Assessment,
     ConcernLevel,
@@ -65,7 +70,7 @@ const TAB_LABELS: Record<Tab, string> = {
     history: 'History',
 };
 
-type Props = {
+type Props = DisseminationProps & {
     flashpoint: FlashpointDetail;
     tab: Tab;
     map: MapView;
@@ -109,7 +114,8 @@ export default function FlashpointShow(props: Props) {
         (name) =>
             (name !== 'incidents' || can.viewIncidents) &&
             (name !== 'security_notes' || can.viewSecurityNotes) &&
-            (name !== 'threats' || can.viewThreats),
+            (name !== 'threats' || can.viewThreats) &&
+            (name !== 'history' || !props.dissemination),
     );
 
     return (
@@ -174,6 +180,33 @@ export default function FlashpointShow(props: Props) {
                         )}
                     </div>
                 </div>
+
+                {props.dissemination && (
+                    <SharedBanner banner={props.dissemination} />
+                )}
+                {props.sharing && tab === 'overview' && (
+                    <SharingPanel
+                        sharing={props.sharing}
+                        disseminateUrl={DisseminationController.storeFlashpoint.url(
+                            flashpoint.ulid,
+                        )}
+                        requestUrl={DisseminationController.requestFlashpoint.url(
+                            flashpoint.ulid,
+                        )}
+                    />
+                )}
+                {props.sharing && props.disseminationPrompt && (
+                    <DisseminationPrompt
+                        prompt={props.disseminationPrompt}
+                        sharing={props.sharing}
+                        disseminateUrl={DisseminationController.storeFlashpoint.url(
+                            flashpoint.ulid,
+                        )}
+                        requestUrl={DisseminationController.requestFlashpoint.url(
+                            flashpoint.ulid,
+                        )}
+                    />
+                )}
 
                 <nav className="flex gap-1 border-b" aria-label="Sections">
                     {tabs.map((name) => (

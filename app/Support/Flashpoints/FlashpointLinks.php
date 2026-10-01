@@ -13,6 +13,7 @@ use App\Models\FlashpointIncident;
 use App\Models\FlashpointSecurityNote;
 use App\Models\Incident;
 use App\Models\User;
+use App\Support\Jurisdiction\DisseminatedLinks;
 use App\Support\Jurisdiction\OfficerNames;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,8 +36,8 @@ final class FlashpointLinks
      */
     public static function incidents(Flashpoint $flashpoint): array
     {
-        $links = FlashpointIncident::query()
-            ->where('flashpoint_incidents.flashpoint_id', $flashpoint->id)
+        $links = DisseminatedLinks::of(FlashpointIncident::query()
+            ->where('flashpoint_incidents.flashpoint_id', $flashpoint->id), $flashpoint)
             ->with(['incident.type', 'incident.lga', 'incident.state'])
             ->get()
             ->sortByDesc(fn (FlashpointIncident $l) => $l->incident->occurred_at)
@@ -86,8 +87,8 @@ final class FlashpointLinks
      */
     public static function securityNotes(Flashpoint $flashpoint): array
     {
-        $links = FlashpointSecurityNote::query()
-            ->where('flashpoint_security_notes.flashpoint_id', $flashpoint->id)
+        $links = DisseminatedLinks::of(FlashpointSecurityNote::query()
+            ->where('flashpoint_security_notes.flashpoint_id', $flashpoint->id), $flashpoint)
             ->with(['securityNote.community'])
             ->orderByDesc('linked_at')
             ->get();

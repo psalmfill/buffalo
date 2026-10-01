@@ -2,6 +2,7 @@
 
 namespace App\Support\Jurisdiction;
 
+use App\Models\User;
 use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
 use App\Support\Jurisdiction\Contracts\LgaVisibilityRule;
@@ -66,6 +67,25 @@ final class JurisdictionScope implements Scope
                 app(AccessGrantResolver::class)->addGrantedRecords($query, $model, $user);
             }
         });
+    }
+
+    /**
+     * The user's OWN jurisdiction only, without grants or disseminations
+     * (Phase 7A): for figures and pickers that must not include records
+     * shared with the user. Applied in its own nested group, on top of the
+     * global scope.
+     *
+     * @param  Builder<covariant Model>  $builder
+     */
+    public function applyOwn(Builder $builder, Model&JurisdictionScoped $model, User $user): void
+    {
+        $restriction = app(JurisdictionRules::class)->restrictionFor($user, $model->isVisibleToSuperAdmin());
+
+        if ($restriction->type === RestrictionType::Everything) {
+            return;
+        }
+
+        $builder->where(fn (Builder $query) => $this->applyRestriction($query, $model, $restriction));
     }
 
     /**

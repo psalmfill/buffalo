@@ -17,7 +17,11 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             boundaryAttribution: string | null;
             notifications: { unreadCount: number };
-            badges: { coverageReview: number; immediateThreats: number };
+            badges: {
+                coverageReview: number;
+                immediateThreats: number;
+                disseminations: number;
+            };
             [key: string]: unknown;
         };
     }

@@ -279,6 +279,17 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 7A — Dissemination (always combined with the "who" rules
+            // in DisseminationPolicy)
+            // ---------------------------------------------------------------
+            'disseminations' => [
+                Permission::DisseminationsView->value => self::INTELLIGENCE_ROLES,
+                Permission::DisseminationsCreate->value => [Role::DirectorGeneral, Role::DeputyDirectorGeneral, Role::StateDirector, Role::DeputyStateDirector],
+                Permission::DisseminationsRequest->value => [Role::LgaSecurityChief],
+                Permission::DisseminationsRevoke->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

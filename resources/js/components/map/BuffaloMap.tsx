@@ -73,7 +73,12 @@ export type MapCircle = {
     href?: string;
     /** Dashed outline (e.g. a dormant or resolved area). */
     dashed?: boolean;
+    /** Shared with the viewer by another jurisdiction (Phase 7A): an extra teal ring. */
+    shared?: boolean;
 };
+
+/** The ring drawn around records shared with the viewer (Phase 7A). */
+export const SHARED_COLOUR = '#0e7490';
 
 /**
  * A GeoJSON layer drawn below the markers (Phase 6C: aggregated layers and
@@ -502,6 +507,18 @@ export default function BuffaloMap({
                 .bindTooltip(area.title)
                 .bindPopup(() => popupContent(area))
                 .addTo(layer);
+
+            if (area.shared) {
+                L.circle(area.center, {
+                    radius: area.radius,
+                    color: SHARED_COLOUR,
+                    weight: 4,
+                    opacity: 0.8,
+                    fill: false,
+                    dashArray: '2 8',
+                    interactive: false,
+                }).addTo(layer);
+            }
         }
 
         if (fitCircles && (circles ?? []).length > 0) {

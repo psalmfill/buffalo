@@ -15,7 +15,8 @@ use App\Support\Jurisdiction\JurisdictionOptions;
 
 /**
  * Threat reports (Phase 6B): permission, the report's own jurisdiction AND
- * classification. Never grantable across jurisdictions.
+ * classification. Never grantable to individuals; disseminable (Phase 7A):
+ * `view` also passes through an active dissemination, read-only.
  *
  * `update` covers editing, status changes, links and extension. LGA chiefs
  * may manage only the threat reports they created. Linking also needs
@@ -36,7 +37,11 @@ final class ThreatReportPolicy
 
     public function view(User $actor, ThreatReport $threat): bool
     {
-        return $this->viewAny($actor) && $this->reachable($actor, $threat);
+        // Own jurisdiction OR an active dissemination to the viewer (Phase 7A);
+        // classification is always checked. Every other ability is own-only.
+        return $this->viewAny($actor)
+            && $this->jurisdiction->canAccess($actor, $threat)
+            && $this->classification->canSee($actor, $threat);
     }
 
     public function create(User $actor): bool
@@ -64,7 +69,7 @@ final class ThreatReportPolicy
 
     public function linkFlashpoint(User $actor, ThreatReport $threat, Flashpoint $flashpoint): bool
     {
-        return $this->update($actor, $threat) && $actor->can('view', $flashpoint);
+        return $this->update($actor, $threat) && $actor->can('link', $flashpoint);
     }
 
     public function linkGroup(User $actor, ThreatReport $threat, CriminalGroup $group): bool

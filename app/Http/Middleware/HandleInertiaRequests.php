@@ -9,6 +9,7 @@ use App\Http\Presenters\CurrentUserPresenter;
 use App\Models\CoverageReport;
 use App\Models\ThreatReport;
 use App\Models\User;
+use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Geo\BoundaryAttribution;
 use App\Support\SystemBanner;
 use Illuminate\Http\Request;
@@ -73,6 +74,10 @@ class HandleInertiaRequests extends Middleware
                 // Active immediate threat reports in reach (Phase 6B), through their scopes.
                 'immediateThreats' => fn (): int => $user instanceof User && $user->checkPermissionTo(Permission::ThreatsView->value)
                     ? ThreatReport::query()->active()->where('urgency', ThreatUrgency::Immediate->value)->count()
+                    : 0,
+                // Records shared with the user and not yet acknowledged (Phase 7A).
+                'disseminations' => fn (): int => $user instanceof User
+                    ? (app(DisseminationFigures::class)->unacknowledged($user)['count'] ?? 0)
                     : 0,
             ],
             // Attribution of the imported boundaries, shown on every map (Phase 6A).

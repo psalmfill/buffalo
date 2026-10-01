@@ -15,6 +15,8 @@ export type FlashpointRow = {
     concern_level: { value: ConcernLevel; label: string };
     status: { value: FlashpointStatus; label: string };
     classification: { value: ClassificationLevel; label: string };
+    /** Seen only because another jurisdiction shared it (Phase 7A). */
+    shared?: boolean;
     lga: NamedRef;
     state: NamedRef;
     latitude: number;

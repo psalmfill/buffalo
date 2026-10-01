@@ -33,7 +33,13 @@ final class ClassificationGate
             return null;
         }
 
-        return match ($user->getRole()) {
+        return self::maxLevelForRole($user->getRole());
+    }
+
+    /** The highest level a role sees (ignoring the creator rule and blocked accounts). */
+    public static function maxLevelForRole(?Role $role): ?Classification
+    {
+        return match ($role) {
             Role::DirectorGeneral, Role::DeputyDirectorGeneral, Role::StateDirector => Classification::Secret,
             Role::DeputyStateDirector => Classification::Confidential,
             Role::LgaSecurityChief => Classification::Restricted,

@@ -7,6 +7,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { NationalOrganizations } from '@/components/dashboard/organization-figures';
 import { NationalCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { CrossBorderGaps } from '@/components/dashboard/dissemination-figures';
 import { NationalIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
@@ -24,6 +25,7 @@ import type { NationalDashboardProps } from '@/types/dashboard';
 export default function NationalDashboard({
     incidents,
     threatReports,
+    crossBorder,
     scope,
     completenessByState,
     securityNotesByState,
@@ -64,6 +66,7 @@ export default function NationalDashboard({
                 {threatReports && (
                     <NationalImmediateThreats data={threatReports} />
                 )}
+                {crossBorder && <CrossBorderGaps data={crossBorder} />}
 
                 <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
                     <PoiByPlaceTable

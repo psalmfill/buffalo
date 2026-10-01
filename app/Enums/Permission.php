@@ -125,4 +125,10 @@ enum Permission: string
     case MapView = 'map.view';
     case BlackspotsSuggestions = 'blackspots.suggestions';
     case BlackspotsRefresh = 'blackspots.refresh';
+
+    // Dissemination of threat reports and flashpoints (Phase 7A).
+    case DisseminationsView = 'disseminations.view';
+    case DisseminationsCreate = 'disseminations.create';
+    case DisseminationsRequest = 'disseminations.request';
+    case DisseminationsRevoke = 'disseminations.revoke';
 }

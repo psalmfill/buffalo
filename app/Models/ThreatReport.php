@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Classification;
+use App\Enums\NotificationSeverity;
 use App\Enums\ThreatCredibility;
 use App\Enums\ThreatSourceType;
 use App\Enums\ThreatStatus;
@@ -10,10 +11,11 @@ use App\Enums\ThreatUrgency;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
 use App\Models\Concerns\HasUlidRouteKey;
+use App\Models\Concerns\IsDisseminable;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Models\Concerns\LogsReads;
 use App\Support\Classification\Contracts\Classified;
-use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
+use App\Support\Jurisdiction\Contracts\Disseminable;
 use Carbon\CarbonImmutable;
 use Database\Factories\ThreatReportFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -66,7 +68,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read Community|null $community
  * @property-read User|null $creator
  */
-class ThreatReport extends Model implements Classified, JurisdictionScoped
+class ThreatReport extends Model implements Classified, Disseminable
 {
     use HasClassification;
 
@@ -75,6 +77,7 @@ class ThreatReport extends Model implements Classified, JurisdictionScoped
 
     use HasJurisdiction;
     use HasUlidRouteKey;
+    use IsDisseminable;
     use LogsBuffaloActivity;
     use LogsReads;
     use SoftDeletes;
@@ -130,6 +133,47 @@ class ThreatReport extends Model implements Classified, JurisdictionScoped
     public function isActive(): bool
     {
         return $this->status === ThreatStatus::Active;
+    }
+
+    public function disseminationType(): string
+    {
+        return 'threat_report';
+    }
+
+    public function disseminationLabel(): string
+    {
+        return $this->reference_no;
+    }
+
+    public function disseminationKind(): string
+    {
+        return 'Threat report';
+    }
+
+    public function disseminationPath(): string
+    {
+        return '/threats/'.$this->ulid;
+    }
+
+    public function disseminationSeverity(): NotificationSeverity
+    {
+        return match ($this->urgency) {
+            ThreatUrgency::Immediate => NotificationSeverity::Critical,
+            ThreatUrgency::Priority => NotificationSeverity::Warning,
+            ThreatUrgency::Routine => NotificationSeverity::Info,
+        };
+    }
+
+    public function warrantsDissemination(): bool
+    {
+        return $this->isActive() && $this->urgency !== ThreatUrgency::Routine;
+    }
+
+    public function acknowledgementHours(): int
+    {
+        return $this->urgency === ThreatUrgency::Immediate
+            ? (int) config('buffalo.disseminations.remind_immediate_hours')
+            : (int) config('buffalo.disseminations.remind_other_hours');
     }
 
     /**

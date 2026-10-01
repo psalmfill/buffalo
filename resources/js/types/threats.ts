@@ -26,6 +26,8 @@ export type ThreatRow = {
     expected_until: string | null;
     expires_at: string;
     expiring_soon: boolean;
+    /** Seen only because another jurisdiction shared it (Phase 7A). */
+    shared?: boolean;
     created_at: string;
 };
 

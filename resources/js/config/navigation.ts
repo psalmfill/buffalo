@@ -20,12 +20,14 @@ import {
     Network,
     ScrollText,
     Sparkles,
+    Share2,
     Shield,
     TriangleAlert,
     UserSearch,
     Users,
 } from 'lucide-react';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
+import DisseminationController from '@/actions/App/Http/Controllers/Disseminations/DisseminationController';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
 import BlackspotSuggestionController from '@/actions/App/Http/Controllers/Map/BlackspotSuggestionController';
 import MapController from '@/actions/App/Http/Controllers/Map/MapController';
@@ -67,7 +69,7 @@ export type NavItem = {
     /** Not an Inertia page: opens in a new tab (e.g. Horizon). */
     external?: boolean;
     /** A shared count shown next to the item (`badges` page prop). */
-    badge?: 'coverageReview' | 'immediateThreats';
+    badge?: 'coverageReview' | 'immediateThreats' | 'disseminations';
 };
 
 export type NavSection = {
@@ -98,6 +100,7 @@ export const NAVIGATION: NavSection[] = [
         items: [
             { title: 'Threat reports', icon: TriangleAlert, href: ThreatReportController.index(), permission: 'threats.view', badge: 'immediateThreats' },
             { title: 'Flashpoints & blackspots', icon: Flame, href: FlashpointController.index(), permission: 'flashpoints.view' },
+            { title: 'Shared threats & flashpoints', icon: Share2, href: DisseminationController.index(), permission: 'disseminations.view', badge: 'disseminations' },
             { title: 'Suggested blackspots', icon: Sparkles, href: BlackspotSuggestionController.index(), permission: 'blackspots.suggestions' },
         ],
     },

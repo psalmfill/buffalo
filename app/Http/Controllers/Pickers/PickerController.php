@@ -170,7 +170,8 @@ class PickerController extends Controller
         $this->authorize('viewAny', Flashpoint::class);
         $data = $request->validate(['q' => ['nullable', 'string', 'max:100']]);
 
-        $results = Flashpoint::query()->with(['lga', 'state', 'threatType'])
+        // Own records only: a flashpoint shared with the user is never a link target (Phase 7A).
+        $results = Flashpoint::query()->ownJurisdiction($this->actor($request))->with(['lga', 'state', 'threatType'])
             ->when(trim((string) ($data['q'] ?? '')) !== '', fn (Builder $q) => $q->search((string) $data['q']), fn (Builder $q) => $q->byConcern())
             ->limit(self::LIMIT)->get();
 
