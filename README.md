@@ -253,6 +253,19 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Searchable pickers** replace long drop-down lists for persons, communities, formations, sites, criminal groups, organizations and users.
 - **Time zone:** the database session uses Africa/Lagos (`DB_TIMEZONE`, defaulting to `APP_TIMEZONE`). Times stored earlier as `timestamptz` were corrected by a migration.
 
+## Incident evidence (Phase 5B)
+
+- **Evidence** (the Evidence section on an incident's page; on the form once the draft is saved): images (JPEG, PNG, WebP), documents (PDF, DOCX, XLSX, text), video (MP4, WebM) and audio (MP3, M4A, OGG, WAV). Drag and drop several files, each with a title, description and classification.
+- **Integrity:** originals are stored exactly as uploaded on the private `evidence` volume, with a SHA-256 hash recorded at upload. Every download recomputes the hash. A mismatch refuses the download, is logged as `integrity_failure`, and alerts the DG and super admins. State Directors and above can **Verify integrity** at any time.
+- **Viewing:**
+  - images through EXIF-stripped thumbnails and previews (the original keeps its EXIF);
+  - video and audio streamed from the original, with seeking;
+  - documents by download only, always as an attachment.
+- **Classification:** each item has its own, never below the incident's. Raising the incident raises its evidence. Items above a viewer's clearance are simply absent.
+- **Chain of custody:** each item lists its upload (who, when, hash), edits, classification changes, integrity checks, and every view and download, with IP addresses.
+- **Removal:** State Directors and above, with a reason. The file is never deleted.
+- **File types** are decided from the file's content, not its name. The limits are in `config/buffalo.php` (`BUFFALO_EVIDENCE_*`). Files over 10 MB are verified on the queue, so Horizon must be running.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
