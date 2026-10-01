@@ -54,6 +54,7 @@ export default function LgaOrganizationsPanel({
                 sites={data.sites}
                 center={data.map.center}
                 zoom={data.map.zoom}
+                outline={data.map.outline}
             />
             <SitesTable
                 sites={data.sites}

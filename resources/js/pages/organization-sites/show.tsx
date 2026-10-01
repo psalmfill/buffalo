@@ -432,6 +432,7 @@ export default function OrganizationSiteShow({
                             sites={[site]}
                             center={map.center}
                             zoom={map.zoom}
+                            outline={map.outline}
                         />
                     </div>
                 )}

@@ -152,7 +152,8 @@ class LgaController extends Controller
                 'deleteVulnerableFigures' => $user->checkPermissionTo(Permission::VulnerableStatsDelete->value),
             ],
             'options' => CommunityInformationPresenter::options(),
-            'overview' => $tab === 'overview' ? ['chief' => $leadership->chief($lga)] : null,
+            // The boundary and centroid (Phase 6A); MapView centres on the centroid.
+            'overview' => $tab === 'overview' ? ['chief' => $leadership->chief($lga), 'map' => MapView::for($lga)] : null,
             'leadership' => $tab === 'leadership' && $user->can('viewAny', PoliticalOffice::class) ? $leadership->forLga($lga) : null,
             'profile' => $tab === 'profile' ? [
                 ...LgaPresenter::profile($profile),

@@ -292,6 +292,7 @@ export default function CommunityForm({
                             }
                             center={map.center ?? undefined}
                             zoom={map.zoom}
+                            outline={map.outline}
                             errors={{
                                 latitude: form.errors.latitude,
                                 longitude: form.errors.longitude,

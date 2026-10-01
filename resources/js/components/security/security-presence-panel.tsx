@@ -46,6 +46,7 @@ export default function SecurityPresencePanel({
                 formations={data.formations}
                 center={data.map.center}
                 zoom={data.map.zoom}
+                outline={data.map.outline}
                 className="h-80"
             />
 

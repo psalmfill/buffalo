@@ -304,6 +304,7 @@ export default function IncidentShow({
                             className="h-80"
                             center={map.center ?? undefined}
                             zoom={map.zoom}
+                            outline={map.outline}
                             fitMarkers
                             markers={
                                 incident.latitude !== null &&

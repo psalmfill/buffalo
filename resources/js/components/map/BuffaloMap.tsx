@@ -6,6 +6,8 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import { usePage } from '@inertiajs/react';
+import type { Geometry } from 'geojson';
 import { PMTiles } from 'pmtiles';
 import { leafletLayer } from 'protomaps-leaflet';
 import { useEffect, useRef, useState } from 'react';
@@ -106,7 +108,22 @@ type BuffaloMapProps = {
     /** Zoom to fit the markers once they are shown. */
     fitMarkers?: boolean;
     picker?: MapPicker;
+    /**
+     * A place's boundary (GeoJSON geometry from MapView), drawn as an
+     * outline below the markers.
+     */
+    outline?: Geometry | null;
+    /** Zoom to fit the outline once it is shown. */
+    fitOutline?: boolean;
 };
+
+/** Attribution strings are rendered as HTML by Leaflet: escape them. */
+function escapeText(text: string): string {
+    const span = document.createElement('span');
+    span.textContent = text;
+
+    return span.innerHTML;
+}
 
 /** Popup content built from text nodes, so names cannot inject HTML. */
 function popupContent(marker: MapMarker): HTMLElement {
@@ -139,10 +156,14 @@ export default function BuffaloMap({
     fitMarkers = false,
     picker,
     cluster = false,
+    outline = null,
+    fitOutline = false,
 }: BuffaloMapProps) {
+    const boundaryAttribution = usePage().props.boundaryAttribution;
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<L.Map | null>(null);
     const markerLayerRef = useRef<L.LayerGroup | null>(null);
+    const outlineLayerRef = useRef<L.GeoJSON | null>(null);
     const pickerMarkerRef = useRef<L.Marker | null>(null);
     // The latest picker callback, for the map's click handler.
     const pickerRef = useRef<MapPicker | undefined>(picker);
@@ -172,7 +193,16 @@ export default function BuffaloMap({
             attributionControl: false,
         });
 
-        L.control.attribution({ prefix: 'Leaflet' }).addTo(map);
+        const attribution = L.control
+            .attribution({ prefix: 'Leaflet' })
+            .addTo(map);
+
+        // Imported boundaries carry their own attribution (Phase 6A).
+        if (boundaryAttribution) {
+            attribution.addAttribution(
+                `Boundaries: ${escapeText(boundaryAttribution)}`,
+            );
+        }
 
         mapRef.current = map;
         markerLayerRef.current = (
@@ -228,6 +258,7 @@ export default function BuffaloMap({
             cancelled = true;
             mapRef.current = null;
             markerLayerRef.current = null;
+            outlineLayerRef.current = null;
             pickerMarkerRef.current = null;
             setReady(false);
             map.remove();
@@ -273,6 +304,38 @@ export default function BuffaloMap({
             );
         }
     }, [ready, markers, fitMarkers]);
+
+    // Display the place outline (non-interactive, below markers).
+    useEffect(() => {
+        const map = mapRef.current;
+
+        if (!ready || !map) {
+            return;
+        }
+
+        outlineLayerRef.current?.remove();
+        outlineLayerRef.current = null;
+
+        if (!outline) {
+            return;
+        }
+
+        const layer = L.geoJSON(outline, {
+            interactive: false,
+            style: {
+                color: '#0f766e',
+                weight: 2,
+                fillColor: '#14b8a6',
+                fillOpacity: 0.06,
+            },
+        }).addTo(map);
+        layer.bringToBack();
+        outlineLayerRef.current = layer;
+
+        if (fitOutline) {
+            map.fitBounds(layer.getBounds(), { padding: [16, 16] });
+        }
+    }, [ready, outline, fitOutline]);
 
     // The picker's draggable marker follows its value.
     const pickerValue = picker?.value ?? null;

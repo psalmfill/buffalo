@@ -1,3 +1,4 @@
+import type { Geometry } from 'geojson';
 import type { IncidentListRow, IncidentMapPoint } from '@/types/incidents';
 import type { AccessFiguresData } from '@/components/dashboard/access-figures';
 import type {
@@ -22,6 +23,8 @@ export type MapView = {
     /** [lat, lng]; null means the national view. */
     center: [number, number] | null;
     zoom: number;
+    /** The place's simplified boundary (GeoJSON), when imported. */
+    outline: Geometry | null;
 };
 
 export type PlaceholderCardData = {

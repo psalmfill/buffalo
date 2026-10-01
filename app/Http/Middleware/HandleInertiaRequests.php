@@ -7,6 +7,7 @@ use App\Enums\Permission;
 use App\Http\Presenters\CurrentUserPresenter;
 use App\Models\CoverageReport;
 use App\Models\User;
+use App\Support\Geo\BoundaryAttribution;
 use App\Support\SystemBanner;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -68,6 +69,8 @@ class HandleInertiaRequests extends Middleware
                     ? CoverageReport::query()->where('status', CoverageReportStatus::Submitted->value)->count()
                     : 0,
             ],
+            // Attribution of the imported boundaries, shown on every map (Phase 6A).
+            'boundaryAttribution' => fn (): ?string => $user instanceof User ? BoundaryAttribution::current() : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

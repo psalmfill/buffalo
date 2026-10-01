@@ -15,6 +15,7 @@ declare module '@inertiajs/core' {
             app: AppData;
             auth: Auth;
             sidebarOpen: boolean;
+            boundaryAttribution: string | null;
             notifications: { unreadCount: number };
             badges: { coverageReview: number };
             [key: string]: unknown;

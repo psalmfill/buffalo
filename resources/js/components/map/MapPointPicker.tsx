@@ -1,3 +1,4 @@
+import type { Geometry } from 'geojson';
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
@@ -44,6 +45,7 @@ export default function MapPointPicker({
     center,
     zoom,
     markers,
+    outline,
     errors = {},
     className = 'h-80',
 }: {
@@ -53,6 +55,8 @@ export default function MapPointPicker({
     zoom?: number;
     /** Other points for context (e.g. neighbouring communities). */
     markers?: MapMarker[];
+    /** The LGA's boundary (MapView outline), for orientation. */
+    outline?: Geometry | null;
     errors?: { latitude?: string; longitude?: string };
     className?: string;
 }) {
@@ -70,6 +74,7 @@ export default function MapPointPicker({
                 zoom={point ? Math.max(zoom ?? 6, 12) : zoom}
                 className={`${className} w-full rounded-lg border`}
                 markers={markers}
+                outline={outline}
                 picker={{
                     value: point,
                     onChange: ([latitude, longitude]) => {

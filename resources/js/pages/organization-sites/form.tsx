@@ -337,6 +337,7 @@ export default function OrganizationSiteForm({
                             }
                             center={map.center ?? undefined}
                             zoom={map.zoom}
+                            outline={map.outline}
                             errors={{
                                 latitude: errors.latitude,
                                 longitude: errors.longitude,

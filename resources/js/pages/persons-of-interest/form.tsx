@@ -291,6 +291,7 @@ export default function PoiForm({ person, poi, options, map }: Props) {
                         }
                         center={map.center ?? undefined}
                         zoom={map.zoom}
+                        outline={map.outline}
                         errors={{
                             latitude: form.errors.latitude,
                             longitude: form.errors.longitude,

@@ -282,6 +282,7 @@ export default function ReligiousInstitutionsPanel({
                 <BuffaloMap
                     center={data.map.center ?? undefined}
                     zoom={data.map.zoom}
+                    outline={data.map.outline}
                     markers={data.markers}
                     fitMarkers
                     className="h-[420px] w-full rounded-lg border"

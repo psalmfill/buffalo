@@ -1,3 +1,4 @@
+import type { Geometry } from 'geojson';
 import BuffaloMap from '@/components/map/BuffaloMap';
 import type { MapMarker } from '@/components/map/BuffaloMap';
 import type { FormationRow } from '@/types/formations';
@@ -43,11 +44,14 @@ export default function FormationMap({
     formations,
     center,
     zoom,
+    outline,
     className = 'h-96',
 }: {
     formations: FormationRow[];
     center?: [number, number] | null;
     zoom?: number;
+    /** The place's boundary (MapView outline). */
+    outline?: Geometry | null;
     className?: string;
 }) {
     const located = formations.filter(
@@ -71,6 +75,7 @@ export default function FormationMap({
                 markers={markers}
                 fitMarkers={markers.length > 0}
                 cluster
+                outline={outline}
                 {...(center ? { center, zoom } : {})}
             />
             {colours.size > 0 ? (

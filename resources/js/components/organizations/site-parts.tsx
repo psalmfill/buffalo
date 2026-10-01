@@ -1,3 +1,4 @@
+import type { Geometry } from 'geojson';
 import { Link } from '@inertiajs/react';
 import OrganizationSiteController from '@/actions/App/Http/Controllers/Organizations/OrganizationSiteController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
@@ -45,11 +46,14 @@ export function SitesMap({
     sites,
     center,
     zoom,
+    outline,
     className = 'h-80',
 }: {
     sites: SiteRow[];
     center?: [number, number] | null;
     zoom?: number;
+    /** The place's boundary (MapView outline). */
+    outline?: Geometry | null;
     className?: string;
 }) {
     const markers: MapMarker[] = sites
@@ -78,6 +82,7 @@ export function SitesMap({
                 markers={markers}
                 fitMarkers={markers.length > 0}
                 cluster
+                outline={outline}
                 {...(center ? { center, zoom } : {})}
             />
             {markers.length === 0 ? (

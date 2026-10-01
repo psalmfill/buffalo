@@ -1,5 +1,6 @@
 import type { IncidentListRow } from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
+import type { MapView } from '@/types/dashboard';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CheckCircle2, Plus, Upload } from 'lucide-react';
@@ -83,7 +84,7 @@ type Props = {
         viewOrganizations: boolean;
     };
     options: InformationOptions;
-    overview: { chief: NamedRef | null } | null;
+    overview: { chief: NamedRef | null; map: MapView } | null;
     profile: LgaProfileData | null;
     communities:
         (LgaCommunitiesTab & { institutionMarkers: MapMarker[] }) | null;
@@ -165,7 +166,11 @@ export default function LgaShow(props: Props) {
                 </nav>
 
                 {tab === 'overview' && props.overview && (
-                    <OverviewTab {...props} chief={props.overview.chief} />
+                    <OverviewTab
+                        {...props}
+                        chief={props.overview.chief}
+                        map={props.overview.map}
+                    />
                 )}
                 {tab === 'profile' && props.profile && (
                     <ProfileTab
@@ -283,9 +288,43 @@ function OverviewTab({
     lastReviewed,
     can,
     chief,
-}: Props & { chief: NamedRef | null }) {
+    map,
+}: Props & { chief: NamedRef | null; map: MapView }) {
     return (
         <div className="grid gap-4 lg:grid-cols-3">
+            <section
+                className="space-y-2 rounded-lg border p-4 lg:col-span-3"
+                aria-label="Boundary"
+            >
+                <h2 className="text-sm font-semibold">Boundary</h2>
+                {map.outline ? (
+                    <BuffaloMap
+                        className="h-72 w-full rounded-lg border"
+                        center={map.center ?? undefined}
+                        zoom={map.zoom}
+                        outline={map.outline}
+                        fitOutline
+                        markers={
+                            map.center
+                                ? [
+                                      {
+                                          id: 'centroid',
+                                          position: map.center,
+                                          title: `${lga.name} (centroid)`,
+                                          popup: 'A point inside the LGA, used to centre maps.',
+                                          color: '#0f766e',
+                                          shape: 'ring',
+                                      },
+                                  ]
+                                : []
+                        }
+                    />
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        No boundary has been imported for this LGA yet.
+                    </p>
+                )}
+            </section>
             <section className="rounded-lg border p-4 lg:col-span-2">
                 <h2 className="mb-3 text-sm font-semibold">Basic facts</h2>
                 <dl className="grid gap-4 sm:grid-cols-2">
@@ -708,6 +747,7 @@ function CommunitiesTab({
                     <BuffaloMap
                         center={data.map.center ?? undefined}
                         zoom={data.map.zoom}
+                        outline={data.map.outline}
                         cluster
                         markers={
                             showInstitutions

@@ -110,6 +110,7 @@ export default function IncidentMap(
                     className="h-[65vh] rounded-lg border"
                     center={map.center ?? undefined}
                     zoom={map.zoom}
+                    outline={map.outline}
                     markers={markers}
                     cluster
                 />
