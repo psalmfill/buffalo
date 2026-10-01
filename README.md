@@ -338,6 +338,35 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - Settings: `config/buffalo.php` → `flashpoints`.
 - **Pages:** Flashpoints & blackspots (list and map coloured by concern), the flashpoint page (overview, assessments, incidents, security notes, history), a Flashpoints section on incidents and a Flashpoints tab on LGAs.
 
+## Threat reports (Phase 6B)
+
+- **What they are:** early warnings of what may be about to happen (a planned attack, a kidnapping, a clash, an expected flood).
+  - Each has a credibility (unconfirmed to confirmed), an urgency (routine, priority, immediate), an expected window and an expiry.
+  - References are `THR/<STATE>/<YEAR>/<5 digits>`, gap-free per state and year.
+  - Never record an informant's identity in a report.
+- **Expiry:** the expected end, otherwise 14 days; at most 90 days ahead.
+  - Active reports past their expiry become `expired` automatically every 15 minutes (`buffalo:expire-threat-reports`).
+  - The creator and the SD/DSD are warned 24 hours before.
+  - Extending needs a comment. Reactivating an expired, mitigated or withdrawn report is for the SD and above.
+- **Status:** mitigated, materialised or withdrawn, each with a note. Materialised needs a linked incident.
+- **Links:** flashpoints, criminal groups (suspected / named in report) and incidents (materialised as / related). A link shows only when both sides are visible.
+- **Incidents:** when an incident is submitted, active threat reports of the same category whose area covers it are recorded as "possibly related". The area is the point and radius, else the community, else the LGA. The time frame runs from the expected start or the report, whichever is earlier, until the later of the expected end and the expiry.
+  - The incident page shows them to viewers who can see the report.
+  - Those who manage the report can mark it materialised in one step.
+- **Notifications:**
+  - **Immediate:** the SD, DSD, LGA chief and national level, critical.
+  - **Priority:** the SD, DSD and LGA chief.
+  - **Routine:** only in the SD/DSD's 07:00 digest (`buffalo:threat-digest`).
+  - **Raised to immediate or confirmed:** as for immediate.
+  - **Materialised:** the creator and SD/DSD, plus national level if the report was immediate.
+  - Payloads carry the reference, type, urgency and LGA only.
+  - Live updates: `states.{ulid}.threats` and `national.threats`.
+- **Pages:** Threat reports (default: active, most urgent first, with a map), the report page (countdown, window, status actions, links, timeline, history), sections on incident pages, a tab on flashpoints, and panels on the dashboards. The sidebar badge counts active immediate threats in reach.
+- **Permissions:**
+  - Every intelligence role may view, record and manage reports; LGA chiefs manage only their own.
+  - Reactivating and deleting are for the DG, DDG and SD.
+  - Settings: `config/buffalo.php` → `threats`.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
