@@ -367,6 +367,38 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - Reactivating and deleting are for the DG, DDG and SD.
   - Settings: `config/buffalo.php` → `threats`.
 
+## Operational map and blackspot suggestions (Phase 6C)
+
+- **Operational map** (Overview → Operational map, `map.view`): every layer the user may see, in one map.
+  - **Incident density:** hexagons with counts.
+  - **Choropleths:** incidents by LGA, or by state for national users, as a count or a rate per 100,000 people.
+  - **Points and areas:** incident points (clustered), flashpoints, threat reports, suggested blackspots, formations, organization sites and communities.
+- **Filters and controls:**
+  - Shared incident filters: dates (default last 90 days), type, category, severity, status.
+  - A legend.
+  - A week-by-week time slider with play.
+  - Layer, filter and view state live in the URL, so views can be shared; each viewer still sees only their own scopes.
+- **Click-through:** clicking a hexagon or an LGA links to the incident list filtered to exactly that area and period. The list gained `hex` and `bbox` filters for this.
+- **How layers are computed:**
+  - On the server (PostGIS), through the viewer's scopes; drafts and invalid reports are never counted.
+  - Aggregated layers are cached in Valkey for 5 minutes. Keys hold a scope signature (role, clearance, jurisdiction, zones, and the user below `secret` clearance), the filters, a snapped tile and the zoom bucket.
+  - Submissions and status changes refresh the affected state's layers; boundary imports refresh all of them.
+  - Settings: `config/buffalo.php` → `map`.
+- **Blackspot suggestions** (Threats & flashpoints → Suggested blackspots, SD, DSD and national users):
+  - **What runs:** a nightly job (`buffalo:suggest-blackspots`, 02:00) clusters each state's counted incidents of the last 180 days (DBSCAN, `eps` 1,000 m, 5 points). "Refresh now" runs it on demand (SD and above).
+  - **What counts:** only clusters that are clearly denser than chance (a Poisson test) and not already covered by an active or monitoring flashpoint.
+  - **Visibility:** counts and incident lists use each viewer's own scopes.
+  - **Accept:** opens the flashpoint form pre-filled and links the incidents.
+  - **Dismiss:** needs a reason, and keeps the area quiet for 90 days.
+  - The State Director is notified of new suggestions daily (counts only).
+  - Settings: `config/buffalo.php` → `blackspots`.
+- **Dashboards:** the maps show aggregated layers only, for the last 30 days:
+  - LGA chiefs: density, flashpoints and active threats.
+  - State: an LGA choropleth, flashpoints and immediate/priority threats.
+  - National: a state choropleth and immediate threats.
+  - Without boundaries the maps fall back to density. Each map links to the operational map with the same view.
+- **Demo data (local only):** `make artisan cmd="buffalo:seed-demo-incidents --hotspot=6.34,3.10 --hotspot-count=20"` adds a tight cluster of demo incidents for the suggestion job to find.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
