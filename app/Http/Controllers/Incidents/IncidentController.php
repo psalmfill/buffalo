@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Incidents;
 
 use App\Actions\Incidents\SaveIncident;
+use App\Enums\AccessAction;
 use App\Enums\IncidentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\EvidencePresenter;
 use App\Http\Presenters\IncidentPresenter;
 use App\Http\Presenters\PersonPresenter;
 use App\Http\Requests\Incidents\IncidentRequest;
@@ -14,12 +16,14 @@ use App\Models\IncidentAgency;
 use App\Models\IncidentCasualty;
 use App\Models\IncidentChild;
 use App\Models\IncidentCriminalGroup;
+use App\Models\IncidentEvidence;
 use App\Models\IncidentPerson;
 use App\Models\IncidentProperty;
 use App\Models\Lga;
 use App\Models\RecordAccessRequest;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Evidence\EvidenceFileInspector;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -38,7 +42,7 @@ use Spatie\Activitylog\Models\Activity;
 class IncidentController extends Controller
 {
     /** Child models whose activity appears in the incident's history. */
-    private const CHILDREN = [IncidentCasualty::class, IncidentPerson::class, IncidentCriminalGroup::class, IncidentAgency::class, IncidentProperty::class];
+    private const CHILDREN = [IncidentCasualty::class, IncidentPerson::class, IncidentCriminalGroup::class, IncidentAgency::class, IncidentProperty::class, IncidentEvidence::class];
 
     /** The user's own drafts (the full list arrives in 5D). */
     public function index(Request $request): Response
@@ -140,7 +144,32 @@ class IncidentController extends Controller
                 ->map(fn (IncidentAgency $a) => IncidentPresenter::agency($a))->values(),
             'properties' => IncidentProperty::query()->with(['propertyType', 'site'])->where('incident_id', $incident->id)->orderBy('id')->get()
                 ->map(fn (IncidentProperty $p) => IncidentPresenter::property($p))->values(),
+            'evidence' => $this->evidence($row, $user),
             'map' => MapView::for($row->lga),
+        ];
+    }
+
+    /**
+     * The evidence items the viewer can see (Phase 5B), each access-logged
+     * as listed on the page, and what they may upload.
+     *
+     * @return array{items: list<array<string, mixed>>, levels: list<array{value: string, label: string}>, extensions: list<string>, max_mb: mixed, can_upload: bool}
+     */
+    private function evidence(Incident $incident, User $user): array
+    {
+        $items = IncidentEvidence::query()->withCoordinates()->with('media')
+            ->where('incident_id', $incident->id)->orderBy('id')->get();
+
+        foreach ($items as $item) {
+            $item->recordAccess(AccessAction::View, 'incident_page');
+        }
+
+        return [
+            'items' => EvidencePresenter::list($items, $user),
+            'levels' => EvidencePresenter::levels($incident, $user),
+            'extensions' => EvidenceFileInspector::EXTENSIONS,
+            'max_mb' => config('buffalo.evidence.max_mb'),
+            'can_upload' => $user->can('upload', [IncidentEvidence::class, $incident]),
         ];
     }
 

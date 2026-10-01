@@ -60,6 +60,28 @@ return [
         'grace_days' => (int) env('BUFFALO_COVERAGE_GRACE_DAYS', 5),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Incident evidence (Phase 5B)
+    |--------------------------------------------------------------------------
+    | Limits in megabytes per evidence type. Keep them within nginx's
+    | client_max_body_size and PHP's upload_max_filesize (100M, docker/).
+    */
+    'evidence' => [
+        'max_mb' => [
+            'image' => (int) env('BUFFALO_EVIDENCE_IMAGE_MB', 25),
+            'document' => (int) env('BUFFALO_EVIDENCE_DOCUMENT_MB', 25),
+            'video' => (int) env('BUFFALO_EVIDENCE_VIDEO_MB', 100),
+            'audio' => (int) env('BUFFALO_EVIDENCE_AUDIO_MB', 50),
+        ],
+        // Files larger than this are verified and processed on the queue;
+        // the item shows "processing" until then.
+        'queue_above_mb' => (int) env('BUFFALO_EVIDENCE_QUEUE_ABOVE_MB', 10),
+        // Image previews (longest side, pixels). EXIF is never kept.
+        'thumb_px' => 300,
+        'preview_px' => 1600,
+    ],
+
     'banner' => [
         'text' => env('BUFFALO_BANNER_TEXT'),
         'level' => env('BUFFALO_BANNER_LEVEL', 'info'),

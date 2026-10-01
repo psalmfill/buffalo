@@ -3,6 +3,7 @@
 
 import type { ClassificationLevel } from '@/types/auth';
 import type { DetailValues, FieldDefinition } from '@/types/dynamic-fields';
+import type { EvidenceProps } from '@/types/evidence';
 import type { AgencyRef } from '@/types/formations';
 import type { NamedRef, Option } from '@/types/local-government';
 
@@ -119,4 +120,5 @@ export type IncidentRecord = {
     groups: IncidentGroupRow[];
     agencies: IncidentAgencyRow[];
     properties: IncidentPropertyRow[];
+    evidence: EvidenceProps;
 };

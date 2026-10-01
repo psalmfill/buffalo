@@ -36,11 +36,15 @@ return [
 
     'conversions_disk_name' => 'evidence',
 
-    'max_file_size' => 1024 * 1024 * 10, // 10 MB
+    // The largest evidence file (video, 100 MB; Phase 5B). Each upload is
+    // also limited by its own rule (person photos 10 MB, evidence per type).
+    'max_file_size' => 1024 * 1024 * 100,
 
     'disallowed_extensions' => FileAdder::$defaultDisallowedExtensions,
 
-    'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp'],
+    // Stored names are generated (photo.jpg, original.pdf...); these are the
+    // extensions of person photos and of evidence (EvidenceFileInspector).
+    'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'docx', 'xlsx', 'txt', 'mp4', 'm4v', 'webm', 'mp3', 'm4a', 'ogg', 'oga', 'opus', 'wav'],
 
     // Conversions (thumbnail, preview) are generated on the queue, after
     // the transaction that added the media commits.

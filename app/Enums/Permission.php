@@ -91,4 +91,10 @@ enum Permission: string
     case IncidentsView = 'incidents.view';
     case IncidentsCreate = 'incidents.create';
     case IncidentsUpdate = 'incidents.update';
+
+    // Incident evidence (Phase 5B).
+    case EvidenceUpload = 'evidence.upload';
+    case EvidenceDownloadOriginal = 'evidence.download_original';
+    case EvidenceVerify = 'evidence.verify';
+    case EvidenceDelete = 'evidence.delete';
 }

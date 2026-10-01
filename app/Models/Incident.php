@@ -227,4 +227,12 @@ class Incident extends Model implements Classified, JurisdictionScoped
     {
         return $this->hasMany(IncidentProperty::class);
     }
+
+    /**
+     * @return HasMany<IncidentEvidence, $this>
+     */
+    public function evidence(): HasMany
+    {
+        return $this->hasMany(IncidentEvidence::class);
+    }
 }

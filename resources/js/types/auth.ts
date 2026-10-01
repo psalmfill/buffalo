@@ -59,6 +59,10 @@ export const PERMISSIONS = [
     'incidents.view',
     'incidents.create',
     'incidents.update',
+    'evidence.upload',
+    'evidence.download_original',
+    'evidence.verify',
+    'evidence.delete',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

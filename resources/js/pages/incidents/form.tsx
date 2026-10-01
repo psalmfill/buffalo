@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import DynamicFields from '@/components/dynamic-fields/dynamic-fields';
+import EvidenceSection from '@/components/evidence/evidence-section';
 import CasualtiesEditor from '@/components/incidents/casualties-editor';
 import type { CasualtyInput } from '@/components/incidents/casualties-editor';
 import { Field } from '@/components/incidents/editor-parts';
@@ -672,6 +673,20 @@ export default function IncidentForm(props: Props) {
                     </Button>
                 </div>
             </form>
+            <div className="max-w-5xl p-4 pt-0">
+                {editing && props.evidence ? (
+                    <EvidenceSection
+                        evidence={props.evidence}
+                        incidentUlid={incident.ulid}
+                        incidentLevel={incident.classification.value}
+                    />
+                ) : (
+                    <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                        Save the draft to add evidence (photos, documents, video
+                        or audio).
+                    </p>
+                )}
+            </div>
         </>
     );
 }

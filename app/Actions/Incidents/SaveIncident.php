@@ -2,6 +2,7 @@
 
 namespace App\Actions\Incidents;
 
+use App\Actions\Evidence\RaiseEvidenceClassification;
 use App\Models\Incident;
 use App\Models\IncidentAgency;
 use App\Models\IncidentCasualty;
@@ -23,6 +24,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class SaveIncident
 {
+    public function __construct(private readonly RaiseEvidenceClassification $raiseEvidence) {}
+
     /** @var array<string, class-string<IncidentChild>> */
     private const CHILDREN = [
         'casualties' => IncidentCasualty::class,
@@ -71,6 +74,11 @@ final class SaveIncident
             }
 
             $incident->forceFill($attributes);
+
+            // Evidence is never below its incident: raise it first (5B).
+            if ($incident->isDirty('classification')) {
+                ($this->raiseEvidence)($incident, $incident->classificationLevel(), $actor);
+            }
 
             if ($incident->isDirty()) {
                 $incident->forceFill(['updated_by' => $actor->id])->save();

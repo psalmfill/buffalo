@@ -5,6 +5,7 @@ import IncidentController from '@/actions/App/Http/Controllers/Incidents/Inciden
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import DynamicFieldsView from '@/components/dynamic-fields/dynamic-fields-view';
+import EvidenceSection from '@/components/evidence/evidence-section';
 import BuffaloMap from '@/components/map/BuffaloMap';
 import Pagination from '@/components/pagination';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +39,7 @@ export default function IncidentShow({
     groups,
     agencies,
     properties,
+    evidence,
     tab,
     history,
     map,
@@ -379,6 +381,11 @@ export default function IncidentShow({
                                     </ul>
                                 )}
                             </Section>
+                            <EvidenceSection
+                                evidence={evidence}
+                                incidentUlid={incident.ulid}
+                                incidentLevel={incident.classification.value}
+                            />
                         </div>
                         <BuffaloMap
                             className="h-80"

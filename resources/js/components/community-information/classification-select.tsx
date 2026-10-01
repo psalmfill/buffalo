@@ -27,20 +27,28 @@ export function assignableLevels(
 }
 
 /**
- * Offers only the levels the signed-in user may assign. The server checks
- * again (SecurityNoteRequest).
+ * Offers only the levels the signed-in user may assign, and none below
+ * `minimum` when given (evidence is never below its incident). The server
+ * checks again.
  */
 export default function ClassificationSelect({
     id = 'classification',
     value,
     onChange,
+    minimum,
 }: {
     id?: string;
     value: ClassificationLevel;
     onChange: (level: ClassificationLevel) => void;
+    minimum?: ClassificationLevel;
 }) {
     const user = useCurrentUser();
-    const levels = assignableLevels(user.maxClassification);
+    const levels = assignableLevels(user.maxClassification).filter(
+        (level) =>
+            minimum === undefined ||
+            CLASSIFICATION_LEVELS.indexOf(level) >=
+                CLASSIFICATION_LEVELS.indexOf(minimum),
+    );
     // A record above the user's level (they created it) keeps showing it.
     const options = levels.includes(value) ? levels : [...levels, value];
 

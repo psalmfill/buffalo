@@ -70,6 +70,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.view',
         'incidents.create',
         'incidents.update',
+        'evidence.upload',
+        'evidence.download_original',
+        'evidence.verify',
+        'evidence.delete',
     ],
     deputy_director_general: [
         'users.view',
@@ -113,6 +117,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.view',
         'incidents.create',
         'incidents.update',
+        'evidence.upload',
+        'evidence.download_original',
+        'evidence.verify',
+        'evidence.delete',
     ],
     state_director: [
         'users.view',
@@ -160,6 +168,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.view',
         'incidents.create',
         'incidents.update',
+        'evidence.upload',
+        'evidence.download_original',
+        'evidence.verify',
+        'evidence.delete',
     ],
     deputy_state_director: [
         'users.view',
@@ -195,6 +207,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.view',
         'incidents.create',
         'incidents.update',
+        'evidence.upload',
+        'evidence.download_original',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -226,6 +240,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'incidents.view',
         'incidents.create',
         'incidents.update',
+        'evidence.upload',
+        'evidence.download_original',
     ],
 };
 

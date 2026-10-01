@@ -228,6 +228,16 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 5B — Incident evidence
+            // ---------------------------------------------------------------
+            'evidence' => [
+                Permission::EvidenceUpload->value => self::INTELLIGENCE_ROLES,
+                Permission::EvidenceDownloadOriginal->value => self::INTELLIGENCE_ROLES,
+                Permission::EvidenceVerify->value => self::DELETE_ROLES,
+                Permission::EvidenceDelete->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [
