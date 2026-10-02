@@ -8,6 +8,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { StateOrganizations } from '@/components/dashboard/organization-figures';
 import { StateCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { KpiTiles, PeriodSelector } from '@/components/dashboard/kpi-tiles';
 import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
 import { StateIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
@@ -23,6 +24,8 @@ import type { StateDashboardProps } from '@/types/dashboard';
 
 /** State Director and Deputy State Director. */
 export default function StateDashboard({
+    period,
+    kpis,
     incidents,
     threatReports,
     sharedWithUs,
@@ -54,6 +57,8 @@ export default function StateDashboard({
                         .filter(Boolean)
                         .join(' · ')}
                 />
+                <PeriodSelector period={period} />
+                <KpiTiles tiles={kpis} />
 
                 {sharedWithUs && <SharedWithUs data={sharedWithUs} />}
                 {threatReports && <StateThreats data={threatReports} />}
@@ -198,7 +203,7 @@ export default function StateDashboard({
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-2">
-                    <DashboardMap view={map} mode="state" />
+                    <DashboardMap view={map} mode="state" days={period.days} />
 
                     <section className="rounded-xl border bg-card">
                         <h2 className="border-b px-4 py-3 text-sm font-medium">

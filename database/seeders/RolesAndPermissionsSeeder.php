@@ -290,6 +290,15 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 7C — Analytics (each area also needs its module's view
+            // permission; cross-jurisdiction needs access_requests.oversee)
+            // ---------------------------------------------------------------
+            'analytics' => [
+                Permission::AnalyticsView->value => self::INTELLIGENCE_ROLES,
+                Permission::AnalyticsExport->value => self::INTELLIGENCE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

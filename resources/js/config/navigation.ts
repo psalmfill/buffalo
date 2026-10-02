@@ -2,6 +2,7 @@ import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
     Building2,
+    ChartLine,
     ClipboardCheck,
     ClipboardList,
     FilePlus2,
@@ -26,6 +27,7 @@ import {
     UserSearch,
     Users,
 } from 'lucide-react';
+import AnalyticsController from '@/actions/App/Http/Controllers/Analytics/AnalyticsController';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
 import DisseminationController from '@/actions/App/Http/Controllers/Disseminations/DisseminationController';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
@@ -85,6 +87,7 @@ export const NAVIGATION: NavSection[] = [
         items: [
             { title: 'Dashboard', icon: LayoutGrid, href: dashboard(), permission: null },
             { title: 'Operational map', icon: Layers, href: MapController.show(), permission: 'map.view' },
+            { title: 'Analytics', icon: ChartLine, href: AnalyticsController.index(), permission: 'analytics.view' },
         ],
     },
     {

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Console\Commands\DisabledCipherSweetGenerateKeyCommand;
 use App\Console\Commands\DisabledCleanActivitylogCommand;
+use App\Enums\Permission;
 use App\Models\RecordDissemination;
 use App\Models\User;
 use App\Policies\DisseminationPolicy;
@@ -145,6 +146,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Global search (Phase 7B): intelligence roles only.
         Gate::define('globalSearch', fn (User $user): bool => GlobalSearch::canSearch($user));
+
+        // Analytics (Phase 7C): each area also needs its module's permission.
+        Gate::define('viewAnalytics', fn (User $user): bool => $user->checkPermissionTo(Permission::AnalyticsView->value));
+        Gate::define('exportAnalytics', fn (User $user): bool => $user->checkPermissionTo(Permission::AnalyticsExport->value));
 
         Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
         Gate::define('viewLoginHistory', fn (User $user): bool => AuditAccess::canViewLoginHistory($user));

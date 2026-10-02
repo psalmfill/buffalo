@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import BarChart from '@/components/charts/bar-chart';
+import { AnalyticsLink } from '@/components/dashboard/kpi-tiles';
 import StatCard from '@/components/dashboard/stat-card';
 import IncidentTable from '@/components/incidents/incident-table';
 import { formatDateTime, timeAgo } from '@/lib/time';
@@ -108,10 +109,13 @@ export function LgaIncidents({ data }: { data: LgaIncidentFigures }) {
                 </Panel>
             )}
             <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-                <Panel title="Incidents in the last 30 days by type">
+                <Panel
+                    title={`Incidents in the last ${data.days} days by type`}
+                    action={<AnalyticsLink tab="incidents" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.byType30}
-                        label="Incidents by type, last 30 days"
+                        rows={data.byType}
+                        label={`Incidents by type, last ${data.days} days`}
                         horizontal
                     />
                 </Panel>
@@ -251,24 +255,33 @@ export function StateIncidents({ data }: { data: StateIncidentFigures }) {
                 </Panel>
             </div>
             <div className="grid gap-4 xl:grid-cols-3">
-                <Panel title="Last 30 days by LGA">
+                <Panel
+                    title={`Last ${data.days} days by LGA`}
+                    action={<AnalyticsLink tab="incidents" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.byLga30}
-                        label="Incidents by LGA, last 30 days"
+                        rows={data.byLga}
+                        label={`Incidents by LGA, last ${data.days} days`}
                         horizontal
                     />
                 </Panel>
-                <Panel title="Last 30 days by type">
+                <Panel
+                    title={`Last ${data.days} days by type`}
+                    action={<AnalyticsLink tab="incidents" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.byType30}
-                        label="Incidents by type, last 30 days"
+                        rows={data.byType}
+                        label={`Incidents by type, last ${data.days} days`}
                         horizontal
                     />
                 </Panel>
-                <Panel title="Casualties, last 30 days">
+                <Panel
+                    title={`Casualties, last ${data.days} days`}
+                    action={<AnalyticsLink tab="casualties" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.casualtiesByOutcome30}
-                        label="People affected by outcome, last 30 days"
+                        rows={data.casualtiesByOutcome}
+                        label={`People affected by outcome, last ${data.days} days`}
                         colour="#b91c1c"
                     />
                 </Panel>
@@ -320,47 +333,65 @@ export function NationalIncidents({ data }: { data: NationalIncidentFigures }) {
                 </div>
             </Panel>
             <div className="grid gap-4 xl:grid-cols-2">
-                <Panel title="Last 30 days by state">
+                <Panel
+                    title={`Last ${data.days} days by state`}
+                    action={<AnalyticsLink tab="incidents" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.byState30}
-                        label="Incidents by state, last 30 days"
+                        rows={data.byState}
+                        label={`Incidents by state, last ${data.days} days`}
                         horizontal
-                        height={Math.max(220, data.byState30.length * 22)}
+                        height={Math.max(220, data.byState.length * 22)}
                     />
                 </Panel>
-                <Panel title="Last 30 days by category">
+                <Panel
+                    title={`Last ${data.days} days by category`}
+                    action={<AnalyticsLink tab="incidents" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.byCategory30}
-                        label="Incidents by category, last 30 days"
+                        rows={data.byCategory}
+                        label={`Incidents by category, last ${data.days} days`}
                         horizontal
                     />
                 </Panel>
             </div>
             <div className="grid gap-4 xl:grid-cols-3">
-                <Panel title="Casualties by outcome, last 30 days">
+                <Panel
+                    title={`Casualties by outcome, last ${data.days} days`}
+                    action={<AnalyticsLink tab="casualties" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.casualtiesByOutcome30}
-                        label="People affected by outcome, last 30 days"
+                        rows={data.casualtiesByOutcome}
+                        label={`People affected by outcome, last ${data.days} days`}
                         colour="#b91c1c"
                     />
                 </Panel>
-                <Panel title="Casualties by group, last 30 days">
+                <Panel
+                    title={`Casualties by group, last ${data.days} days`}
+                    action={<AnalyticsLink tab="casualties" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.casualtiesByGroup30}
-                        label="People affected by group, last 30 days"
+                        rows={data.casualtiesByGroup}
+                        label={`People affected by group, last ${data.days} days`}
                         colour="#7c3aed"
                     />
                 </Panel>
-                <Panel title="Security personnel casualties by agency">
+                <Panel
+                    title="Security personnel casualties by agency"
+                    action={<AnalyticsLink tab="casualties" days={data.days} />}
+                >
                     <BarChart
-                        rows={data.securityCasualtiesByAgency30}
-                        label="Security personnel casualties by agency, last 30 days"
+                        rows={data.securityCasualtiesByAgency}
+                        label={`Security personnel casualties by agency, last ${data.days} days`}
                         colour="#0f766e"
                     />
                 </Panel>
             </div>
             <div className="grid gap-4 xl:grid-cols-[1fr_2fr]">
-                <Panel title="States with overdue verifications">
+                <Panel
+                    title="States with overdue verifications"
+                    action={<AnalyticsLink tab="response" days={data.days} />}
+                >
                     {data.statesOverdue.length === 0 ? (
                         <p className="px-4 py-6 text-sm text-muted-foreground">
                             None.

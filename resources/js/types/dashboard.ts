@@ -43,6 +43,19 @@ export type PlaceholderCardData = {
     href?: string | null;
 };
 
+/** Dashboard period (Phase 7C). */
+export type DashboardPeriod = { days: number; options: number[] };
+
+export type KpiTile = {
+    key: string;
+    label: string;
+    value: number | null;
+    previous: number | null;
+    change_pct: number | null;
+    unit: string | null;
+    href: string;
+};
+
 export type QueueStatus = 'running' | 'paused' | 'inactive';
 
 export type SystemDashboardProps = {
@@ -60,6 +73,8 @@ export type SystemDashboardProps = {
 };
 
 export type NationalDashboardProps = {
+    period: DashboardPeriod;
+    kpis: KpiTile[];
     incidents: NationalIncidentFigures | null;
     threatReports: NationalThreatFigures | null;
     crossBorder: { count: number; rows: CrossBorderItem[] } | null;
@@ -86,6 +101,8 @@ export type NationalDashboardProps = {
 };
 
 export type StateDashboardProps = {
+    period: DashboardPeriod;
+    kpis: KpiTile[];
     incidents: StateIncidentFigures | null;
     threatReports: StateThreatFigures | null;
     sharedWithUs: { count: number; rows: SharedItem[] } | null;
@@ -122,6 +139,8 @@ export type StateDashboardProps = {
 };
 
 export type LgaDashboardProps = {
+    period: DashboardPeriod;
+    kpis: KpiTile[];
     incidents: LgaIncidentFigures | null;
     threatReports: LgaThreatFigures | null;
     sharedWithUs: { count: number; rows: SharedItem[] } | null;
@@ -154,7 +173,9 @@ export type LgaDashboardProps = {
 type CountRow = { label: string; count: number };
 
 export type LgaIncidentFigures = {
-    byType30: CountRow[];
+    /** The dashboard period (7, 30 or 90 days, Phase 7C). */
+    days: number;
+    byType: CountRow[];
     myOpenByStatus: {
         status: { value: string; label: string };
         count: number;
@@ -169,23 +190,27 @@ export type LgaIncidentFigures = {
 };
 
 export type StateIncidentFigures = {
+    /** The dashboard period (7, 30 or 90 days, Phase 7C). */
+    days: number;
     awaiting: { count: number; overdue: number; rows: IncidentListRow[] };
     criticalHigh: { count: number; rows: IncidentListRow[] };
-    byLga30: CountRow[];
-    byType30: CountRow[];
-    casualtiesByOutcome30: CountRow[];
+    byLga: CountRow[];
+    byType: CountRow[];
+    casualtiesByOutcome: CountRow[];
     escalated: IncidentListRow[];
     channel: string;
 };
 
 export type NationalIncidentFigures = {
+    /** The dashboard period (7, 30 or 90 days, Phase 7C). */
+    days: number;
     escalatedUnacknowledged: { count: number; rows: IncidentListRow[] };
     critical7: { count: number; rows: IncidentListRow[] };
-    byState30: CountRow[];
-    byCategory30: CountRow[];
-    casualtiesByOutcome30: CountRow[];
-    casualtiesByGroup30: CountRow[];
-    securityCasualtiesByAgency30: CountRow[];
+    byState: CountRow[];
+    byCategory: CountRow[];
+    casualtiesByOutcome: CountRow[];
+    casualtiesByGroup: CountRow[];
+    securityCasualtiesByAgency: CountRow[];
     statesOverdue: CountRow[];
     channel: string;
 };

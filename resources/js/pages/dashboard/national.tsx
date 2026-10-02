@@ -7,6 +7,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { NationalOrganizations } from '@/components/dashboard/organization-figures';
 import { NationalCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { KpiTiles, PeriodSelector } from '@/components/dashboard/kpi-tiles';
 import { CrossBorderGaps } from '@/components/dashboard/dissemination-figures';
 import { NationalIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
@@ -23,6 +24,8 @@ import type { NationalDashboardProps } from '@/types/dashboard';
 
 /** Director General and Deputy Director General. */
 export default function NationalDashboard({
+    period,
+    kpis,
     incidents,
     threatReports,
     crossBorder,
@@ -62,6 +65,8 @@ export default function NationalDashboard({
                         </div>
                     )}
                 </DashboardHeader>
+                <PeriodSelector period={period} />
+                <KpiTiles tiles={kpis} />
 
                 {threatReports && (
                     <NationalImmediateThreats data={threatReports} />
@@ -153,7 +158,11 @@ export default function NationalDashboard({
                 </section>
 
                 <div className="grid gap-4 xl:grid-cols-2">
-                    <DashboardMap view={map} mode="national" />
+                    <DashboardMap
+                        view={map}
+                        mode="national"
+                        days={period.days}
+                    />
                     <section className="rounded-xl border bg-card">
                         <h2 className="border-b px-4 py-3 text-sm font-medium">
                             LGA profile completeness by state (lowest first)

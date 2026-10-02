@@ -175,6 +175,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Analytics (Phase 7C)
+    |--------------------------------------------------------------------------
+    | Incident type codes counted as kidnapping for "abducted versus
+    | rescued". Incident-based areas are cached like the map layers
+    | (buffalo.map.cache_seconds, per scope signature).
+    */
+    'analytics' => [
+        'kidnapping_type_codes' => array_values(array_filter(explode(',', (string) env('BUFFALO_ANALYTICS_KIDNAPPING_CODES', 'kidnapping')))),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Global search (Phase 7B)
     |--------------------------------------------------------------------------
     | Results per type in the header (quick) view, per page and in all in

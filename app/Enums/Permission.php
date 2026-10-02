@@ -131,4 +131,8 @@ enum Permission: string
     case DisseminationsCreate = 'disseminations.create';
     case DisseminationsRequest = 'disseminations.request';
     case DisseminationsRevoke = 'disseminations.revoke';
+
+    // Analytics (Phase 7C).
+    case AnalyticsView = 'analytics.view';
+    case AnalyticsExport = 'analytics.export';
 }

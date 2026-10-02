@@ -18,6 +18,7 @@ use App\Models\VulnerablePopulationStat;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
+use App\Support\Dashboard\DashboardKpis;
 use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
@@ -42,7 +43,7 @@ final class BuildStateDashboard
     /**
      * @return array<string, mixed>
      */
-    public function __invoke(User $user): array
+    public function __invoke(User $user, int $days = 30): array
     {
         /** @var State $state */
         $state = $user->state;
@@ -95,7 +96,10 @@ final class BuildStateDashboard
             'organizations' => app(OrganizationFigures::class)->forState($user, $state),
             'coverage' => app(CoverageFigures::class)->forState($user, $state, $lgas),
             'map' => MapView::for($state),
-            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forState($user, $state) : null,
+            // Dashboard period and KPI tiles (Phase 7C).
+            'period' => ['days' => $days, 'options' => DashboardKpis::PERIODS],
+            'kpis' => app(DashboardKpis::class)->for($user, $days),
+            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forState($user, $state, $days) : null,
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forState($state) : null,
             // Dissemination (Phase 7A).

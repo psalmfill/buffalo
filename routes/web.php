@@ -44,3 +44,4 @@ require __DIR__.'/threats.php';
 require __DIR__.'/map.php';
 require __DIR__.'/disseminations.php';
 require __DIR__.'/search.php';
+require __DIR__.'/analytics.php';

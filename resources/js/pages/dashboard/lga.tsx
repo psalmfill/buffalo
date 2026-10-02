@@ -5,6 +5,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { LgaOrganizations } from '@/components/dashboard/organization-figures';
 import { LgaCoverage } from '@/components/dashboard/coverage-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
+import { KpiTiles, PeriodSelector } from '@/components/dashboard/kpi-tiles';
 import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
 import { LgaIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
@@ -28,6 +29,8 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 
 /** LGA Security Chief. */
 export default function LgaDashboard({
+    period,
+    kpis,
     incidents,
     threatReports,
     sharedWithUs,
@@ -46,6 +49,8 @@ export default function LgaDashboard({
             <Head title="Dashboard" />
             <div className="flex flex-col gap-6 p-4">
                 <DashboardHeader title={lga.label} subtitle={lga.state} />
+                <PeriodSelector period={period} />
+                <KpiTiles tiles={kpis} />
 
                 {sharedWithUs && <SharedWithUs data={sharedWithUs} />}
                 {threatReports && <LgaThreats data={threatReports} />}
@@ -157,7 +162,11 @@ export default function LgaDashboard({
                         </dl>
                     </section>
                     <div className="xl:col-span-2">
-                        <DashboardMap view={map} mode="lga" />
+                        <DashboardMap
+                            view={map}
+                            mode="lga"
+                            days={period.days}
+                        />
                     </div>
                 </div>
             </div>

@@ -209,7 +209,7 @@ test('LGA chief dashboard figures', function () {
     $d = dashboard($this->chief);
 
     // Robbery and the returned report (both mine, A1a); no secret, invalid or draft.
-    expect(collect($d['byType30'])->sum('count'))->toBe(2)
+    expect(collect($d['byType'])->sum('count'))->toBe(2)
         ->and(collect($d['myOpenByStatus'])->firstWhere('status.value', 'submitted')['count'])->toBe(1)
         ->and(collect($d['myOpenByStatus'])->firstWhere('status.value', 'returned')['count'])->toBe(1)
         ->and(array_column($d['returned'], 'title'))->toBe(['Returned to me'])
@@ -228,9 +228,9 @@ test('state dashboard figures follow clearance and exclude drafts and invalid re
         // Open critical or high: robbery, critical attack, secret matter and the returned report.
         ->and($sd['criticalHigh']['count'])->toBe(4)
         ->and($dsd['criticalHigh']['count'])->toBe(3)
-        ->and(collect($sd['byLga30'])->sum('count'))->toBe(4)
-        ->and(collect($sd['casualtiesByOutcome30'])->firstWhere('label', 'Killed')['count'])->toBe(2)
-        ->and(collect($sd['casualtiesByOutcome30'])->firstWhere('label', 'Abducted')['count'])->toBe(4)
+        ->and(collect($sd['byLga'])->sum('count'))->toBe(4)
+        ->and(collect($sd['casualtiesByOutcome'])->firstWhere('label', 'Killed')['count'])->toBe(2)
+        ->and(collect($sd['casualtiesByOutcome'])->firstWhere('label', 'Abducted')['count'])->toBe(4)
         ->and(array_column($sd['escalated'], 'title'))->toBe(['Critical attack'])
         // Phase 6C: dashboards carry no raw incident points (aggregated map layers instead).
         ->and($sd)->not->toHaveKey('map7')
@@ -248,11 +248,11 @@ test('national dashboard figures, nationally and for a zonal DDG', function () {
         ->and($dg['escalatedUnacknowledged']['count'])->toBe(1)
         ->and(array_column($dg['critical7']['rows'], 'title'))->toEqualCanonicalizing(['Critical attack', 'Secret matter'])
         ->and($dg['critical7']['count'])->toBe(2)
-        ->and(collect($dg['byState30'])->sum('count'))->toBe(5)
-        ->and(collect($dg['casualtiesByGroup30'])->firstWhere('label', 'Security personnel')['count'])->toBe(1)
-        ->and($dg['securityCasualtiesByAgency30'])->toBe([['label' => 'NPF', 'count' => 1]])
+        ->and(collect($dg['byState'])->sum('count'))->toBe(5)
+        ->and(collect($dg['casualtiesByGroup'])->firstWhere('label', 'Security personnel')['count'])->toBe(1)
+        ->and($dg['securityCasualtiesByAgency'])->toBe([['label' => 'NPF', 'count' => 1]])
         ->and(collect($dg['statesOverdue'])->sum('count'))->toBeGreaterThan(0)
-        ->and(collect($zoneB['byState30'])->pluck('label')->all())->toBe([$this->world->states['B1']->name])
+        ->and(collect($zoneB['byState'])->pluck('label')->all())->toBe([$this->world->states['B1']->name])
         ->and($zoneB['escalatedUnacknowledged']['count'])->toBe(0);
 });
 

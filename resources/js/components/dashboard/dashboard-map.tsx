@@ -17,7 +17,7 @@ import type { MapView } from '@/types/dashboard';
 
 type Mode = 'lga' | 'state' | 'national';
 
-/** What each dashboard shows (Phase 6C): aggregated layers only, last 30 days. */
+/** What each dashboard shows (Phase 6C): aggregated layers only, for the dashboard period (Phase 7C). */
 const SETUP: Record<Mode, { area: LayerKey; urgencies: string[] }> = {
     lga: { area: 'density', urgencies: [] },
     state: { area: 'lga_choropleth', urgencies: ['immediate', 'priority'] },
@@ -47,12 +47,15 @@ function lastDays(days: number): IncidentLayerFilters {
 export default function DashboardMap({
     view,
     mode,
+    days = 30,
 }: {
     view: MapView;
     mode: Mode;
+    /** The dashboard period (7, 30 or 90 days). */
+    days?: number;
 }) {
     const setup = SETUP[mode];
-    const [filters] = useState(() => lastDays(30));
+    const filters = useMemo(() => lastDays(days), [days]);
     const [current, setCurrent] = useState<MapViewChange | null>(null);
     const [area, setArea] = useState<LayerKey>(setup.area);
     const [data, setData] = useState<Partial<Record<LayerKey, LayerResponse>>>(
@@ -133,8 +136,8 @@ export default function DashboardMap({
             />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                    Incidents in the last 30 days (aggregated), flashpoints and
-                    active threats.
+                    Incidents in the last {days} days (aggregated), flashpoints
+                    and active threats.
                 </span>
                 <Link
                     href={operationalMapUrl({

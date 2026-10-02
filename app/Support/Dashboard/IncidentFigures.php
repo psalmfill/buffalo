@@ -29,12 +29,12 @@ final class IncidentFigures
     private const OPEN = ['submitted', 'returned', 'verified', 'under_investigation'];
 
     /** @return array<string, mixed> */
-    public function forLga(User $user, Lga $lga): array
+    public function forLga(User $user, Lga $lga, int $days = 30): array
     {
         $mine = fn (Builder $q) => $q->where(fn (Builder $w) => $w->where('incidents.reporting_officer_id', $user->id)->orWhere('incidents.created_by', $user->id));
 
         return [
-            'byType30' => $this->countBy($this->since(30)->where('incidents.lga_id', $lga->id), 'type'),
+            'byType' => $this->countBy($this->since($days)->where('incidents.lga_id', $lga->id), 'type'),
             'myOpenByStatus' => $this->statusCounts($mine($this->counted())->whereIn('incidents.status', self::OPEN)),
             'returned' => IncidentRows::present($this->counted()->tap($mine)->where('incidents.status', IncidentStatus::Returned->value)
                 ->with(['type', 'lga', 'state'])->latest('returned_at')->limit(10)->get()),
@@ -46,12 +46,13 @@ final class IncidentFigures
             ],
             'latest' => IncidentRows::present($this->counted()->where('incidents.lga_id', $lga->id)->with(['type', 'lga', 'state'])
                 ->orderByDesc('incidents.occurred_at')->limit(5)->get()),
+            'days' => $days,
             'channel' => 'states.'.$lga->state->ulid.'.incidents',
         ];
     }
 
     /** @return array<string, mixed> */
-    public function forState(User $user, State $state): array
+    public function forState(User $user, State $state, int $days = 30): array
     {
         $inState = fn () => $this->counted()->where('incidents.state_id', $state->id);
         $awaiting = $inState()->where('incidents.status', IncidentStatus::Submitted->value);
@@ -75,17 +76,18 @@ final class IncidentFigures
                 'rows' => IncidentRows::present($inState()->whereIn('incidents.severity', ['critical', 'high'])->whereIn('incidents.status', self::OPEN)
                     ->with(['type', 'lga', 'state'])->orderByRaw("CASE incidents.severity WHEN 'critical' THEN 0 ELSE 1 END")->orderByDesc('incidents.occurred_at')->limit(10)->get()),
             ],
-            'byLga30' => $this->countBy($this->since(30)->where('incidents.state_id', $state->id), 'lga'),
-            'byType30' => $this->countBy($this->since(30)->where('incidents.state_id', $state->id), 'type'),
-            'casualtiesByOutcome30' => $this->casualtiesBy($this->since(30)->where('incidents.state_id', $state->id), 'outcome'),
+            'byLga' => $this->countBy($this->since($days)->where('incidents.state_id', $state->id), 'lga'),
+            'byType' => $this->countBy($this->since($days)->where('incidents.state_id', $state->id), 'type'),
+            'casualtiesByOutcome' => $this->casualtiesBy($this->since($days)->where('incidents.state_id', $state->id), 'outcome'),
             'escalated' => IncidentRows::present($inState()->whereNotNull('incidents.escalated_at')->whereIn('incidents.status', self::OPEN)
                 ->with(['type', 'lga', 'state'])->orderByDesc('incidents.escalated_at')->limit(10)->get()),
+            'days' => $days,
             'channel' => 'states.'.$state->ulid.'.incidents',
         ];
     }
 
     /** @return array<string, mixed> */
-    public function national(User $user): array
+    public function national(User $user, int $days = 30): array
     {
         $overdue = $this->counted();
         IncidentFilters::overdue($overdue);
@@ -101,15 +103,16 @@ final class IncidentFigures
                 'count' => $critical7()->count(),
                 'rows' => IncidentRows::present($critical7()->with(['type', 'lga', 'state'])->orderByDesc('incidents.occurred_at')->limit(15)->get()),
             ],
-            'byState30' => $this->countBy($this->since(30), 'state'),
-            'byCategory30' => $this->countBy($this->since(30), 'category'),
-            'casualtiesByOutcome30' => $this->casualtiesBy($this->since(30), 'outcome'),
-            'casualtiesByGroup30' => $this->casualtiesBy($this->since(30), 'group'),
-            'securityCasualtiesByAgency30' => $this->securityByAgency($this->since(30)),
+            'byState' => $this->countBy($this->since($days), 'state'),
+            'byCategory' => $this->countBy($this->since($days), 'category'),
+            'casualtiesByOutcome' => $this->casualtiesBy($this->since($days), 'outcome'),
+            'casualtiesByGroup' => $this->casualtiesBy($this->since($days), 'group'),
+            'securityCasualtiesByAgency' => $this->securityByAgency($this->since($days)),
             'statesOverdue' => $overdue->join('states', 'states.id', '=', 'incidents.state_id')
                 ->groupBy('states.name')->orderByRaw('COUNT(*) DESC')
                 ->get([DB::raw('states.name AS label'), DB::raw('COUNT(*) AS count')])
                 ->map(fn (Incident $r) => ['label' => (string) $r->getAttribute('label'), 'count' => (int) $r->getAttribute('count')])->values(),
+            'days' => $days,
             'channel' => 'national.incidents',
         ];
     }

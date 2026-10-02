@@ -15,6 +15,7 @@ use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
+use App\Support\Dashboard\DashboardKpis;
 use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
@@ -42,7 +43,7 @@ final class BuildNationalDashboard
     /**
      * @return array<string, mixed>
      */
-    public function __invoke(User $user): array
+    public function __invoke(User $user, int $days = 30): array
     {
         $restriction = $this->rules->restrictionFor($user, visibleToSuperAdmin: false);
 
@@ -72,7 +73,10 @@ final class BuildNationalDashboard
             'organizations' => app(OrganizationFigures::class)->national($user, (clone $states)->orderBy('name')->get()),
             'coverage' => app(CoverageFigures::class)->national($user, (clone $states)->orderBy('name')->get()),
             'map' => MapView::for(null),
-            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->national($user) : null,
+            // Dashboard period and KPI tiles (Phase 7C).
+            'period' => ['days' => $days, 'options' => DashboardKpis::PERIODS],
+            'kpis' => app(DashboardKpis::class)->for($user, $days),
+            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->national($user, $days) : null,
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->national() : null,
             // Dissemination (Phase 7A).

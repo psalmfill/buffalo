@@ -148,8 +148,8 @@ final class IncidentLayers
                 ->pluck('n', 'place');
 
             $population = $level === 'lga'
-                ? 'COALESCE((SELECT population_estimate FROM lga_profiles WHERE lga_profiles.lga_id = p.id), p.population_estimate)'
-                : '(SELECT sum(COALESCE((SELECT population_estimate FROM lga_profiles WHERE lga_profiles.lga_id = l.id), l.population_estimate)) FROM lgas l WHERE l.state_id = p.id)';
+                ? 'p.population_estimate'
+                : '(SELECT sum(l.population_estimate) FROM lgas l WHERE l.state_id = p.id)';
 
             $places = DB::table("{$table} AS p")
                 ->leftJoin('boundary_simplified AS b', fn ($j) => $j->on('b.place_id', '=', 'p.id')->where('b.place_type', $level)->where('b.zoom', $bucket->boundaryZoom()))

@@ -87,6 +87,8 @@ export const PERMISSIONS = [
     'disseminations.create',
     'disseminations.request',
     'disseminations.revoke',
+    'analytics.view',
+    'analytics.export',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

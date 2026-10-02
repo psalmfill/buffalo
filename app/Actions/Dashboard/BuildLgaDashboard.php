@@ -14,6 +14,7 @@ use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
 use App\Support\Dashboard\CoverageFigures;
+use App\Support\Dashboard\DashboardKpis;
 use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
@@ -34,7 +35,7 @@ final class BuildLgaDashboard
     /**
      * @return array<string, mixed>
      */
-    public function __invoke(User $user): array
+    public function __invoke(User $user, int $days = 30): array
     {
         /** @var Lga $lga */
         $lga = $user->lga;
@@ -65,7 +66,10 @@ final class BuildLgaDashboard
             'organizations' => app(OrganizationFigures::class)->forLga($user, $lga),
             'coverage' => app(CoverageFigures::class)->forLga($user, $lga),
             'map' => MapView::for($lga),
-            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forLga($user, $lga) : null,
+            // Dashboard period and KPI tiles (Phase 7C).
+            'period' => ['days' => $days, 'options' => DashboardKpis::PERIODS],
+            'kpis' => app(DashboardKpis::class)->for($user, $days),
+            'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forLga($user, $lga, $days) : null,
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forLga($lga) : null,
             // Dissemination (Phase 7A).
