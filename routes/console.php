@@ -39,3 +39,7 @@ Schedule::command('buffalo:incident-verification-reminders')->everyFiveMinutes()
 // Reports (Phase 7D): scheduled runs, and deleting expired files.
 Schedule::command('buffalo:run-report-schedules')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('buffalo:expire-reports')->hourly();
+
+// Audit integrity (Phase 8A): verify the hash chains, then anchor their heads.
+Schedule::command('buffalo:audit:verify')->dailyAt('02:30')->withoutOverlapping();
+Schedule::command('buffalo:audit:anchor')->dailyAt('02:45');
