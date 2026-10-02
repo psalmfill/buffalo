@@ -30,7 +30,8 @@ make setup
 4. Generates the application key.
 5. Generates the Wayfinder route helpers.
 6. Starts the stack and waits for it to be healthy.
-7. Runs the migrations and the seeders: roles and permissions, zones and states, and the hierarchy (the owner-supplied files if present; otherwise, only when `APP_ENV=local`, synthetic LGAs for Lagos and Kano). The seeders never create accounts and are safe to run again.
+7. Creates the database roles (`buffalo:db:provision-roles`, idempotent; see "Database roles and security" below).
+8. Runs the migrations (as `buffalo_owner`) and the seeders: roles and permissions, zones and states, and the hierarchy (the owner-supplied files if present; otherwise, only when `APP_ENV=local`, synthetic LGAs for Lagos and Kano). The seeders never create accounts and are safe to run again.
 
 Then create the first super admin (interactive; the password is prompted and hidden):
 
@@ -514,6 +515,31 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - schedules of inactive or locked owners are paused.
 - **Live status:** `report.updated` on `users.{ulid}` (payload: run ULID and status only).
 - **Settings:** `config/buffalo.php` → `reports` (`GOTENBERG_URL`, expiry days, row limit, confirmation threshold, requests per minute, queue connection).
+
+## Database roles and security (Phase 8A)
+
+- **Database roles:**
+  - `buffalo_owner` owns every table and runs migrations: the `pgsql_migrations` connection, which `migrate*`, `db:wipe` and `schema:dump` use automatically.
+  - `buffalo_app` is the application's role: no schema changes, no TRUNCATE, no trigger changes, and only SELECT/INSERT on the append-only audit tables.
+  - `buffalo_readonly` has SELECT only.
+  - The PostgreSQL superuser (`DB_ADMIN_*`) only creates roles, extensions and databases.
+  - New volumes get the roles from `docker/postgres/init/03-roles.sh`; existing databases from `make artisan cmd="buffalo:db:provision-roles --database=buffalo --database=buffalo_test"`.
+  - The test suite runs as `buffalo_app`.
+- **Secrets:** every secret can be an environment variable or a file (`NAME_FILE=/run/secrets/...`). In production, containers refuse to start unless `buffalo:secrets:check` passes and the running keys match the database (`buffalo:keys:verify`). See `docs/security/secrets.md`.
+- **Valkey** requires a password:
+  - the default user is off;
+  - the application user (`REDIS_USERNAME`, `REDIS_PASSWORD`) cannot FLUSHALL, FLUSHDB, CONFIG, KEYS or DEBUG;
+  - `cache:clear` needs the admin user (`VALKEY_ADMIN_PASSWORD`).
+- **Keys:**
+  - SHA-256 fingerprints of `APP_KEY` and `CIPHERSWEET_KEY` are stored in `key_fingerprints`, never the keys.
+  - Commands: `buffalo:keys:verify`, `buffalo:keys:fingerprint <key> < file`, `buffalo:keys:rotate-app-key`, `buffalo:keys:rotate-ciphersweet` (resumable, in maintenance mode), and `buffalo:keys:retire` (lost key).
+  - Escrow and rotation procedures: `docs/security/key-management.md`.
+- **Audit integrity:**
+  - The append-only audit tables are hash-chained by a database trigger (`chain_seq`, `prev_hash`, `row_hash`).
+  - `buffalo:audit:verify [--table=] [--since=]` (nightly 02:30) reports the first broken link and notifies super admins and the DG.
+  - `buffalo:audit:anchor` (nightly 02:45) records each chain's head in `audit_anchors`, for copying to an external record.
+- **Retention:** nothing is deleted until the client sets periods (`config/buffalo.php` → `retention`, all `null`). `buffalo:retention:report` shows rows and sizes by year. See `docs/security/retention.md`.
+- **Sign-out:** clears Inertia's cache and encrypted history, recent searches and session storage. Signed-in pages are sent with `Cache-Control: no-store`.
 
 ## Audit and notifications
 
