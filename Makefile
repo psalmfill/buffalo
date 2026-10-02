@@ -29,6 +29,7 @@ setup: ## First-time setup: .env, images, dependencies, app key, migrations, see
 	@grep -Eq '^CIPHERSWEET_KEY=.+' .env || $(PHP_ND) php artisan buffalo:encryption-key --no-interaction
 	$(MAKE) wayfinder
 	$(COMPOSE) up -d --wait
+	$(COMPOSE) exec app php artisan buffalo:db:provision-roles --database=buffalo --database=buffalo_test
 	$(COMPOSE) exec app php artisan migrate --force
 	$(COMPOSE) exec app php artisan db:seed --force
 	@echo ""
@@ -63,7 +64,7 @@ fix: ## Apply Pint and Prettier fixes
 	$(PHP_ND) vendor/bin/pint
 	$(NODE) npm run format
 
-fresh: ## Drop all tables, re-run migrations and seeders
+fresh: ## Drop all tables, re-run migrations (as buffalo_owner) and seeders
 	$(COMPOSE) exec app php artisan migrate:fresh --seed
 
 logs: ## Follow container logs

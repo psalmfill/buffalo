@@ -158,8 +158,9 @@ class SeedDemoIncidents extends Command
 
         $bar->finish();
         $this->newLine();
-        DB::statement('ANALYZE incidents');
-        DB::statement('ANALYZE incident_casualties');
+        // ANALYZE needs the owner role (Phase 8A).
+        DB::connection('pgsql_migrations')->statement('ANALYZE incidents');
+        DB::connection('pgsql_migrations')->statement('ANALYZE incident_casualties');
         $this->components->info("{$count} demo incidents added.");
 
         return self::SUCCESS;
@@ -226,13 +227,25 @@ class SeedDemoIncidents extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * Hard-deletes demo incidents past their locks, so it needs the
+     * superuser connection (Phase 8A: the application role cannot bypass
+     * triggers). Development only.
+     */
     private function purge(): int
     {
-        DB::transaction(function (): void {
-            DB::statement("SET LOCAL session_replication_role = 'replica'");
-            $ids = DB::table('incidents')->where('title', 'like', '[Demo]%')->select('id');
-            DB::table('incident_casualties')->whereIn('incident_id', $ids)->delete();
-            $deleted = DB::table('incidents')->where('title', 'like', '[Demo]%')->delete();
+        if (app()->isProduction()) {
+            $this->components->error('Demo data cannot be purged in production.');
+
+            return self::FAILURE;
+        }
+
+        $admin = DB::connection('pgsql_admin');
+        $admin->transaction(function () use ($admin): void {
+            $admin->statement("SET LOCAL session_replication_role = 'replica'");
+            $ids = $admin->table('incidents')->where('title', 'like', '[Demo]%')->select('id');
+            $admin->table('incident_casualties')->whereIn('incident_id', $ids)->delete();
+            $deleted = $admin->table('incidents')->where('title', 'like', '[Demo]%')->delete();
             $this->components->info("{$deleted} demo incidents removed.");
         });
 

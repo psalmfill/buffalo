@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\CrossJurisdiction\CrossFixtures;
+use Tests\Support\Database\Statistics;
 use Tests\Support\Jurisdiction\JurisdictionWorld;
 
 beforeEach(function () {
@@ -113,7 +114,7 @@ test('the name search uses the trigram index', function () {
         SELECT lpad(to_hex(g), 26, '0'), 'Company ' || md5(g::text), 'company', ?, 'active', now(), now()
         FROM generate_series(1, 20000) g
     SQL, [$this->sector->id]);
-    DB::statement('ANALYZE organizations');
+    Statistics::analyze('organizations');
 
     $plan = PersonSearch::withThresholds(0.6, 1.0, fn () => collect(DB::select('EXPLAIN '.
         Organization::query()->whereRaw('organizations.search_name % buffalo_search_text(?)', ['Niger Delta Petroleum'])->toRawSql()))

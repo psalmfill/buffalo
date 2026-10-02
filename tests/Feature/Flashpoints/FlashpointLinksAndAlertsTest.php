@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\CrossJurisdiction\CrossFixtures;
+use Tests\Support\Database\Statistics;
 use Tests\Support\Flashpoints\FlashpointFixtures as F;
 use Tests\Support\Incidents\WorkflowFixtures as W;
 use Tests\Support\Jurisdiction\JurisdictionWorld;
@@ -335,7 +336,7 @@ test('area matching uses ST_DWithin on the GIST index', function () {
     foreach (range(1, 30) as $i) {
         F::flashpoint($this->lga, ['name' => "Area {$i}"]);
     }
-    DB::statement('ANALYZE flashpoints');
+    Statistics::analyze('flashpoints');
 
     $plan = DB::transaction(function () use ($incident) {
         // The table is tiny in tests; make the planner show the index path it would use at scale.

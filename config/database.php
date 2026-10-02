@@ -3,6 +3,25 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+$pgsql = [
+    'driver' => 'pgsql',
+    'url' => env('DB_URL'),
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'port' => env('DB_PORT', '5432'),
+    'database' => env('DB_DATABASE', 'laravel'),
+    'username' => env('DB_USERNAME', 'buffalo_app'),
+    'password' => env('DB_PASSWORD', ''),
+    'charset' => env('DB_CHARSET', 'utf8'),
+    'prefix' => '',
+    'prefix_indexes' => true,
+    'search_path' => 'public',
+    'sslmode' => env('DB_SSLMODE', 'prefer'),
+    // The session time zone is the app's (Phase 5A.0), so wall-clock
+    // values written to timestamptz columns are read as Lagos time.
+    // (config('app.timezone') is not yet loaded here: same env var.)
+    'timezone' => env('DB_TIMEZONE', env('APP_TIMEZONE', 'Africa/Lagos')),
+];
+
 return [
 
     /*
@@ -72,23 +91,26 @@ return [
             ]) : [],
         ],
 
-        'pgsql' => [
-            'driver' => 'pgsql',
-            'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => env('DB_CHARSET', 'utf8'),
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
-            // The session time zone is the app's (Phase 5A.0), so wall-clock
-            // values written to timestamptz columns are read as Lagos time.
-            // (config('app.timezone') is not yet loaded here: same env var.)
-            'timezone' => env('DB_TIMEZONE', env('APP_TIMEZONE', 'Africa/Lagos')),
+        // The application connects as buffalo_app (Phase 8A): no superuser,
+        // owns no tables, cannot alter schema or disable triggers, and has
+        // SELECT/INSERT only on append-only audit tables.
+        'pgsql' => $pgsql,
+
+        // Migrations only (Phase 8A): buffalo_owner owns every schema
+        // object. Commands that change the schema use this connection
+        // automatically (MigrationConnection).
+        'pgsql_migrations' => [
+            ...$pgsql,
+            'username' => env('DB_MIGRATIONS_USERNAME', 'buffalo_owner'),
+            'password' => env('DB_MIGRATIONS_PASSWORD', ''),
+        ],
+
+        // The cluster superuser: buffalo:db:provision-roles, development
+        // tools and the database role tests only. Never used by requests.
+        'pgsql_admin' => [
+            ...$pgsql,
+            'username' => env('DB_ADMIN_USERNAME', 'postgres'),
+            'password' => env('DB_ADMIN_PASSWORD', ''),
         ],
 
         'sqlsrv' => [
@@ -118,6 +140,17 @@ return [
     | the migrations on disk haven't actually been run on the database.
     |
     */
+
+    /*
+    | Database roles (Phase 8A). The owner and application roles are the
+    | usernames of the pgsql_migrations and pgsql connections.
+    */
+    'roles' => [
+        'readonly' => [
+            'username' => env('DB_READONLY_USERNAME', 'buffalo_readonly'),
+            'password' => env('DB_READONLY_PASSWORD', ''),
+        ],
+    ],
 
     'migrations' => [
         'table' => 'migrations',

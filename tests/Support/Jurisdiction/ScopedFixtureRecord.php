@@ -26,13 +26,21 @@ class ScopedFixtureRecord extends Model implements JurisdictionScoped
 
     protected $guarded = [];
 
+    /**
+     * Created once per test run as buffalo_owner (Phase 8A: the
+     * application role cannot create tables), outside the test
+     * transaction; migrate:fresh drops it at the start of the next run.
+     * Default privileges give buffalo_app its rows.
+     */
     public static function createTable(): void
     {
-        if (Schema::hasTable('scoped_fixture_records')) {
+        $schema = Schema::connection('pgsql_migrations');
+
+        if ($schema->hasTable('scoped_fixture_records')) {
             return;
         }
 
-        Schema::create('scoped_fixture_records', function (Blueprint $table) {
+        $schema->create('scoped_fixture_records', function (Blueprint $table) {
             $table->id();
             $table->string('label');
             $table->foreignId('state_id')->constrained();

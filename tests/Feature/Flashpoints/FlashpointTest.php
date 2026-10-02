@@ -174,8 +174,8 @@ test('assessments are append-only', function () {
     CrossFixtures::system();
     $id = FlashpointAssessment::query()->sole()->id;
 
-    expect(fn () => DB::transaction(fn () => DB::table('flashpoint_assessments')->where('id', $id)->update(['assessment' => 'Rewritten'])))->toThrow(QueryException::class, 'append-only')
-        ->and(fn () => DB::transaction(fn () => DB::table('flashpoint_assessments')->where('id', $id)->delete()))->toThrow(QueryException::class, 'append-only');
+    expect(fn () => DB::transaction(fn () => DB::table('flashpoint_assessments')->where('id', $id)->update(['assessment' => 'Rewritten'])))->toThrow(QueryException::class, 'permission denied for table flashpoint_assessments')
+        ->and(fn () => DB::transaction(fn () => DB::table('flashpoint_assessments')->where('id', $id)->delete()))->toThrow(QueryException::class, 'permission denied for table flashpoint_assessments');
 });
 
 test('moving a flashpoint to another LGA carries its assessments and links along', function () {

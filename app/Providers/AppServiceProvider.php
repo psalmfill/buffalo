@@ -17,6 +17,7 @@ use App\Services\Search\Providers;
 use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
 use App\Support\CommunityInformation\ReferenceUsageChecks;
+use App\Support\Database\MigrationConnection;
 use App\Support\Flashpoints\ReferenceUsageChecks as FlashpointsReferenceUsageChecks;
 use App\Support\Incidents\ReferenceUsageChecks as IncidentsReferenceUsageChecks;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
@@ -119,6 +120,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureAuthorization();
+        MigrationConnection::register($this->app->make('events'));
     }
 
     /**

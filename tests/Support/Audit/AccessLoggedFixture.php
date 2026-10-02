@@ -19,9 +19,19 @@ class AccessLoggedFixture extends Model
 
     protected $guarded = [];
 
+    /**
+     * Created once per run as buffalo_owner, outside the test transaction
+     * (Phase 8A: the application role cannot create tables).
+     */
     public static function createTable(): void
     {
-        Schema::create('access_logged_fixtures', function (Blueprint $table) {
+        $schema = Schema::connection('pgsql_migrations');
+
+        if ($schema->hasTable('access_logged_fixtures')) {
+            return;
+        }
+
+        $schema->create('access_logged_fixtures', function (Blueprint $table) {
             $table->id();
             $table->string('label');
             $table->timestamps();

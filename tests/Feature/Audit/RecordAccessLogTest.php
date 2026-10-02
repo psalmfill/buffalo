@@ -48,11 +48,11 @@ test('the database rejects updates, deletes and truncation of the record access 
     $this->record->recordAccess();
 
     expect(fn () => DB::transaction(fn () => DB::table('record_access_logs')->update(['action' => 'export'])))
-        ->toThrow(QueryException::class, 'record_access_logs is append-only: UPDATE')
+        ->toThrow(QueryException::class, 'permission denied for table record_access_logs')
         ->and(fn () => DB::transaction(fn () => DB::table('record_access_logs')->delete()))
-        ->toThrow(QueryException::class, 'record_access_logs is append-only: DELETE')
+        ->toThrow(QueryException::class, 'permission denied for table record_access_logs')
         ->and(fn () => DB::transaction(fn () => DB::statement('TRUNCATE record_access_logs')))
-        ->toThrow(QueryException::class, 'record_access_logs is append-only: TRUNCATE');
+        ->toThrow(QueryException::class, 'permission denied for table record_access_logs');
 
     expect(RecordAccessLog::query()->count())->toBe(1);
 });

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
+use Tests\Support\Database\Statistics;
 use Tests\Support\Jurisdiction\JurisdictionWorld;
 use Tests\Support\Persons\PersonFixtures;
 
@@ -391,8 +392,7 @@ test('name search uses the trigram indexes', function () {
         INSERT INTO person_aliases (ulid, person_id, alias, created_at, updated_at)
         SELECT lpad(to_hex(id), 26, '0'), id, 'Alias ' || md5(id::text), now(), now() FROM persons ORDER BY id LIMIT 5000
     SQL);
-    DB::statement('ANALYZE persons');
-    DB::statement('ANALYZE person_aliases');
+    Statistics::analyze('persons', 'person_aliases');
 
     $explain = fn (bool $noSeqScan) => app(JurisdictionContext::class)->actingAs($world->users['director_general'], fn () => PersonSearch::withThresholds(
         PersonSearch::SIMILARITY,

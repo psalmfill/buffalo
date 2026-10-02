@@ -58,8 +58,13 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE:-buffalo}
-      POSTGRES_USER: ${DB_USERNAME:-buffalo}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-buffalo}
+      # The cluster superuser: extensions, databases and roles only (Phase 8A).
+      POSTGRES_USER: ${DB_ADMIN_USERNAME:-buffalo}
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:-buffalo}
+      # Role passwords for docker/postgres/init/03-roles.sh (first start only).
+      BUFFALO_DB_OWNER_PASSWORD: ${DB_MIGRATIONS_PASSWORD:-}
+      BUFFALO_DB_APP_PASSWORD: ${DB_PASSWORD:-}
+      BUFFALO_DB_READONLY_PASSWORD: ${DB_READONLY_PASSWORD:-}
     volumes:
       # PostgreSQL 18+ images keep data under /var/lib/postgresql/<major>/.
       - postgres_data:/var/lib/postgresql

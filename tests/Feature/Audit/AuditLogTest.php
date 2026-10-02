@@ -130,11 +130,11 @@ test('the database rejects updates, deletes and truncation of the activity log',
     AuditLog::event('custom', 'Custom');
 
     expect(fn () => DB::transaction(fn () => DB::table('activity_log')->update(['description' => 'tampered'])))
-        ->toThrow(QueryException::class, 'activity_log is append-only: UPDATE')
+        ->toThrow(QueryException::class, 'permission denied for table activity_log')
         ->and(fn () => DB::transaction(fn () => DB::table('activity_log')->delete()))
-        ->toThrow(QueryException::class, 'activity_log is append-only: DELETE')
+        ->toThrow(QueryException::class, 'permission denied for table activity_log')
         ->and(fn () => DB::transaction(fn () => DB::statement('TRUNCATE activity_log')))
-        ->toThrow(QueryException::class, 'activity_log is append-only: TRUNCATE');
+        ->toThrow(QueryException::class, 'permission denied for table activity_log');
 
     expect(Activity::query()->where('event', 'custom')->count())->toBe(1);
 });

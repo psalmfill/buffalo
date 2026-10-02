@@ -62,7 +62,9 @@ npm run test
 
 step "Prepare test database"
 # CI service containers cannot run docker/postgres/init, so make sure the
-# test database and its extensions exist (idempotent).
+# test database, its extensions and the database roles exist (idempotent).
+# This step connects as the superuser (DB_ADMIN_*); the tests themselves run
+# as buffalo_app and migrate as buffalo_owner (Phase 8A).
 php <<'PHP'
 <?php
 require 'vendor/autoload.php';
@@ -70,8 +72,8 @@ $env = Dotenv\Dotenv::createImmutable(getcwd());
 $env->safeLoad();
 $get = fn (string $key, string $default) => $_SERVER[$key] ?? $_ENV[$key] ?? getenv($key) ?: $default;
 $dsn = sprintf('pgsql:host=%s;port=%s', $get('DB_HOST', '127.0.0.1'), $get('DB_PORT', '5432'));
-$user = $get('DB_USERNAME', 'buffalo');
-$password = $get('DB_PASSWORD', 'buffalo');
+$user = $get('DB_ADMIN_USERNAME', 'buffalo');
+$password = $get('DB_ADMIN_PASSWORD', 'buffalo');
 
 $pdo = new PDO($dsn.';dbname=postgres', $user, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 if (! $pdo->query("SELECT 1 FROM pg_database WHERE datname = 'buffalo_test'")->fetchColumn()) {
@@ -83,6 +85,7 @@ foreach (['postgis', 'pg_trgm', 'unaccent'] as $extension) {
 }
 echo "buffalo_test ready\n";
 PHP
+php artisan buffalo:db:provision-roles --database=buffalo_test --no-interaction
 
 step "Pest"
 php artisan config:clear --no-interaction

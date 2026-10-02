@@ -1,7 +1,7 @@
 <?php
 
 use Database\Seeders\RolesAndPermissionsSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\RefreshDatabaseAsOwner;
 use Tests\TestCase;
 
 /*
@@ -11,12 +11,13 @@ use Tests\TestCase;
 |
 | Feature tests run against the buffalo_test PostgreSQL database (see
 | phpunit.xml), are wrapped in RefreshDatabase and start with roles and
-| permissions seeded.
+| permissions seeded. Migrations run as buffalo_owner; tests run as
+| buffalo_app (Phase 8A).
 |
 */
 
 pest()->extend(TestCase::class)
-    ->use(RefreshDatabase::class)
+    ->use(RefreshDatabaseAsOwner::class)
     ->beforeEach(function () {
         // Roles and permissions exist in every environment (the seeder is
         // idempotent and safe in production), so every feature test has them.

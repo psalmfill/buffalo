@@ -24,11 +24,11 @@ test('the database rejects updates, deletes and truncation of login history', fu
 
     // Each attempt runs in its own savepoint so the test transaction survives.
     expect(fn () => DB::transaction(fn () => DB::table('login_histories')->update(['event' => 'logout'])))
-        ->toThrow(QueryException::class, 'login_histories is append-only: UPDATE')
+        ->toThrow(QueryException::class, 'permission denied for table login_histories')
         ->and(fn () => DB::transaction(fn () => DB::table('login_histories')->delete()))
-        ->toThrow(QueryException::class, 'login_histories is append-only: DELETE')
+        ->toThrow(QueryException::class, 'permission denied for table login_histories')
         ->and(fn () => DB::transaction(fn () => DB::statement('TRUNCATE login_histories')))
-        ->toThrow(QueryException::class, 'login_histories is append-only: TRUNCATE');
+        ->toThrow(QueryException::class, 'permission denied for table login_histories');
 
     expect(LoginHistory::query()->count())->toBe(1);
 });

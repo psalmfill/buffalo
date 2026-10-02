@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\CrossJurisdiction\CrossFixtures;
+use Tests\Support\Database\Statistics;
 use Tests\Support\Jurisdiction\JurisdictionWorld;
 
 beforeEach(fn () => Notification::fake());
@@ -94,7 +95,7 @@ test('the name query uses the trigram index', function () {
         SELECT lpad(to_hex(g), 26, '0'), ?, ?, 'First' || g, 'Last' || md5(g::text), 'unknown', 'restricted', now(), now()
         FROM generate_series(1, 50000) g
     SQL, [$world->lgas['B1']->state_id, $world->lgas['B1']->id]);
-    DB::statement('ANALYZE persons');
+    Statistics::analyze('persons');
 
     $plan = app(JurisdictionContext::class)->runAsSystem('test', fn () => PersonSearch::withThresholds(0.6, 1.0, fn () => collect(DB::select('EXPLAIN '.
         PersonSearch::whereNameMatches(Person::query(), 'Garba Danjuma Musa', partial: false)->toRawSql()))
