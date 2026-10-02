@@ -89,6 +89,9 @@ export const PERMISSIONS = [
     'disseminations.revoke',
     'analytics.view',
     'analytics.export',
+    'reports.generate',
+    'reports.export_data',
+    'reports.schedule',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

@@ -25,6 +25,7 @@ import type {
     UncoveredCommunity,
 } from '@/types/coverage';
 import type { MapView } from '@/types/dashboard';
+import ExportReportButton from '@/components/reports/export-report-button';
 
 type Props = {
     report: CoverageReportDetail;
@@ -112,6 +113,13 @@ export default function CoverageReportShow({
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        {report.status.value !== 'draft' && (
+                            <ExportReportButton
+                                type="coverage"
+                                parameters={{ report: report.ulid }}
+                                label="Export PDF"
+                            />
+                        )}
                         {can.update && (
                             <Button asChild>
                                 <Link

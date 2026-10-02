@@ -4,3 +4,4 @@ resources/js/wayfinder/
 resources/js/components/ui/
 resources/views/mail/
 *.blade.php
+resources/reports/assets/

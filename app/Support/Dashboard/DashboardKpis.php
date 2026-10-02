@@ -33,7 +33,17 @@ final class DashboardKpis
      */
     public function for(User $user, int $days): array
     {
-        $filters = AnalyticsFilters::from(['period' => "{$days}d", 'compare' => 'previous'], $user);
+        return $this->forFilters($user, AnalyticsFilters::from(['period' => "{$days}d", 'compare' => 'previous'], $user));
+    }
+
+    /**
+     * The same tiles for any period with a comparison (weekly and monthly
+     * report PDFs, Phase 7D).
+     *
+     * @return list<array{key: string, label: string, value: float|int|null, previous: float|int|null, change_pct: float|null, unit: string|null, href: string}>
+     */
+    public function forFilters(User $user, AnalyticsFilters $filters): array
+    {
         $link = fn (string $tab) => '/analytics?'.http_build_query(['tab' => $tab, ...$filters->values()]);
         $tiles = [];
 

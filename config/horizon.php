@@ -210,6 +210,19 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        // Report generation (Phase 7D): PDFs and spreadsheets of up to 50,000 rows.
+        'supervisor-reports' => [
+            'connection' => 'redis-reports',
+            'queue' => ['reports'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 512,
+            'tries' => 1,
+            'timeout' => 330,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [

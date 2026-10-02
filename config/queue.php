@@ -73,6 +73,16 @@ return [
             'after_commit' => false,
         ],
 
+        // Report generation (Phase 7D): longer than the default retry window.
+        'redis-reports' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
+            'queue' => 'reports',
+            'retry_after' => 360,
+            'block_for' => null,
+            'after_commit' => true,
+        ],
+
         'deferred' => [
             'driver' => 'deferred',
         ],

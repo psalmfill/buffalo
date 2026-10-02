@@ -10,13 +10,18 @@ use App\Enums\PatrolFrequency;
 use App\Models\Community;
 use App\Models\CoverageReport;
 use App\Models\CoverageReportDeployment;
+use App\Models\User;
 use App\Support\Jurisdiction\OfficerNames;
+use Spatie\Activitylog\Models\Activity;
 
 /**
  * Coverage reports for the browser (Phase 4A): ULIDs and labels, never ids.
  */
 final class CoverageReportPresenter
 {
+    /** Workflow events shown on the report's timeline. */
+    private const TIMELINE_EVENTS = ['created', 'coverage_report_submitted', 'coverage_report_returned', 'coverage_report_reviewed'];
+
     /**
      * @return array{value: string, label: string}
      */
@@ -103,5 +108,42 @@ final class CoverageReportPresenter
             'patrolFrequencies' => array_map(self::option(...), PatrolFrequency::cases()),
             'classifications' => array_map(self::option(...), Classification::cases()),
         ];
+    }
+
+    /**
+     * The workflow history (Phase 4A; also the coverage report PDF, 7D).
+     *
+     * @return list<array{event: string, label: string, by: string|null, at: string|null, note: string|null}>
+     */
+    public static function timeline(CoverageReport $report): array
+    {
+        $labels = [
+            'created' => 'Draft created',
+            'coverage_report_submitted' => 'Submitted',
+            'coverage_report_returned' => 'Returned for changes',
+            'coverage_report_reviewed' => 'Marked reviewed',
+        ];
+
+        $activities = Activity::query()
+            ->where('subject_type', $report->getMorphClass())->where('subject_id', $report->id)
+            ->whereIn('event', self::TIMELINE_EVENTS)
+            ->orderBy('id')
+            ->get();
+        // The causer may be above the viewer's level (e.g. the State
+        // Director who returned the report): names only.
+        $names = OfficerNames::for($activities->map(fn (Activity $a) => $a->causer_type === (new User)->getMorphClass() ? (int) $a->causer_id : null));
+
+        return array_values($activities->map(function (Activity $a) use ($labels, $names): array {
+            $properties = $a->properties;
+            $note = $properties->get('reason') ?? $properties->get('comment');
+
+            return [
+                'event' => (string) $a->event,
+                'label' => $a->event === 'coverage_report_submitted' && $properties->get('resubmission') ? 'Resubmitted' : $labels[(string) $a->event],
+                'by' => $a->causer_id === null ? null : $names->get((int) $a->causer_id),
+                'at' => $a->created_at?->toIso8601String(),
+                'note' => is_string($note) ? $note : null,
+            ];
+        })->all());
     }
 }

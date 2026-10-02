@@ -18,6 +18,8 @@ export default tseslint.config(
             'resources/js/wayfinder/**',
             // shadcn/ui components are copied in and kept as upstream ships them.
             'resources/js/components/ui/**',
+            // Report assets sent to Gotenberg: Chart.js as released (Phase 7D).
+            'resources/reports/assets/**',
         ],
     },
     js.configs.recommended,

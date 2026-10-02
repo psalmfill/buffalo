@@ -4,6 +4,7 @@ namespace App\Support\Audit;
 
 use App\Enums\AccessAction;
 use App\Models\RecordAccessLog;
+use App\Support\Jurisdiction\JurisdictionContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -19,7 +20,9 @@ final class RecordAccessLogger
 
     public function log(Model $subject, AccessAction $action = AccessAction::View, ?string $context = null): RecordAccessLog
     {
-        $user = $this->request->user();
+        // A queued job acting for a user (e.g. report generation, Phase 7D)
+        // has no request user: log the user whose context it runs in.
+        $user = $this->request->user() ?? app(JurisdictionContext::class)->currentUser();
 
         return RecordAccessLog::query()->create([
             'user_id' => $user?->getAuthIdentifier(),

@@ -15,6 +15,7 @@ import type {
     AnalyticsFiltersInfo,
     AnalyticsOptions,
 } from '@/types/analytics';
+import ExportReportButton from '@/components/reports/export-report-button';
 
 type Props = {
     tabs: { key: string; label: string }[];
@@ -148,11 +149,20 @@ export default function AnalyticsIndex({
                         title="Analytics"
                         description={`${filters.label}${filters.comparison ? ` compared with ${filters.comparison.label}` : ''} · by ${filters.granularity}${filters.lga ? ` · ${filters.lga.name} LGA` : filters.state ? ` · ${filters.state.name}` : filters.zone ? ` · ${filters.zone.name} Zone` : ''}`}
                     />
-                    <p className="max-w-sm text-right text-xs text-muted-foreground">
-                        Figures include only records you can see; drafts and
-                        invalid reports are never counted. Exports are marked{' '}
-                        {marking.classification}.
-                    </p>
+                    <div className="flex flex-col items-end gap-2">
+                        <p className="max-w-sm text-right text-xs text-muted-foreground">
+                            Figures include only records you can see; drafts and
+                            invalid reports are never counted. Exports are
+                            marked {marking.classification}.
+                        </p>
+                        {tab && (
+                            <ExportReportButton
+                                type="analytics"
+                                parameters={{ tab, filters: filters.values }}
+                                label="Export PDF"
+                            />
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3">

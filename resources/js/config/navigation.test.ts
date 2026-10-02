@@ -97,6 +97,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'disseminations.revoke',
         'analytics.view',
         'analytics.export',
+        'reports.generate',
+        'reports.export_data',
+        'reports.schedule',
     ],
     deputy_director_general: [
         'users.view',
@@ -167,6 +170,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'disseminations.revoke',
         'analytics.view',
         'analytics.export',
+        'reports.generate',
+        'reports.export_data',
+        'reports.schedule',
     ],
     state_director: [
         'users.view',
@@ -242,6 +248,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'disseminations.revoke',
         'analytics.view',
         'analytics.export',
+        'reports.generate',
+        'reports.export_data',
+        'reports.schedule',
     ],
     deputy_state_director: [
         'users.view',
@@ -296,6 +305,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'disseminations.create',
         'analytics.view',
         'analytics.export',
+        'reports.generate',
+        'reports.export_data',
+        'reports.schedule',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -341,6 +353,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'disseminations.request',
         'analytics.view',
         'analytics.export',
+        'reports.generate',
+        'reports.schedule',
     ],
 };
 
@@ -401,7 +415,12 @@ describe('navigation', () => {
                 ],
             },
             director_general: {
-                Overview: ['Dashboard', 'Operational map', 'Analytics'],
+                Overview: [
+                    'Dashboard',
+                    'Operational map',
+                    'Analytics',
+                    'Reports',
+                ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
                     'Threat reports',
@@ -428,7 +447,12 @@ describe('navigation', () => {
                 Administration: ['Users', 'Reference data', 'Audit log'],
             },
             deputy_director_general: {
-                Overview: ['Dashboard', 'Operational map', 'Analytics'],
+                Overview: [
+                    'Dashboard',
+                    'Operational map',
+                    'Analytics',
+                    'Reports',
+                ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
                     'Threat reports',
@@ -455,7 +479,12 @@ describe('navigation', () => {
                 Administration: ['Users', 'Reference data'],
             },
             state_director: {
-                Overview: ['Dashboard', 'Operational map', 'Analytics'],
+                Overview: [
+                    'Dashboard',
+                    'Operational map',
+                    'Analytics',
+                    'Reports',
+                ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
                     'Threat reports',
@@ -482,7 +511,12 @@ describe('navigation', () => {
                 Administration: ['Users', 'Reference data'],
             },
             deputy_state_director: {
-                Overview: ['Dashboard', 'Operational map', 'Analytics'],
+                Overview: [
+                    'Dashboard',
+                    'Operational map',
+                    'Analytics',
+                    'Reports',
+                ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
                     'Threat reports',
@@ -509,7 +543,12 @@ describe('navigation', () => {
                 Administration: ['Users', 'Reference data'],
             },
             lga_security_chief: {
-                Overview: ['Dashboard', 'Operational map', 'Analytics'],
+                Overview: [
+                    'Dashboard',
+                    'Operational map',
+                    'Analytics',
+                    'Reports',
+                ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
                     'Threat reports',

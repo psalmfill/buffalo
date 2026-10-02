@@ -6,6 +6,7 @@ import {
     ClipboardCheck,
     ClipboardList,
     FilePlus2,
+    FileText,
     Flame,
     Crosshair,
     KeyRound,
@@ -28,6 +29,7 @@ import {
     Users,
 } from 'lucide-react';
 import AnalyticsController from '@/actions/App/Http/Controllers/Analytics/AnalyticsController';
+import ReportController from '@/actions/App/Http/Controllers/Reports/ReportController';
 import AccessRequestController from '@/actions/App/Http/Controllers/AccessRequests/AccessRequestController';
 import DisseminationController from '@/actions/App/Http/Controllers/Disseminations/DisseminationController';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
@@ -88,6 +90,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Dashboard', icon: LayoutGrid, href: dashboard(), permission: null },
             { title: 'Operational map', icon: Layers, href: MapController.show(), permission: 'map.view' },
             { title: 'Analytics', icon: ChartLine, href: AnalyticsController.index(), permission: 'analytics.view' },
+            { title: 'Reports', icon: FileText, href: ReportController.index(), permission: 'reports.generate' },
         ],
     },
     {

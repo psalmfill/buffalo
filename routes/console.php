@@ -35,3 +35,7 @@ Schedule::command('buffalo:coverage-reminders')->dailyAt('08:00');
 
 // Incidents past their verification deadline (Phase 5C).
 Schedule::command('buffalo:incident-verification-reminders')->everyFiveMinutes()->withoutOverlapping();
+
+// Reports (Phase 7D): scheduled runs, and deleting expired files.
+Schedule::command('buffalo:run-report-schedules')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('buffalo:expire-reports')->hourly();

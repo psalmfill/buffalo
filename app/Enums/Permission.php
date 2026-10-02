@@ -135,4 +135,9 @@ enum Permission: string
     // Analytics (Phase 7C).
     case AnalyticsView = 'analytics.view';
     case AnalyticsExport = 'analytics.export';
+
+    // Reports and exports (Phase 7D).
+    case ReportsGenerate = 'reports.generate';
+    case ReportsExportData = 'reports.export_data';
+    case ReportsSchedule = 'reports.schedule';
 }

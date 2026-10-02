@@ -299,6 +299,21 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 7D — Reports and exports (each report type also needs its
+            // module's view permission; ReportPolicy)
+            // ---------------------------------------------------------------
+            'reports' => [
+                Permission::ReportsGenerate->value => self::INTELLIGENCE_ROLES,
+                Permission::ReportsExportData->value => [
+                    Role::DirectorGeneral,
+                    Role::DeputyDirectorGeneral,
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                ],
+                Permission::ReportsSchedule->value => self::INTELLIGENCE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 1 — System administration
             // ---------------------------------------------------------------
             'system' => [

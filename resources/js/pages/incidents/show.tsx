@@ -43,6 +43,7 @@ import type {
 } from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
+import ExportReportButton from '@/components/reports/export-report-button';
 
 type Tab =
     | 'overview'
@@ -217,6 +218,13 @@ export default function IncidentShow({
                                 <Printer /> Print
                             </a>
                         </Button>
+                        {incident.status.value !== 'draft' && (
+                            <ExportReportButton
+                                type="incident"
+                                parameters={{ incident: incident.ulid }}
+                                label="Export PDF"
+                            />
+                        )}
                         <WorkflowActions
                             record={record}
                             can={can}

@@ -187,6 +187,10 @@ return [
         'expiry_days' => (int) env('BUFFALO_REPORT_EXPIRY_DAYS', 30),
         'max_rows' => (int) env('BUFFALO_REPORT_MAX_ROWS', 50000),
         'confirm_rows' => (int) env('BUFFALO_REPORT_CONFIRM_ROWS', 10000),
+        // Report requests and row estimates per user per minute.
+        'per_minute' => (int) env('BUFFALO_REPORT_PER_MINUTE', 20),
+        // Queue connection for generation (a longer retry window than the default).
+        'queue_connection' => env('BUFFALO_REPORTS_QUEUE_CONNECTION', 'redis-reports'),
     ],
 
     /*

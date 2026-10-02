@@ -6,9 +6,12 @@ use App\Console\Commands\DisabledCipherSweetGenerateKeyCommand;
 use App\Console\Commands\DisabledCleanActivitylogCommand;
 use App\Enums\Permission;
 use App\Models\RecordDissemination;
+use App\Models\ReportRun;
+use App\Models\ReportSchedule;
 use App\Models\User;
 use App\Policies\DisseminationPolicy;
 use App\Policies\ReferenceDataPolicy;
+use App\Policies\ReportPolicy;
 use App\Services\Search\GlobalSearch;
 use App\Services\Search\Providers;
 use App\Support\Audit\AuditAccess;
@@ -144,6 +147,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('request', [DisseminationPolicy::class, 'request']);
         Gate::define('decideRequest', [DisseminationPolicy::class, 'decideRequest']);
 
+        // Reports (Phase 7D): runs and schedules, owner only.
+        Gate::policy(ReportRun::class, ReportPolicy::class);
+        Gate::policy(ReportSchedule::class, ReportPolicy::class);
+
         // Global search (Phase 7B): intelligence roles only.
         Gate::define('globalSearch', fn (User $user): bool => GlobalSearch::canSearch($user));
 
@@ -166,6 +173,13 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         // Global search (Phase 7B): searches per user per minute.
+        // Report requests and row estimates (Phase 7D): generation is heavy.
+        RateLimiter::for('reports', fn (Request $request) => Limit::perMinute((int) config('buffalo.reports.per_minute'))
+            ->by((string) $request->user()?->getAuthIdentifier())
+            ->response(fn (Request $request, array $headers) => $request->expectsJson() && ! $request->header('X-Inertia')
+                ? response()->json(['message' => 'Too many report requests. Wait a minute and try again.'], 429, $headers)
+                : back()->with('toast', ['type' => 'error', 'message' => 'Too many report requests. Wait a minute and try again.'])));
+
         RateLimiter::for('global-search', fn (Request $request) => Limit::perMinute((int) config('buffalo.search.per_minute'))
             ->by((string) $request->user()?->getAuthIdentifier())
             ->response(fn (Request $request, array $headers) => $request->expectsJson() && ! $request->header('X-Inertia')

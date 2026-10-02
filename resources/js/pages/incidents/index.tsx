@@ -8,6 +8,7 @@ import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import type { IncidentListRow, IncidentListShared } from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
+import ExportReportButton from '@/components/reports/export-report-button';
 
 type Props = IncidentListShared & {
     incidents: Paginated<IncidentListRow>;
@@ -42,6 +43,10 @@ export default function IncidentIndex(props: Props) {
                                 <MapIcon /> Map
                             </Link>
                         </Button>
+                        <ExportReportButton
+                            type="incident_list"
+                            parameters={{ filters }}
+                        />
                         {can.create && (
                             <Button asChild>
                                 <Link href={IncidentController.create()}>

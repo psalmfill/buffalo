@@ -87,7 +87,7 @@ final class CoverageAnalytics implements AnalyticsArea
     /**
      * @return Builder<CoverageReport>
      */
-    private function reports(AnalyticsFilters $filters): Builder
+    public function reports(AnalyticsFilters $filters): Builder
     {
         return $filters->narrow(CoverageReport::query()
             ->where('coverage_reports.period_type', $this->schedule->periodType()->value)

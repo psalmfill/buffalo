@@ -51,6 +51,7 @@ import type {
     NamedRef,
 } from '@/types/local-government';
 import type { LgaLeadership } from '@/types/political';
+import ExportReportButton from '@/components/reports/export-report-button';
 
 type Tab =
     | 'overview'
@@ -134,9 +135,21 @@ export default function LgaShow(props: Props) {
                             {!lga.is_active && ' · inactive'}
                         </p>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">Profile</span>
-                        <CompletenessBar percent={completeness.percent} />
+                    <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">
+                                Profile
+                            </span>
+                            <CompletenessBar percent={completeness.percent} />
+                        </div>
+                        <ExportReportButton
+                            type="lga_profile"
+                            parameters={{
+                                lga: lga.ulid,
+                                state: lga.state.ulid,
+                            }}
+                            label="Export PDF"
+                        />
                     </div>
                 </div>
 
