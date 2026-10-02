@@ -73,6 +73,7 @@ COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/zz-buffalo.ini
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 COPY docker/php/fpm-pool.conf /usr/local/etc/php-fpm.d/zz-buffalo.conf
+COPY --chmod=0755 docker/php/entrypoint.sh /usr/local/bin/buffalo-entrypoint
 
 # Non-root user matching the host developer's UID/GID so files written to the
 # bind-mounted source tree keep the right ownership.
@@ -169,6 +170,9 @@ RUN npm run build
 # prod: application code, production vendor/ and built assets.
 # ---------------------------------------------------------------------------
 FROM base AS prod
+
+# Start-up checks in production (secrets, key fingerprints): Phase 8A.
+ENTRYPOINT ["buffalo-entrypoint"]
 
 ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0 \
     APP_ENV=production \

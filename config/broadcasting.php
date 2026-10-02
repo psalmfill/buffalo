@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\Secrets;
+
 return [
 
     /*
@@ -32,8 +34,8 @@ return [
 
         'reverb' => [
             'driver' => 'reverb',
-            'key' => env('REVERB_APP_KEY'),
-            'secret' => env('REVERB_APP_SECRET'),
+            'key' => Secrets::get('REVERB_APP_KEY'),
+            'secret' => Secrets::get('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
                 'host' => env('REVERB_HOST'),

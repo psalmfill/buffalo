@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\Secrets;
+
 return [
 
     /*
@@ -97,11 +99,12 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    'key' => env('APP_KEY'),
+    // Secrets may come from NAME_FILE (Docker secrets), Phase 8A.
+    'key' => Secrets::get('APP_KEY'),
 
     'previous_keys' => [
         ...array_filter(
-            explode(',', (string) env('APP_PREVIOUS_KEYS', '')),
+            explode(',', (string) Secrets::get('APP_PREVIOUS_KEYS', '')),
         ),
     ],
 

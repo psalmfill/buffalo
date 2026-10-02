@@ -87,6 +87,26 @@ echo "buffalo_test ready\n";
 PHP
 php artisan buffalo:db:provision-roles --database=buffalo_test --no-interaction
 
+step "Secrets check (production-like)"
+# Phase 8A: development defaults must be refused; real secrets supplied as
+# files (as Docker secrets are) must pass. Prints names only.
+if APP_ENV=production php artisan buffalo:secrets:check --no-interaction >/dev/null 2>&1; then
+    echo "buffalo:secrets:check accepted development defaults" >&2
+    exit 1
+fi
+secrets_dir=$(mktemp -d)
+trap 'rm -rf "$secrets_dir"' EXIT
+printf 'base64:%s' "$(head -c 32 /dev/urandom | base64)" > "$secrets_dir/app_key"
+head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$secrets_dir/ciphersweet_key"
+for name in db_password redis_password reverb_app_key reverb_app_secret; do
+    head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$secrets_dir/$name"
+done
+APP_ENV=production MAIL_USERNAME= DB_MIGRATIONS_PASSWORD= DB_READONLY_PASSWORD= \
+    APP_KEY_FILE="$secrets_dir/app_key" CIPHERSWEET_KEY_FILE="$secrets_dir/ciphersweet_key" \
+    DB_PASSWORD_FILE="$secrets_dir/db_password" REDIS_PASSWORD_FILE="$secrets_dir/redis_password" \
+    REVERB_APP_KEY_FILE="$secrets_dir/reverb_app_key" REVERB_APP_SECRET_FILE="$secrets_dir/reverb_app_secret" \
+    php artisan buffalo:secrets:check --no-interaction
+
 step "Pest"
 php artisan config:clear --no-interaction
 php artisan test

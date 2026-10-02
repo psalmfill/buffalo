@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Config\Secrets;
+
 return [
     /**
      * This controls which cryptographic backend will be used by CipherSweet.
@@ -38,7 +40,7 @@ return [
             'path' => env('CIPHERSWEET_FILE_PATH'),
         ],
         'string' => [
-            'key' => env('CIPHERSWEET_KEY'),
+            'key' => Secrets::get('CIPHERSWEET_KEY'),
         ],
         // 'custom' => CustomKeyProviderFactory::class,
     ],

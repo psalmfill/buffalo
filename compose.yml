@@ -81,11 +81,20 @@ services:
   valkey:
     image: valkey/valkey:9.1.2-alpine3.24
     restart: unless-stopped
-    command: ["valkey-server", "--appendonly", "yes", "--save", "60", "1000"]
+    # ACL users (Phase 8A): the default user is off; the application user
+    # cannot FLUSHALL/FLUSHDB/CONFIG/KEYS/DEBUG. Passwords may also be given
+    # as VALKEY_APP_PASSWORD_FILE / VALKEY_ADMIN_PASSWORD_FILE (Docker secrets).
+    entrypoint: ["/usr/local/bin/buffalo-valkey-entrypoint"]
+    command: ["--appendonly", "yes", "--save", "60", "1000"]
+    environment:
+      VALKEY_APP_USERNAME: ${REDIS_USERNAME:-buffalo}
+      VALKEY_APP_PASSWORD: ${REDIS_PASSWORD:-}
+      VALKEY_ADMIN_PASSWORD: ${VALKEY_ADMIN_PASSWORD:-}
     volumes:
       - valkey_data:/data
+      - ./docker/valkey/entrypoint.sh:/usr/local/bin/buffalo-valkey-entrypoint:ro
     healthcheck:
-      test: ["CMD-SHELL", "valkey-cli ping | grep -q PONG"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${VALKEY_APP_PASSWORD:-$$(cat \"$${VALKEY_APP_PASSWORD_FILE:-/dev/null}\")}\" valkey-cli --no-auth-warning --user \"$$VALKEY_APP_USERNAME\" ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 20

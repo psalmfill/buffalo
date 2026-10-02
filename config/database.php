@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Config\Secrets;
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
@@ -10,7 +11,7 @@ $pgsql = [
     'port' => env('DB_PORT', '5432'),
     'database' => env('DB_DATABASE', 'laravel'),
     'username' => env('DB_USERNAME', 'buffalo_app'),
-    'password' => env('DB_PASSWORD', ''),
+    'password' => Secrets::get('DB_PASSWORD', ''),
     'charset' => env('DB_CHARSET', 'utf8'),
     'prefix' => '',
     'prefix_indexes' => true,
@@ -102,7 +103,7 @@ return [
         'pgsql_migrations' => [
             ...$pgsql,
             'username' => env('DB_MIGRATIONS_USERNAME', 'buffalo_owner'),
-            'password' => env('DB_MIGRATIONS_PASSWORD', ''),
+            'password' => Secrets::get('DB_MIGRATIONS_PASSWORD', ''),
         ],
 
         // The cluster superuser: buffalo:db:provision-roles, development
@@ -110,7 +111,7 @@ return [
         'pgsql_admin' => [
             ...$pgsql,
             'username' => env('DB_ADMIN_USERNAME', 'postgres'),
-            'password' => env('DB_ADMIN_PASSWORD', ''),
+            'password' => Secrets::get('DB_ADMIN_PASSWORD', ''),
         ],
 
         'sqlsrv' => [
@@ -148,7 +149,7 @@ return [
     'roles' => [
         'readonly' => [
             'username' => env('DB_READONLY_USERNAME', 'buffalo_readonly'),
-            'password' => env('DB_READONLY_PASSWORD', ''),
+            'password' => Secrets::get('DB_READONLY_PASSWORD', ''),
         ],
     ],
 
@@ -182,7 +183,7 @@ return [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
-            'password' => env('REDIS_PASSWORD'),
+            'password' => Secrets::get('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
@@ -195,7 +196,7 @@ return [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
-            'password' => env('REDIS_PASSWORD'),
+            'password' => Secrets::get('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
