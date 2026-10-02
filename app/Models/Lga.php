@@ -50,6 +50,7 @@ class Lga extends Model
     ];
 
     protected $hidden = [
+        'search_name',
         'id',
         'state_id',
         'senatorial_district_id',
@@ -64,7 +65,7 @@ class Lga extends Model
      */
     protected function auditExcept(): array
     {
-        return ['centroid', 'boundary'];
+        return ['centroid', 'boundary', 'search_name'];
     }
 
     protected function casts(): array

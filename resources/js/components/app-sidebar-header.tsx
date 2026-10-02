@@ -3,6 +3,7 @@ import { MapPin } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import NotificationBell from '@/components/notification-bell';
+import GlobalSearch from '@/components/search/global-search';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserMenu } from '@/components/user-menu';
 import { useCurrentUser } from '@/hooks/use-auth';
@@ -10,8 +11,8 @@ import { dashboard } from '@/routes';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 /**
- * App header: BUFFALO name and logo, breadcrumbs, the user's jurisdiction,
- * the notification bell and the user menu.
+ * App header: BUFFALO name and logo, breadcrumbs, global search, the user's
+ * jurisdiction, the notification bell and the user menu.
  */
 export function AppSidebarHeader({
     breadcrumbs = [],
@@ -34,6 +35,8 @@ export function AppSidebarHeader({
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
             <div className="ml-auto flex min-w-0 items-center gap-2">
+                {/* Global search (Phase 7B): intelligence roles only (checked on the server too). */}
+                {user.maxClassification !== null && <GlobalSearch />}
                 <span
                     className="hidden max-w-72 items-center gap-1 truncate rounded-md border px-2 py-1 text-xs text-muted-foreground sm:inline-flex"
                     title={user.jurisdictionLabel}

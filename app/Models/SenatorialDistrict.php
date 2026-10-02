@@ -32,6 +32,16 @@ class SenatorialDistrict extends Model
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
 
+    /**
+     * Generated search column (Phase 7B).
+     *
+     * @return list<string>
+     */
+    protected function auditExcept(): array
+    {
+        return ['search_name'];
+    }
+
     protected $fillable = [
         'state_id',
         'code',
@@ -40,6 +50,7 @@ class SenatorialDistrict extends Model
     ];
 
     protected $hidden = [
+        'search_name',
         'id',
         'state_id',
     ];

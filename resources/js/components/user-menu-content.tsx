@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
+import { clearRecentSearches } from '@/lib/recent-searches';
 import { logout } from '@/routes';
 import { edit } from '@/routes/security';
 import type { User } from '@/types';
@@ -22,6 +23,8 @@ export function UserMenuContent({ user }: Props) {
     const handleLogout = () => {
         cleanup();
         router.flushAll();
+        // Recent global searches live in this browser only (Phase 7B).
+        clearRecentSearches();
     };
 
     return (

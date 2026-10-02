@@ -8,6 +8,8 @@ use App\Models\RecordDissemination;
 use App\Models\User;
 use App\Policies\DisseminationPolicy;
 use App\Policies\ReferenceDataPolicy;
+use App\Services\Search\GlobalSearch;
+use App\Services\Search\Providers;
 use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
 use App\Support\CommunityInformation\ReferenceUsageChecks;
@@ -27,12 +29,15 @@ use App\Support\ReferenceData\ReferenceUsageRegistry;
 use App\Support\Security\ReferenceUsageChecks as SecurityReferenceUsageChecks;
 use App\Support\Threats\ReferenceUsageChecks as ThreatsReferenceUsageChecks;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Hashing\Hasher;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use ParagonIE\CipherSweet\CipherSweet;
@@ -86,6 +91,21 @@ class AppServiceProvider extends ServiceProvider
         // Cross-jurisdiction access grants (Phase 3C, persons) and
         // dissemination (Phase 7A, threat reports and flashpoints).
         $this->app->bind(AccessGrantResolver::class, CombinedAccessResolver::class);
+
+        // Global search (Phase 7B): one provider per module, in section order.
+        $this->app->tag([
+            Providers\IncidentProvider::class,
+            Providers\ThreatReportProvider::class,
+            Providers\FlashpointProvider::class,
+            Providers\PersonProvider::class,
+            Providers\PersonOfInterestProvider::class,
+            Providers\CriminalGroupProvider::class,
+            Providers\CommunityProvider::class,
+            Providers\OrganizationProvider::class,
+            Providers\FormationProvider::class,
+            Providers\PlaceProvider::class,
+        ], 'search.providers');
+        $this->app->when(GlobalSearch::class)->needs('$providers')->giveTagged('search.providers');
     }
 
     /**
@@ -123,6 +143,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('request', [DisseminationPolicy::class, 'request']);
         Gate::define('decideRequest', [DisseminationPolicy::class, 'decideRequest']);
 
+        // Global search (Phase 7B): intelligence roles only.
+        Gate::define('globalSearch', fn (User $user): bool => GlobalSearch::canSearch($user));
+
         Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
         Gate::define('viewLoginHistory', fn (User $user): bool => AuditAccess::canViewLoginHistory($user));
 
@@ -137,6 +160,13 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureDefaults(): void
     {
+        // Global search (Phase 7B): searches per user per minute.
+        RateLimiter::for('global-search', fn (Request $request) => Limit::perMinute((int) config('buffalo.search.per_minute'))
+            ->by((string) $request->user()?->getAuthIdentifier())
+            ->response(fn (Request $request, array $headers) => $request->expectsJson() && ! $request->header('X-Inertia')
+                ? response()->json(['message' => 'Too many searches. Wait a minute and try again.'], 429, $headers)
+                : back()->with('toast', ['type' => 'error', 'message' => 'Too many searches. Wait a minute and try again.'])));
+
         Date::use(CarbonImmutable::class);
 
         DB::prohibitDestructiveCommands(

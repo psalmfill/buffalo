@@ -15,6 +15,17 @@ enum PoiStatus: string
     case Deceased = 'deceased';
     case Cleared = 'cleared';
 
+    /**
+     * "Active" persons of interest (global search, Phase 7B): every status
+     * except deceased and cleared.
+     *
+     * @return list<self>
+     */
+    public static function active(): array
+    {
+        return [self::AtLarge, self::UnderSurveillance, self::Detained, self::OnTrial, self::Convicted];
+    }
+
     public function label(): string
     {
         return match ($this) {

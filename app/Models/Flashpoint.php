@@ -106,7 +106,7 @@ class Flashpoint extends Model implements Classified, Disseminable
     protected $guarded = ['*'];
 
     protected $hidden = [
-        'id', 'threat_type_id', 'state_id', 'lga_id', 'community_id', 'location', 'search_name',
+        'id', 'threat_type_id', 'state_id', 'lga_id', 'community_id', 'location', 'search_name', 'search_vector',
         'last_assessed_by', 'created_by', 'updated_by', 'review_reminded_for', 'escalation_notified_at',
     ];
 
@@ -142,7 +142,7 @@ class Flashpoint extends Model implements Classified, Disseminable
      */
     protected function auditExcept(): array
     {
-        return ['location', 'search_name', 'review_reminded_for', 'escalation_notified_at'];
+        return ['location', 'search_name', 'search_vector', 'review_reminded_for', 'escalation_notified_at'];
     }
 
     public function logsViews(): bool

@@ -175,6 +175,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Global search (Phase 7B)
+    |--------------------------------------------------------------------------
+    | Results per type in the header (quick) view, per page and in all in
+    | the full view (counts stay exact); each provider query's time budget; trigram thresholds (the `%`
+    | and `<%` operators, index-backed); searches per user per minute.
+    */
+    'search' => [
+        'min_length' => 2,
+        'quick_limit' => (int) env('BUFFALO_SEARCH_QUICK_LIMIT', 5),
+        'page_size' => (int) env('BUFFALO_SEARCH_PAGE_SIZE', 25),
+        // Results listed per type on the results page (beyond: refine the search).
+        'max_results' => (int) env('BUFFALO_SEARCH_MAX_RESULTS', 1000),
+        'provider_timeout_ms' => (int) env('BUFFALO_SEARCH_PROVIDER_TIMEOUT_MS', 300),
+        'similarity' => (float) env('BUFFALO_SEARCH_SIMILARITY', 0.3),
+        'word_similarity' => (float) env('BUFFALO_SEARCH_WORD_SIMILARITY', 0.5),
+        'per_minute' => (int) env('BUFFALO_SEARCH_PER_MINUTE', 60),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Dissemination (Phase 7A)
     |--------------------------------------------------------------------------
     | Flashpoint disseminations last `flashpoint_days` and can be renewed;

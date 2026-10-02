@@ -85,7 +85,7 @@ class ThreatReport extends Model implements Classified, Disseminable
     protected $guarded = ['*'];
 
     protected $hidden = [
-        'id', 'threat_type_id', 'state_id', 'lga_id', 'community_id', 'location',
+        'id', 'threat_type_id', 'state_id', 'lga_id', 'community_id', 'location', 'search_vector',
         'expiry_warned_for', 'created_by', 'updated_by',
     ];
 
@@ -122,7 +122,7 @@ class ThreatReport extends Model implements Classified, Disseminable
      */
     protected function auditExcept(): array
     {
-        return ['location', 'expiry_warned_for', 'credibility', 'urgency', 'status', 'status_note', 'expires_at'];
+        return ['location', 'search_vector', 'expiry_warned_for', 'credibility', 'urgency', 'status', 'status_note', 'expires_at'];
     }
 
     public function logsViews(): bool

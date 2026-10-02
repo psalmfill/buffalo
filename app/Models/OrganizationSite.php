@@ -77,6 +77,7 @@ class OrganizationSite extends Model implements Classified, JurisdictionScoped
     protected $fillable = ['name', 'site_type', 'address', 'employees_estimate', 'security_relevance', 'has_private_security', 'security_notes', 'status'];
 
     protected $hidden = [
+        'search_name',
         'id', 'organization_id', 'state_id', 'lga_id', 'community_id', 'security_provider_organization_id',
         'location', 'created_by', 'updated_by',
     ];
@@ -108,7 +109,7 @@ class OrganizationSite extends Model implements Classified, JurisdictionScoped
      */
     protected function auditExcept(): array
     {
-        return ['location'];
+        return ['location', 'search_name'];
     }
 
     public static function pointFrom(?float $latitude, ?float $longitude): ?Expression
