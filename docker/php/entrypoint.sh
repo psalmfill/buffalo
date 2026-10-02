@@ -5,16 +5,21 @@
 # built from this image (php-fpm, Horizon, the scheduler, Reverb) refuses to
 # start unless the start-up checks pass:
 #   - buffalo:secrets:check  every secret set, not a development default,
-#                            long enough (prints names only).
+#                            long enough (prints names only);
+#   - buffalo:keys:verify    APP_KEY and CIPHERSWEET_KEY match the active
+#                            fingerprints in the database (a misconfigured
+#                            restore must not write data with the wrong key).
 # Set BUFFALO_SKIP_STARTUP_CHECKS=1 only for one-off maintenance containers
 # (for example running buffalo:db:provision-roles before secrets exist).
 set -e
 
 if [ "${APP_ENV:-}" = "production" ] && [ "${BUFFALO_SKIP_STARTUP_CHECKS:-0}" != "1" ]; then
-    php /var/www/html/artisan buffalo:secrets:check --no-interaction --no-ansi || {
-        echo "BUFFALO start-up checks failed: refusing to start." >&2
-        exit 1
-    }
+    for check in buffalo:secrets:check buffalo:keys:verify; do
+        php /var/www/html/artisan "$check" --no-interaction --no-ansi || {
+            echo "BUFFALO start-up check $check failed: refusing to start." >&2
+            exit 1
+        }
+    done
 fi
 
 exec docker-php-entrypoint "$@"

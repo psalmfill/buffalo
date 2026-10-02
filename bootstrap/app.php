@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetJurisdictionContext;
+use App\Http\Middleware\VerifyKeyFingerprints;
 use App\Http\Responses\ErrorPage;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+
+        // Production only: never serve with keys that do not match the
+        // database's active fingerprints (Phase 8A).
+        $middleware->prepend(VerifyKeyFingerprints::class);
 
         $middleware->web(append: [
             SetJurisdictionContext::class,
