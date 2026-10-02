@@ -43,6 +43,11 @@ void createInertiaApp({
     progress: {
         color: '#4B5563',
     },
+    // The CSP nonce (Phase 8B.1) for the styles Inertia injects.
+    nonce:
+        document
+            .querySelector<HTMLMetaElement>('meta[name="csp-nonce"]')
+            ?.getAttribute('content') ?? undefined,
 });
 
 // This will set light / dark mode on load...

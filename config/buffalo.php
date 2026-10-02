@@ -322,4 +322,28 @@ return [
         'threats_and_flashpoints' => $retentionDays('BUFFALO_RETENTION_THREAT_DAYS'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Browser security headers (Phase 8B.1)
+    |--------------------------------------------------------------------------
+    | The Content Security Policy is sent by SecurityHeaders middleware with a
+    | fresh nonce per request. `report_only` sends it as
+    | Content-Security-Policy-Report-Only (violations are logged through
+    | /csp-report) instead of enforcing it. `websocket` is the Reverb origin
+    | the browser connects to (VITE_REVERB_*), added to connect-src.
+    */
+    'security' => [
+        'csp' => [
+            'report_only' => (bool) env('BUFFALO_CSP_REPORT_ONLY', false),
+            'websocket' => env('BUFFALO_CSP_WEBSOCKET', sprintf(
+                '%s://%s:%s',
+                env('VITE_REVERB_SCHEME', 'https') === 'https' ? 'wss' : 'ws',
+                env('VITE_REVERB_HOST', 'localhost'),
+                env('VITE_REVERB_PORT', 443),
+            )),
+        ],
+        // Strict-Transport-Security max-age, sent only when APP_URL is https.
+        'hsts_seconds' => (int) env('BUFFALO_HSTS_SECONDS', 31536000),
+    ],
+
 ];

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Security\CspReportController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +11,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn (Request $request): RedirectResponse => $request->user() !== null
     ? redirect()->route('dashboard')
     : redirect()->route('login'))->name('home');
+
+// CSP violation reports from browsers (Phase 8B.1): public, throttled, no CSRF.
+Route::post('csp-report', CspReportController::class)->middleware('throttle:60,1')->name('csp.report');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
