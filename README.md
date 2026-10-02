@@ -430,6 +430,27 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - `buffalo:check-dissemination-gaps` (daily, 07:20): tells the SD/DSD once about urgent cross-border records not yet shared.
 - **Settings:** `config/buffalo.php` → `disseminations`.
 
+## Global search (Phase 7B)
+
+- **Where:** a search box in the header (press `/` or Ctrl/Cmd+K) for intelligence roles: up to 5 results per type with icons, classification badges and subtitles. Enter opens the best match; arrow keys move.
+- **Full results:** "See all results" opens `/search?q=…`, with one tab per type. Counts are your own scoped counts; there are 25 results per page and at most 1,000 listed per type.
+- **What it finds:**
+
+  | Entry | Searched |
+  |---|---|
+  | `BUF/…` or `THR/…` | the exact reference only |
+  | 11 digits | persons by NIN (blind index; also by phone if it starts with 0) |
+  | a phone number | persons and organization contacts, exactly |
+  | anything else | incidents, threat reports, flashpoints, persons, persons of interest, criminal groups, communities, organizations and sites, agency formations, LGAs and senatorial districts |
+
+- **Access:** every result comes through its module's own scopes (jurisdiction, classification, grants, disseminations).
+  - It never shows other states' person records: "Check other states' person records" runs the persons search for that.
+  - Listing results is not viewing: only opening a record is access-logged.
+- **Performance:** each module is a separate, index-backed query with a 300 ms budget. A module that runs out of time shows "more results may exist" instead of failing the search.
+- **Privacy:** each search is logged in `search_logs` with the query's SHA-256 hash only (never the text), for spotting unusual search volumes. Recent searches stay in your browser and are cleared when you sign out.
+- **Limits:** 60 searches per user per minute.
+- **Settings:** `config/buffalo.php` → `search`.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
