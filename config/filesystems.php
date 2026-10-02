@@ -59,6 +59,19 @@ return [
             'report' => false,
         ],
 
+        // Generated reports (Phase 7D). Private Docker volume like evidence:
+        // never public; files are streamed only to their requester through
+        // an authorised route, after their SHA-256 is verified. Expire after
+        // buffalo.reports.expiry_days.
+        'reports' => [
+            'driver' => 'local',
+            'root' => env('REPORTS_ROOT', '/var/lib/buffalo/reports'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

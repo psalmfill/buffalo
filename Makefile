@@ -78,10 +78,10 @@ wayfinder: ## Regenerate Wayfinder TypeScript routes (run after changing routes)
 ci: ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
 	docker build -f docker/php/Dockerfile --target ci \
 		--build-arg UID=$(DOCKER_UID) --build-arg GID=$(DOCKER_GID) -t buffalo-app:ci .
-	$(COMPOSE) up -d --wait postgres valkey
-	docker run --rm --network buffalo_default \
+	$(COMPOSE) up -d --wait postgres valkey gotenberg
+	docker run --rm --network buffalo_default --network buffalo_reports \
 		-v "$(CURDIR)":/src:ro \
-		-e DB_HOST=postgres -e REDIS_HOST=valkey \
+		-e DB_HOST=postgres -e REDIS_HOST=valkey -e GOTENBERG_URL=http://gotenberg:3000 \
 		buffalo-app:ci bash -c '\
 			mkdir -p /tmp/ci && \
 			tar -C /src --exclude=./node_modules --exclude=./vendor --exclude=./.env \

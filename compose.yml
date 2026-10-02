@@ -25,8 +25,10 @@ services:
   app:
     <<: *app
     restart: unless-stopped
+    networks: [default, reports]
     volumes:
       - evidence_data:/var/lib/buffalo/evidence
+      - reports_data:/var/lib/buffalo/reports
     healthcheck:
       test:
         - CMD-SHELL
@@ -88,8 +90,10 @@ services:
     command: ["php", "artisan", "horizon"]
     restart: always
     stop_signal: SIGTERM
+    networks: [default, reports]
     volumes:
       - evidence_data:/var/lib/buffalo/evidence
+      - reports_data:/var/lib/buffalo/reports
     healthcheck:
       test: ["CMD", "php", "artisan", "horizon:status"]
       interval: 30s
@@ -103,6 +107,7 @@ services:
     restart: always
     volumes:
       - evidence_data:/var/lib/buffalo/evidence
+      - reports_data:/var/lib/buffalo/reports
     healthcheck:
       disable: true
 
@@ -113,8 +118,42 @@ services:
     healthcheck:
       disable: true
 
+  # HTML → PDF for reports (Phase 7D). Chromium-only image (no LibreOffice).
+  # Only on the internal `reports` network: no ports, no route to the
+  # internet. Chromium may load only the files sent with each request
+  # (written under /tmp); http(s) and every other scheme are denied.
+  # Unused features are off: downloading from URLs, webhooks, the PDF engine
+  # routes (merge/split/…) and metrics.
+  gotenberg:
+    image: gotenberg/gotenberg:8.37.0-chromium
+    restart: unless-stopped
+    networks: [reports]
+    command:
+      - gotenberg
+      - --chromium-allow-list=^file:///tmp/.*
+      - --chromium-deny-list=^(?!file:///tmp/).*
+      - --chromium-ignore-certificate-errors=false
+      - --api-disable-download-from=true
+      - --webhook-disable=true
+      - --pdfengines-disable-routes=true
+      - --prometheus-disable-collect=true
+      - --api-timeout=60s
+      - --log-level=info
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  # Shared only by app, Horizon and Gotenberg. internal: true has no gateway,
+  # so nothing on it can reach the outside world.
+  reports:
+    internal: true
+
 volumes:
   postgres_data:
   valkey_data:
   evidence_data:
+  reports_data:
   map_tiles:

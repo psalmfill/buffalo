@@ -175,6 +175,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Reports and exports (Phase 7D)
+    |--------------------------------------------------------------------------
+    | Gotenberg (internal network only) renders PDFs. Report files expire
+    | `expiry_days` after completion. Incident list exports are capped at
+    | `max_rows`; above `confirm_rows` the user confirms first.
+    */
+    'reports' => [
+        'gotenberg_url' => env('GOTENBERG_URL', 'http://gotenberg:3000'),
+        'gotenberg_timeout' => (int) env('BUFFALO_GOTENBERG_TIMEOUT', 90),
+        'expiry_days' => (int) env('BUFFALO_REPORT_EXPIRY_DAYS', 30),
+        'max_rows' => (int) env('BUFFALO_REPORT_MAX_ROWS', 50000),
+        'confirm_rows' => (int) env('BUFFALO_REPORT_CONFIRM_ROWS', 10000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Analytics (Phase 7C)
     |--------------------------------------------------------------------------
     | Incident type codes counted as kidnapping for "abducted versus

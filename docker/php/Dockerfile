@@ -80,9 +80,9 @@ RUN set -eux; \
     # macOS hosts use GID 20, which already exists in Debian; reuse it.
     getent group "${GID}" > /dev/null || groupadd --gid "${GID}" buffalo; \
     useradd --uid "${UID}" --gid "${GID}" --create-home --shell /bin/bash buffalo; \
-    mkdir -p /var/www/html /var/lib/buffalo/evidence /tmp/composer; \
+    mkdir -p /var/www/html /var/lib/buffalo/evidence /var/lib/buffalo/reports /tmp/composer; \
     chown -R "${UID}:${GID}" /var/www/html /var/lib/buffalo /tmp/composer; \
-    chmod 0750 /var/lib/buffalo/evidence
+    chmod 0750 /var/lib/buffalo/evidence /var/lib/buffalo/reports
 
 WORKDIR /var/www/html
 
@@ -97,9 +97,11 @@ EXPOSE 9000
 # ---------------------------------------------------------------------------
 FROM base AS dev
 
+# poppler-utils (pdftotext, dev and CI images only, never production): the
+# report tests read the text of generated PDFs to check their markings.
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends $PHPIZE_DEPS; \
+    apt-get install -y --no-install-recommends poppler-utils $PHPIZE_DEPS; \
     pecl install xdebug-3.5.3; \
     docker-php-ext-enable xdebug; \
     rm -rf /tmp/pear; \
