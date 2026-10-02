@@ -27,6 +27,7 @@ use App\Models\LoginHistory;
 use App\Models\State;
 use App\Models\User;
 use App\Support\Auth\MailConfiguration;
+use App\Support\Auth\StepUp;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Users\UserStatusFilter;
 use Illuminate\Database\Eloquent\Builder;
@@ -112,6 +113,9 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request, CreateUser $createUser): RedirectResponse
     {
+        // Assigning a role and jurisdiction needs a recent TOTP code (Phase 8B.2).
+        StepUp::ensure($request);
+
         /** @var array{name: string, email: string, phone?: string|null, service_number?: string|null, rank?: string|null} $profile */
         $profile = $request->safe()->only(['name', 'email', 'phone', 'service_number', 'rank']);
 
@@ -197,6 +201,7 @@ class UserController extends Controller
 
     public function updateJurisdiction(UpdateUserJurisdictionRequest $request, User $user, UpdateUserJurisdiction $update): RedirectResponse
     {
+        StepUp::ensure($request);
         $update($user, $request->jurisdiction(), $this->actor($request));
 
         return back()->with('toast', ['type' => 'success', 'message' => 'Role and jurisdiction updated.']);
@@ -204,6 +209,10 @@ class UserController extends Controller
 
     public function deactivate(ReasonRequest $request, User $user, DeactivateUser $deactivate): RedirectResponse
     {
+        if ($user->hasRole(Role::SuperAdmin->value)) {
+            StepUp::ensure($request);
+        }
+
         $deactivate($user, $request->string('reason')->toString(), $this->actor($request));
 
         return back()->with('toast', ['type' => 'success', 'message' => 'User deactivated and signed out.']);
@@ -227,6 +236,7 @@ class UserController extends Controller
     public function resetTwoFactor(Request $request, User $user, ResetTwoFactor $reset): RedirectResponse
     {
         $this->authorize('resetTwoFactor', $user);
+        StepUp::ensure($request);
         $reset($user, $this->actor($request));
 
         return back()->with('toast', ['type' => 'success', 'message' => 'Two-factor authentication reset. The user was signed out.']);
@@ -239,6 +249,7 @@ class UserController extends Controller
     public function issueSetupLink(Request $request, User $user, IssueAccountSetupLink $issue, SendAccountSetupLink $send): JsonResponse
     {
         $this->authorize('issueSetupLink', $user);
+        StepUp::ensure($request);
 
         $delivery = SetupLinkDelivery::from((string) $request->validate([
             'delivery' => ['required', Rule::enum(SetupLinkDelivery::class)],

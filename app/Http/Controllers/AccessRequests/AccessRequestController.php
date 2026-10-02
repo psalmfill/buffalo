@@ -25,6 +25,7 @@ use App\Models\RecordAccessRequest;
 use App\Models\RecordMatchEvent;
 use App\Models\State;
 use App\Models\User;
+use App\Support\Auth\StepUp;
 use App\Support\Jurisdiction\AccessRequestApprovers;
 use App\Support\Jurisdiction\AccessRequestParties;
 use App\Support\Jurisdiction\JurisdictionOptions;
@@ -123,6 +124,8 @@ class AccessRequestController extends Controller
     public function approve(ApproveRequest $request, RecordAccessRequest $accessRequest, DecideAccessRequest $decide): RedirectResponse
     {
         $this->authorize('decide', $accessRequest);
+        // Granting cross-jurisdiction access needs a recent TOTP code (Phase 8B.2).
+        StepUp::ensure($request);
 
         $note = $request->validated('note');
         $decide->approve(

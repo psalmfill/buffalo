@@ -346,4 +346,10 @@ return [
         'hsts_seconds' => (int) env('BUFFALO_HSTS_SECONDS', 31536000),
     ],
 
+    // Step-up authentication (Phase 8B.2): sensitive actions need a TOTP
+    // code confirmed within this many minutes.
+    'step_up' => [
+        'minutes' => (int) env('BUFFALO_STEP_UP_MINUTES', 15),
+    ],
+
 ];

@@ -11,7 +11,6 @@ import NativeSelect from '@/components/native-select';
 import PlaceFields from '@/components/reports/place-fields';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCurrentUser } from '@/hooks/use-auth';
@@ -38,7 +37,7 @@ type Props = {
     canSchedule: boolean;
 };
 
-type Estimate = { rows: number; confirm: boolean; over_limit: boolean };
+type Estimate = { rows: number; step_up: boolean; over_limit: boolean };
 
 const DESCRIPTIONS: Record<ReportTypeValue, string> = {
     sitrep: 'The last 24 hours in your jurisdiction: new incidents, escalations, urgent threats, flashpoints, disseminations received and work awaiting action.',
@@ -109,7 +108,6 @@ export default function ReportsIndex({
         prefill?.parameters ?? {},
     );
     const [fetchedEstimate, setEstimate] = useState<Estimate | null>(null);
-    const [confirmed, setConfirmed] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [busy, setBusy] = useState(false);
 
@@ -131,7 +129,6 @@ export default function ReportsIndex({
         setFormat(next?.formats[0] ?? 'pdf');
         setParameters(prefill?.type === value ? prefill.parameters : {});
         setErrors({});
-        setConfirmed(false);
     };
 
     const set = (values: ReportParameters) =>
@@ -165,9 +162,7 @@ export default function ReportsIndex({
     const blocked =
         needsRecord ||
         needsLga ||
-        (type === 'incident_list' &&
-            (estimate?.over_limit === true ||
-                (estimate?.confirm === true && !confirmed)));
+        (type === 'incident_list' && estimate?.over_limit === true);
 
     const generate = () => {
         if (!type) {
@@ -177,14 +172,11 @@ export default function ReportsIndex({
         setBusy(true);
         router.post(
             ReportController.store.url(),
-            { type, format, parameters, confirmed } as never,
+            { type, format, parameters } as never,
             {
                 preserveScroll: true,
                 onError: (e) => setErrors(e),
-                onSuccess: () => {
-                    setErrors({});
-                    setConfirmed(false);
-                },
+                onSuccess: () => setErrors({}),
                 onFinish: () => setBusy(false),
             },
         );
@@ -395,27 +387,22 @@ export default function ReportsIndex({
                                                     ` — over the limit of ${limits.max_rows.toLocaleString('en-NG')}. Narrow the filters.`}
                                             </p>
                                         )}
-                                        {estimate?.confirm &&
+                                        {estimate?.step_up &&
                                             !estimate.over_limit && (
-                                                <label className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-3">
-                                                    <Checkbox
-                                                        checked={confirmed}
-                                                        onCheckedChange={(v) =>
-                                                            setConfirmed(
-                                                                v === true,
-                                                            )
-                                                        }
-                                                    />
-                                                    <span>
-                                                        This export has{' '}
-                                                        {estimate.rows.toLocaleString(
-                                                            'en-NG',
-                                                        )}{' '}
-                                                        rows. I understand the
-                                                        export is logged in my
-                                                        name.
-                                                    </span>
-                                                </label>
+                                                <p
+                                                    className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3"
+                                                    data-test="step-up-notice"
+                                                >
+                                                    This export has{' '}
+                                                    {estimate.rows.toLocaleString(
+                                                        'en-NG',
+                                                    )}{' '}
+                                                    rows. You will be asked for
+                                                    the code from your
+                                                    authenticator app, and the
+                                                    export is logged in your
+                                                    name.
+                                                </p>
                                             )}
                                     </div>
                                 )}

@@ -23,7 +23,6 @@ class GenerateReportRequest extends FormRequest
             'type' => ['required', Rule::enum(ReportType::class)],
             'format' => ['required', Rule::enum(ReportFormat::class)],
             'parameters' => ['nullable', 'array'],
-            'confirmed' => ['nullable', 'boolean'],
         ];
     }
 

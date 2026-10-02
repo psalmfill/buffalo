@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventAuthenticatedCaching;
+use App\Http\Middleware\RequireRecentTwoFactor;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetJurisdictionContext;
 use App\Http\Middleware\VerifyKeyFingerprints;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Browser security headers on every response (Phase 8B.1).
         $middleware->append(SecurityHeaders::class);
         $middleware->validateCsrfTokens(except: ['csp-report']);
+        $middleware->alias(['step-up' => RequireRecentTwoFactor::class]);
 
         // Production only: never serve with keys that do not match the
         // database's active fingerprints (Phase 8A).

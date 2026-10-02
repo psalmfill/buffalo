@@ -1,3 +1,5 @@
+import { isStepUpResponse, requestStepUp } from '@/lib/step-up';
+
 export function xsrfToken(): string {
     const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
 
@@ -18,9 +20,15 @@ export class HttpError extends Error {
 
 /**
  * Same-origin JSON POST with the session's CSRF cookie. For responses that
- * must not pass through Inertia (e.g. a one-time setup link).
+ * must not pass through Inertia (e.g. a one-time setup link). When the
+ * server asks for step-up authentication (Phase 8B.2), the TOTP dialog is
+ * shown and the request is sent once more.
  */
-export async function postJson<T>(url: string, body: unknown = {}): Promise<T> {
+export async function postJson<T>(
+    url: string,
+    body: unknown = {},
+    retried = false,
+): Promise<T> {
     const response = await fetch(url, {
         method: 'POST',
         credentials: 'same-origin',
@@ -35,6 +43,12 @@ export async function postJson<T>(url: string, body: unknown = {}): Promise<T> {
     });
 
     const data = await response.json().catch(() => ({}));
+
+    if (!retried && isStepUpResponse(response.status, data)) {
+        await requestStepUp();
+
+        return postJson<T>(url, body, true);
+    }
 
     if (!response.ok) {
         throw new HttpError(response.status, data);

@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Evidence;
 
 use App\Actions\Evidence\VerifyEvidenceIntegrity;
 use App\Enums\AccessAction;
+use App\Enums\Classification;
 use App\Enums\EvidenceType;
 use App\Http\Controllers\Controller;
 use App\Models\IncidentEvidence;
 use App\Models\Media;
 use App\Models\User;
+use App\Support\Auth\StepUp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -79,6 +81,10 @@ class EvidenceFileController extends Controller
     public function download(Request $request, IncidentEvidence $evidence, VerifyEvidenceIntegrity $verify): BinaryFileResponse|RedirectResponse
     {
         $this->authorize('download', $evidence);
+        // Originals above restricted need a recent TOTP code (Phase 8B.2).
+        if ($evidence->classificationLevel() !== Classification::Restricted) {
+            StepUp::ensure($request);
+        }
         /** @var User $user */
         $user = $request->user();
         $media = $this->media($evidence);

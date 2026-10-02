@@ -8,6 +8,7 @@ use App\Actions\Disseminations\DisseminateRecord;
 use App\Actions\Disseminations\RenewDissemination;
 use App\Actions\Disseminations\RequestDissemination;
 use App\Actions\Disseminations\RevokeDissemination;
+use App\Enums\Classification;
 use App\Enums\DisseminationRequestStatus;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
@@ -19,6 +20,7 @@ use App\Models\Flashpoint;
 use App\Models\RecordDissemination;
 use App\Models\ThreatReport;
 use App\Models\User;
+use App\Support\Auth\StepUp;
 use App\Support\Jurisdiction\Contracts\Disseminable;
 use App\Support\Jurisdiction\DisseminationSubjects;
 use Illuminate\Database\Eloquent\Builder;
@@ -88,6 +90,7 @@ class DisseminationController extends Controller
     {
         $subject = $this->subject($request, $dissemination);
         $this->authorize('onward', $dissemination);
+        self::stepUpIfClassified($request, $subject);
 
         $rows = $disseminate($subject, $request->targets(), $request->reason(), $this->actor($request), $dissemination);
 
@@ -134,9 +137,18 @@ class DisseminationController extends Controller
         return back()->with('toast', ['type' => 'success', 'message' => 'Request declined.']);
     }
 
+    /** Disseminating confidential or secret records needs a recent TOTP code (Phase 8B.2). */
+    private static function stepUpIfClassified(Request $request, Model&Disseminable $subject): void
+    {
+        if ($subject->classificationLevel() !== Classification::Restricted) {
+            StepUp::ensure($request);
+        }
+    }
+
     private function store(DisseminateRequest $request, Model&Disseminable $subject, DisseminateRecord $disseminate): RedirectResponse
     {
         $this->authorize('disseminate', $subject);
+        self::stepUpIfClassified($request, $subject);
         $pending = null;
 
         if (is_string($request->validated('request'))) {

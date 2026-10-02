@@ -6,12 +6,19 @@ import { cn } from '@/lib/utils';
 import type { LoginEntry } from '@/types/users';
 import EmptyState from '@/components/empty-state';
 
-const failureEvents = ['login_failed', 'two_factor_failed', 'locked'];
+const failureEvents = [
+    'login_failed',
+    'two_factor_failed',
+    'step_up_failed',
+    'locked',
+];
 
 const labels: Record<string, string> = {
     login_success: 'Signed in',
     login_failed: 'Failed sign-in',
     two_factor_failed: 'Failed 2FA code',
+    step_up_success: 'Confirmed identity (step-up)',
+    step_up_failed: 'Failed step-up code',
     locked: 'Account locked',
     logout: 'Signed out',
     session_expired: 'Session expired',

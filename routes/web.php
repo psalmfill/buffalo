@@ -50,3 +50,4 @@ require __DIR__.'/disseminations.php';
 require __DIR__.'/search.php';
 require __DIR__.'/analytics.php';
 require __DIR__.'/reports.php';
+require __DIR__.'/step-up.php';

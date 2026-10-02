@@ -11,6 +11,7 @@ use App\Models\Person;
 use App\Models\RecordAccessGrant;
 use App\Models\RecordAccessRequest;
 use App\Models\User;
+use App\Support\Auth\StepUp;
 use App\Support\CrossJurisdiction\MatchCriteria;
 use App\Support\CrossJurisdiction\MatchResult;
 use App\Support\CrossJurisdiction\PersonMatchService;
@@ -96,8 +97,16 @@ final class CrossFixtures
     /**
      * Signs in as $user with a fresh session. The single-session policy binds
      * the session to users.session_token on first use, so it is reset too.
+     * The session has a recent step-up confirmation (Phase 8B.2), as after
+     * entering a TOTP code; StepUpTest uses signInWithoutStepUp().
      */
     public static function signIn(User $user): TestCase
+    {
+        return self::signInWithoutStepUp($user)->withSession([StepUp::SESSION_KEY => now()->timestamp]);
+    }
+
+    /** Signs in with a fresh session that has no step-up confirmation. */
+    public static function signInWithoutStepUp(User $user): TestCase
     {
         $user->forceFill(['session_token' => null])->saveQuietly();
 

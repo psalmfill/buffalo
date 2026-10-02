@@ -4,6 +4,7 @@ namespace App\Actions\Reports;
 
 use App\Enums\ReportFormat;
 use App\Enums\ReportType;
+use App\Exceptions\StepUpRequired;
 use App\Jobs\GenerateReport;
 use App\Models\ReportRun;
 use App\Models\ReportSchedule;
@@ -17,7 +18,8 @@ use Illuminate\Validation\ValidationException;
  * Queues a report run (Phase 7D) after validating its parameters in the
  * requester's context. Incident list exports above
  * `buffalo.reports.max_rows` are refused; above `confirm_rows` they need
- * `confirmed` (the page shows the row count and that the export is
+ * step-up authentication (Phase 8B.2: a TOTP code within the last 15
+ * minutes, replacing the plain confirmation; the page shows the row count and that the export is
  * logged). The caller has already authorised `generate`.
  */
 final class RequestReport
@@ -27,7 +29,7 @@ final class RequestReport
     /**
      * @param  array<string, mixed>  $input
      */
-    public function __invoke(User $user, ReportType $type, ReportFormat $format, array $input, ?ReportSchedule $schedule = null, bool $confirmed = false): ReportRun
+    public function __invoke(User $user, ReportType $type, ReportFormat $format, array $input, ?ReportSchedule $schedule = null, bool $stepUpConfirmed = false): ReportRun
     {
         if (! in_array($format, $type->formats(), true)) {
             throw ValidationException::withMessages(['format' => 'Choose a format offered for this report.']);
@@ -47,8 +49,8 @@ final class RequestReport
                 throw ValidationException::withMessages(['filters' => 'This selection has '.number_format($rows).' incidents; exports are limited to '.number_format((int) config('buffalo.reports.max_rows')).'. Narrow the filters.']);
             }
 
-            if ($rows > (int) config('buffalo.reports.confirm_rows') && ! $confirmed) {
-                throw ValidationException::withMessages(['confirmed' => 'This export has '.number_format($rows).' rows. Confirm to continue; the export is logged.']);
+            if ($rows > (int) config('buffalo.reports.confirm_rows') && ! $stepUpConfirmed) {
+                throw new StepUpRequired;
             }
         }
 

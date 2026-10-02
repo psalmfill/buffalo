@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reports;
 
 use App\Actions\Reports\RequestReport;
 use App\Enums\AccessAction;
+use App\Enums\Classification;
 use App\Enums\ReportType;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ReportRunPresenter;
@@ -18,6 +19,7 @@ use App\Services\Analytics\Analytics;
 use App\Services\Analytics\AnalyticsArea;
 use App\Services\Analytics\AnalyticsFilters;
 use App\Services\Reports\ReportParameters;
+use App\Support\Auth\StepUp;
 use App\Support\Incidents\IncidentFilters;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Http\JsonResponse;
@@ -71,7 +73,7 @@ class ReportController extends Controller
         $type = $request->reportType();
         $this->authorize('generate', [ReportRun::class, $type]);
 
-        $run = $requestReport($this->actor($request), $type, $request->reportFormat(), $request->reportParameters(), confirmed: $request->boolean('confirmed'));
+        $run = $requestReport($this->actor($request), $type, $request->reportFormat(), $request->reportParameters(), stepUpConfirmed: StepUp::isRecent($request));
 
         return redirect()->route('reports.index', ['run' => $run->ulid])
             ->with('toast', ['type' => 'success', 'message' => $type->label().' requested. It will appear in My reports when ready.']);
@@ -87,7 +89,8 @@ class ReportController extends Controller
 
         return response()->json([
             'rows' => $rows,
-            'confirm' => $rows > (int) config('buffalo.reports.confirm_rows'),
+            // Above the threshold, generating asks for a TOTP code (step-up).
+            'step_up' => $rows > (int) config('buffalo.reports.confirm_rows'),
             'over_limit' => $rows > (int) config('buffalo.reports.max_rows'),
         ]);
     }
@@ -96,6 +99,11 @@ class ReportController extends Controller
     {
         $this->authorize('download', $run);
         abort_unless($run->isDownloadable() && $run->file_path !== null, 410, 'This report has expired or is not ready.');
+
+        // Secret reports need a recent TOTP confirmation (Phase 8B.2).
+        if ($run->classification === Classification::Secret) {
+            StepUp::ensure($request);
+        }
 
         $disk = Storage::disk('reports');
         $path = $run->file_path;

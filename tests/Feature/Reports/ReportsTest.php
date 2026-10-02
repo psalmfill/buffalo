@@ -10,6 +10,7 @@ use App\Enums\ReportRunStatus;
 use App\Enums\ReportType;
 use App\Enums\ThreatUrgency;
 use App\Events\ReportRunUpdated;
+use App\Exceptions\StepUpRequired;
 use App\Jobs\GenerateReport;
 use App\Models\CoverageReport;
 use App\Models\Incident;
@@ -77,9 +78,9 @@ beforeEach(function () {
  *
  * @param  array<string, mixed>  $parameters
  */
-function generateReport(User $user, ReportType $type, array $parameters = [], ReportFormat $format = ReportFormat::Pdf, bool $confirmed = false): ReportRun
+function generateReport(User $user, ReportType $type, array $parameters = [], ReportFormat $format = ReportFormat::Pdf, bool $stepUp = false): ReportRun
 {
-    $run = app(JurisdictionContext::class)->actingAs($user, fn () => app(RequestReport::class)($user, $type, $format, $parameters, confirmed: $confirmed));
+    $run = app(JurisdictionContext::class)->actingAs($user, fn () => app(RequestReport::class)($user, $type, $format, $parameters, stepUpConfirmed: $stepUp));
 
     return $run->refresh();
 }
@@ -265,18 +266,18 @@ test('incident list exports: scoped rows, markings first, no person names, formu
     }
 });
 
-test('incident list exports are capped and need confirmation above the threshold', function () {
+test('incident list exports are capped and need step-up above the threshold', function () {
     config(['buffalo.reports.confirm_rows' => 1, 'buffalo.reports.max_rows' => 3]);
 
     expect(fn () => generateReport($this->sd, ReportType::IncidentList, ['filters' => []], ReportFormat::Csv))
-        ->toThrow(ValidationException::class, 'Confirm to continue');
-    expect(generateReport($this->sd, ReportType::IncidentList, ['filters' => []], ReportFormat::Csv, confirmed: true)->row_count)->toBe(3);
+        ->toThrow(StepUpRequired::class);
+    expect(generateReport($this->sd, ReportType::IncidentList, ['filters' => []], ReportFormat::Csv, stepUp: true)->row_count)->toBe(3);
 
-    expect(fn () => generateReport($this->dg, ReportType::IncidentList, ['filters' => []], ReportFormat::Csv, confirmed: true))
+    expect(fn () => generateReport($this->dg, ReportType::IncidentList, ['filters' => []], ReportFormat::Csv, stepUp: true))
         ->toThrow(ValidationException::class, 'limited to 3');
 
     CrossFixtures::signIn($this->dg)->postJson('/reports/estimate', ['parameters' => ['filters' => []]])
-        ->assertOk()->assertExactJson(['rows' => 4, 'confirm' => true, 'over_limit' => true]);
+        ->assertOk()->assertExactJson(['rows' => 4, 'step_up' => true, 'over_limit' => true]);
 });
 
 /*

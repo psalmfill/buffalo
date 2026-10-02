@@ -6,6 +6,7 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { initializeEcho } from '@/lib/echo';
+import StepUpDialog from '@/components/step-up-dialog';
 
 initializeEcho();
 
@@ -37,6 +38,7 @@ void createInertiaApp({
             <TooltipProvider delayDuration={0}>
                 {app}
                 <Toaster />
+                <StepUpDialog />
             </TooltipProvider>
         );
     },

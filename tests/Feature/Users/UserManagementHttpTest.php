@@ -4,12 +4,15 @@ use App\Enums\Permission;
 use App\Models\Lga;
 use App\Models\User;
 use App\Support\Auth\SessionKeys;
+use App\Support\Auth\StepUp;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role as SpatieRole;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\Jurisdiction\JurisdictionWorld;
 
 beforeEach(function () {
+    // A session that confirmed its TOTP code recently (step-up, Phase 8B.2).
+    $this->withSession([StepUp::SESSION_KEY => now()->timestamp]);
     $this->world = JurisdictionWorld::build();
     // In state A1 (visible to A1 roles), and one in zone B.
     $this->target = User::factory()->lgaChief($this->world->lgas['A1b'])->create();
