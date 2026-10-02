@@ -451,6 +451,35 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Limits:** 60 searches per user per minute.
 - **Settings:** `config/buffalo.php` → `search`.
 
+## Analytics (Phase 7C)
+
+- **Where:** Overview → **Analytics** (`analytics.view`, every intelligence role).
+- **Tabs:**
+  - Incidents: trend, by category and type with change, by geography with rates per 100,000, severity over time, day × hour;
+  - Casualties;
+  - Response: reporting delay, verification against the deadlines, resolution and closure, performance by state or LGA, escalation;
+  - Threats & flashpoints: outcomes and the materialisation rate by credibility, concern levels, incidents at flashpoints, blackspot suggestions, disseminations;
+  - Coverage: compliance, ratings, LGAs persistently inadequate or critical, deployments;
+  - Cross-jurisdiction: national users with `access_requests.oversee` only.
+- **Filters:**
+  - a period preset or custom dates;
+  - a comparison (previous period, or the same period last year);
+  - granularity (automatic unless chosen);
+  - zone, state or LGA within reach;
+  - incident type, category and severity.
+
+  Every filter is kept in the URL, so views can be shared; each viewer still sees only their own records.
+- **What is counted:** every figure goes through the viewer's own scopes; drafts and invalid reports are never counted.
+- **Caching:** the incident-based tabs are cached per scope signature (as the map layers are).
+- **Exports:** each chart has a data table, plus **PNG** (drawn in the browser) and **CSV** (built on the server) downloads (`analytics.export`).
+  - Exports carry the classification marking and "Generated for [name] at [time]".
+  - Each export is logged in `record_access_logs` (action `export`, context `analytics`).
+- **Dashboards:**
+  - a 7, 30 or 90-day period, applied to the incident figures and the map;
+  - KPI tiles (incidents, people killed, people abducted, verified within deadline, active immediate threats) with the change against the previous period;
+  - links into analytics.
+- **Settings:** `config/buffalo.php` → `analytics` (the incident type codes counted as kidnapping).
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
