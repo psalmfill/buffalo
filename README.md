@@ -480,6 +480,41 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - links into analytics.
 - **Settings:** `config/buffalo.php` → `analytics` (the incident type codes counted as kidnapping).
 
+## Reports and exports (Phase 7D)
+
+- **Where:** Overview → **Reports** (`reports.generate`). "Export" buttons on the incident list, an incident, an LGA, a coverage report and analytics open the same page pre-filled.
+- **Types:**
+  - PDF (all five intelligence roles): daily situation report (SITREP), weekly summary, incident report, LGA profile, coverage report, analytics report;
+  - PDF for DG, DDG, SD and DSD only: monthly summary;
+  - incident list export, XLSX or CSV (`reports.export_data`: DG, DDG, SD, DSD), up to 50,000 rows.
+
+  Each type also needs its module's view permission.
+- **How they are built:**
+  - on the `reports` queue (Horizon supervisor `supervisor-reports`), as the requester with their scopes at generation time;
+  - a deactivated or locked requester's runs fail.
+  - PDFs are rendered by **Gotenberg** (Chromium) on the internal `reports` network, with every outbound URL denied. Everything a page uses (CSS, font, Chart.js) is sent with the request.
+- **Markings:**
+  - On every PDF page: the classification banner top and bottom (the highest level included), "Generated for [name], [role], [jurisdiction] on [time]", the reference `RPT-<ULID>`, page X of Y, and a diagonal watermark with the requester's name.
+  - XLSX and CSV files carry the same in their first rows; XLSX files also carry them in the document properties.
+- **Data rules:**
+  - Drafts and invalid reports are never included.
+  - The incident list carries no person names (counts by involvement only), no descriptions and no evidence.
+  - The LGA profile names only current public office holders (chairman, vice chairman, councillors).
+  - Spreadsheet cells starting with `= + - @`, tab or CR are prefixed with `'`.
+- **Access and storage:**
+  - Only the requester can download a run.
+  - Each download verifies the file's SHA-256 and is logged in `record_access_logs` (action `export`, context the report type).
+  - Files live on the private `reports` volume (`/var/lib/buffalo/reports`) and expire after 30 days (`buffalo:expire-reports`, hourly); the run record stays.
+- **Large exports:** above 10,000 rows the page asks for confirmation that the export is logged; above 50,000 rows it is refused.
+- **Scheduled reports** (`/reports/schedules`, `reports.schedule`):
+  - SITREP, weekly or monthly summary, daily, weekly or monthly, in Africa/Lagos time;
+  - one-click defaults: daily SITREP at 07:00, weekly summary on Monday at 08:00, and monthly summary on the 1st at 08:00 (not for LGA chiefs);
+  - `buffalo:run-report-schedules` runs every 5 minutes. A scheduled SITREP covers everything since the previous run;
+  - the owner is notified "Your … is ready" with a link. Emails never carry the file;
+  - schedules of inactive or locked owners are paused.
+- **Live status:** `report.updated` on `users.{ulid}` (payload: run ULID and status only).
+- **Settings:** `config/buffalo.php` → `reports` (`GOTENBERG_URL`, expiry days, row limit, confirmation threshold, requests per minute, queue connection).
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
