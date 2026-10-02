@@ -19,6 +19,7 @@ use App\Models\State;
 use App\Models\User;
 use App\Support\Persons\PersonSearch;
 use App\Support\Persons\SearchTerm;
+use App\Support\Search\Trigram;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,10 +72,10 @@ class PickerController extends Controller
         $data = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'lga' => ['nullable', 'string', 'size:26']]);
         $lga = self::lga($data['lga'] ?? null);
 
-        $results = Community::query()->with(['lga', 'state'])
+        $results = Trigram::withWordSimilarity(Community::SEARCH_SIMILARITY, fn () => Community::query()->with(['lga', 'state'])
             ->when($lga, fn (Builder $q) => $q->where('communities.lga_id', $lga?->id))
             ->when(trim((string) ($data['q'] ?? '')) !== '', fn (Builder $q) => $q->search((string) $data['q']), fn (Builder $q) => $q->orderBy('communities.name'))
-            ->limit(self::LIMIT)->get();
+            ->limit(self::LIMIT)->get());
 
         return $this->respond($results->map(fn (Community $c) => self::row($c->ulid, $c->name, "{$c->lga->name} LGA, {$c->state->name}")));
     }
@@ -157,9 +158,9 @@ class PickerController extends Controller
         $this->authorize('viewAny', CriminalGroup::class);
         $data = $request->validate(['q' => ['nullable', 'string', 'max:100']]);
 
-        $results = CriminalGroup::query()->with(['lga', 'state'])
+        $results = Trigram::withWordSimilarity(CriminalGroup::SEARCH_SIMILARITY, fn () => CriminalGroup::query()->with(['lga', 'state'])
             ->when(trim((string) ($data['q'] ?? '')) !== '', fn (Builder $q) => $q->search((string) $data['q']), fn (Builder $q) => $q->orderBy('criminal_groups.name'))
-            ->limit(self::LIMIT)->get();
+            ->limit(self::LIMIT)->get());
 
         return $this->respond($results->map(fn (CriminalGroup $g) => self::row($g->ulid, $g->name, "{$g->type->label()} · {$g->lga->name} LGA, {$g->state->name}")));
     }

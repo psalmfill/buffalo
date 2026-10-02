@@ -57,6 +57,9 @@ class CriminalGroup extends Model implements Classified, JurisdictionScoped
     use LogsReads;
     use SoftDeletes;
 
+    /** Word similarity for the name search (`<%`, set per transaction with Trigram). */
+    public const SEARCH_SIMILARITY = 0.4;
+
     protected $fillable = ['name', 'other_names', 'type', 'description', 'estimated_size', 'status'];
 
     protected $hidden = ['id', 'state_id', 'lga_id', 'search_name', 'created_by', 'updated_by'];
@@ -100,7 +103,8 @@ class CriminalGroup extends Model implements Classified, JurisdictionScoped
         return $query
             ->where(fn (Builder $q) => $q
                 ->whereRaw("criminal_groups.search_name LIKE '%' || buffalo_search_text(?) || '%'", [addcslashes($term, '%_\\')])
-                ->orWhereRaw('word_similarity(buffalo_search_text(?), criminal_groups.search_name) >= 0.4', [$term]))
+                // The trigram index operator: run inside Trigram::withWordSimilarity(self::SEARCH_SIMILARITY, …).
+                ->orWhereRaw('buffalo_search_text(?) <% criminal_groups.search_name', [$term]))
             ->orderByRaw('word_similarity(buffalo_search_text(?), criminal_groups.search_name) DESC', [$term]);
     }
 

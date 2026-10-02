@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
 import {
     DropdownMenuGroup,
@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { clearRecentSearches } from '@/lib/recent-searches';
+import { clearClientState } from '@/lib/sign-out';
 import { logout } from '@/routes';
 import { edit } from '@/routes/security';
 import type { User } from '@/types';
@@ -22,9 +22,7 @@ export function UserMenuContent({ user }: Props) {
 
     const handleLogout = () => {
         cleanup();
-        router.flushAll();
-        // Recent global searches live in this browser only (Phase 7B).
-        clearRecentSearches();
+        clearClientState();
     };
 
     return (

@@ -24,6 +24,7 @@ use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Search\Trigram;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,7 +56,7 @@ class CommunityController extends Controller
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
         $lgas = $options->lgas($user, $state);
 
-        $results = Community::query()
+        $results = Trigram::withWordSimilarity(Community::SEARCH_SIMILARITY, fn () => Community::query()
             ->with(['lga', 'state', 'ward'])
             ->withCoordinates()
             ->when($state, fn (Builder $query) => $query->where('communities.state_id', $state?->id))
@@ -63,7 +64,7 @@ class CommunityController extends Controller
             ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('communities.type', $type))
             ->when($filters['q'] ?? null, fn (Builder $query, string $q) => $query->search($q), fn (Builder $query) => $query->orderBy('communities.name'))
             ->paginate(25)
-            ->withQueryString();
+            ->withQueryString());
 
         return Inertia::render('communities/index', [
             'results' => $results->through(fn (Community $community) => CommunityPresenter::row($community)),

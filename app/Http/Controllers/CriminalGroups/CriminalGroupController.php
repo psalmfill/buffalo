@@ -20,6 +20,7 @@ use App\Models\State;
 use App\Models\User;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Search\Trigram;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,7 +54,7 @@ class CriminalGroupController extends Controller
         ]);
         $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
 
-        $groups = CriminalGroup::query()
+        $groups = Trigram::withWordSimilarity(CriminalGroup::SEARCH_SIMILARITY, fn () => CriminalGroup::query()
             ->with(['lga', 'state'])
             ->withCount(['members as visible_members_count' => fn (Builder $q) => $q->whereHas('person')])
             ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('criminal_groups.type', $type))
@@ -62,7 +63,7 @@ class CriminalGroupController extends Controller
             ->when($lga, fn (Builder $q) => $q->where('criminal_groups.lga_id', $lga?->id))
             ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->search($term), fn (Builder $q) => $q->orderBy('criminal_groups.name'))
             ->paginate(25)
-            ->withQueryString();
+            ->withQueryString());
 
         return Inertia::render('criminal-groups/index', [
             'groups' => $groups->through(fn (CriminalGroup $group) => CriminalGroupPresenter::row($group)),

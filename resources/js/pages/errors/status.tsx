@@ -3,6 +3,7 @@ import AppLogoIcon from '@/components/app-logo-icon';
 import { SystemBanner } from '@/components/system-banner';
 import { Button } from '@/components/ui/button';
 import { dashboard, home, login, logout } from '@/routes';
+import { clearClientState } from '@/lib/sign-out';
 
 type ErrorStatus = 403 | 404 | 419 | 500 | 503;
 
@@ -75,7 +76,11 @@ export default function ErrorStatusPage({
                             </Button>
                             {status === 403 && (
                                 <Button variant="outline" asChild>
-                                    <Link href={logout()} as="button">
+                                    <Link
+                                        href={logout()}
+                                        as="button"
+                                        onClick={() => clearClientState()}
+                                    >
                                         Sign out
                                     </Link>
                                 </Button>

@@ -34,6 +34,7 @@ use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\ProfileCompleteness;
 use App\Support\Political\Leadership;
+use App\Support\Search\Trigram;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -259,11 +260,11 @@ class LgaController extends Controller
             ->with(['lga', 'state', 'ward'])
             ->withCoordinates();
 
-        $list = $base()
+        $list = Trigram::withWordSimilarity(Community::SEARCH_SIMILARITY, fn () => $base()
             ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('communities.type', $type))
             ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query->search($search), fn (Builder $query) => $query->orderBy('communities.name'))
             ->paginate(25, pageName: 'page')
-            ->withQueryString();
+            ->withQueryString());
 
         return [
             'list' => $list->through(fn (Community $community) => CommunityPresenter::row($community)),

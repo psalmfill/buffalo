@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { login, logout } from '@/routes';
 import { ping } from '@/routes/session';
+import { clearClientState } from '@/lib/sign-out';
 
 const WARNING_BEFORE_MS = 2 * 60 * 1000;
 
@@ -63,7 +64,7 @@ export default function SessionIdleWarning() {
     }, [submit]);
 
     const signOut = useCallback(() => {
-        router.flushAll();
+        clearClientState();
         router.post(logout().url);
     }, []);
 

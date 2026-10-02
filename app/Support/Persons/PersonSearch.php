@@ -3,10 +3,10 @@
 namespace App\Support\Persons;
 
 use App\Models\Person;
+use App\Support\Search\Trigram;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Person name and alias search with pg_trgm, written so the trigram GIN
@@ -43,14 +43,7 @@ final class PersonSearch
      */
     public static function withThresholds(float $similarity, float $wordSimilarity, Closure $callback): mixed
     {
-        return DB::transaction(function () use ($similarity, $wordSimilarity, $callback): mixed {
-            DB::select(
-                "SELECT set_config('pg_trgm.similarity_threshold', ?, true), set_config('pg_trgm.word_similarity_threshold', ?, true)",
-                [number_format($similarity, 2, '.', ''), number_format($wordSimilarity, 2, '.', '')],
-            );
-
-            return $callback();
-        });
+        return Trigram::withThresholds($similarity, $wordSimilarity, $callback);
     }
 
     /**

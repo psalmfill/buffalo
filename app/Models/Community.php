@@ -124,7 +124,8 @@ class Community extends Model implements JurisdictionScoped
         return $query
             ->where(fn (Builder $q) => $q
                 ->whereRaw("communities.search_names LIKE '%' || lower(buffalo_unaccent(?)) || '%'", [addcslashes($term, '%_\\')])
-                ->orWhereRaw('word_similarity(lower(buffalo_unaccent(?)), communities.search_names) >= ?', [$term, self::SEARCH_SIMILARITY]))
+                // The trigram index operator: run inside Trigram::withWordSimilarity(self::SEARCH_SIMILARITY, …).
+                ->orWhereRaw('lower(buffalo_unaccent(?)) <% communities.search_names', [$term]))
             ->orderByRaw('word_similarity(lower(buffalo_unaccent(?)), communities.search_names) DESC', [$term]);
     }
 

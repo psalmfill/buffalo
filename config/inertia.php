@@ -62,6 +62,16 @@ return [
     |
     */
 
+    /*
+    | History encryption (Phase 8A): every page's state in the browser
+    | history is encrypted with a per-session key, discarded at sign-out
+    | (router.clearHistory) and on the sign-in page, so Back after signing
+    | out cannot show earlier pages.
+    */
+    'history' => [
+        'encrypt' => (bool) env('INERTIA_ENCRYPT_HISTORY', true),
+    ],
+
     'testing' => [
 
         'ensure_pages_exist' => true,

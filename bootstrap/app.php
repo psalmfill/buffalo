@@ -4,6 +4,7 @@ use App\Http\Middleware\EnforceSessionPolicy;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\PreventAuthenticatedCaching;
 use App\Http\Middleware\SetJurisdictionContext;
 use App\Http\Middleware\VerifyKeyFingerprints;
 use App\Http\Responses\ErrorPage;
@@ -36,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            PreventAuthenticatedCaching::class,
         ]);
 
         // The jurisdiction context must be set before route model binding

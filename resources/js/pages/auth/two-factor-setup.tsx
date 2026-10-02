@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import { logout } from '@/routes';
 import { enable } from '@/routes/two-factor';
+import { clearClientState } from '@/lib/sign-out';
 
 type Props = {
     twoFactorConfirmed: boolean;
@@ -147,7 +148,11 @@ export default function TwoFactorSetup({ twoFactorConfirmed }: Props) {
                 errors={errors}
             />
 
-            <Form {...logout.form()} className="text-center">
+            <Form
+                {...logout.form()}
+                className="text-center"
+                onBefore={() => clearClientState()}
+            >
                 <button
                     type="submit"
                     className="text-sm text-muted-foreground underline underline-offset-4"
