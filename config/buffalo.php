@@ -1,5 +1,8 @@
 <?php
 
+// Retention in days from an environment variable; unset or empty: keep forever.
+$retentionDays = fn (string $name): ?int => ($value = env($name)) === null || $value === '' ? null : (int) $value;
+
 return [
 
     // Send email at all? Off for deployments without a mail server: setup
@@ -292,6 +295,31 @@ return [
             'max_minutes' => 24 * 60,
             'window_hours' => 24,
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Retention (Phase 8A.5)
+    |--------------------------------------------------------------------------
+    | Days to keep each group of records, or null to keep them forever. The
+    | client has not yet set retention periods, so every group is null and
+    | NOTHING IS DELETED: no deletion command exists yet. These values are
+    | shown by `php artisan buffalo:retention:report` and will drive a future
+    | retention command once the client decides (docs/security/retention.md).
+    | The only automatic deletion today is expired report files
+    | (`reports.expiry_days`, buffalo:expire-reports).
+    */
+    'retention' => [
+        'audit' => $retentionDays('BUFFALO_RETENTION_AUDIT_DAYS'),                 // activity_log, record_access_logs, record_match_events, audit_anchors
+        'login_history' => $retentionDays('BUFFALO_RETENTION_LOGIN_HISTORY_DAYS'), // login_histories
+        'search_logs' => $retentionDays('BUFFALO_RETENTION_SEARCH_LOG_DAYS'),
+        'analytics_exports' => $retentionDays('BUFFALO_RETENTION_ANALYTICS_EXPORT_DAYS'),
+        'notifications' => $retentionDays('BUFFALO_RETENTION_NOTIFICATION_DAYS'),
+        'report_runs' => $retentionDays('BUFFALO_RETENTION_REPORT_RUN_DAYS'),       // run records; the files expire after reports.expiry_days
+        'incidents' => $retentionDays('BUFFALO_RETENTION_INCIDENT_DAYS'),           // incidents with their history, follow-ups and evidence
+        'persons' => $retentionDays('BUFFALO_RETENTION_PERSON_DAYS'),
+        'cleared_persons_of_interest' => $retentionDays('BUFFALO_RETENTION_CLEARED_POI_DAYS'),
+        'threats_and_flashpoints' => $retentionDays('BUFFALO_RETENTION_THREAT_DAYS'),
     ],
 
 ];
