@@ -2,11 +2,29 @@
 #
 # No ports are published here. Development port bindings and source mounts
 # live in compose.override.yml, which Docker Compose loads automatically.
-# Every image is pinned to an exact version tag.
+#
+# Container hardening (Phase 8C.5; checked by scripts/check-compose-hardening.sh):
+# - every image pinned by tag and digest (built images: their Dockerfile
+#   base images are pinned the same way);
+# - no-new-privileges, all Linux capabilities dropped; no service adds any
+#   back, because every service runs as a non-root user;
+# - read-only root filesystems with tmpfs scratch space, where possible;
+# - memory and CPU limits sized for one 16 GB server (BUFFALO_MEM_* and
+#   BUFFALO_CPUS_* override them);
+# - a health check for every service, used by depends_on;
+# - networks: frontend (nginx, published), backend (app, workers, Reverb,
+#   PostgreSQL, Valkey), internal-tools (Gotenberg, ClamAV), backup
+#   (backup services, PostgreSQL). backend, internal-tools and backup have
+#   no gateway: nothing on them can reach the internet.
 
 name: buffalo
 
+x-hardening: &hardening
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
 x-app: &app
+  <<: *hardening
   image: buffalo-app:dev
   build:
     context: .
@@ -15,6 +33,18 @@ x-app: &app
     args:
       UID: ${DOCKER_UID:-1000}
       GID: ${DOCKER_GID:-1000}
+  # The root filesystem is read-only: the application writes only to its
+  # volumes, storage/ (the source mount in development; a volume in the
+  # production deployment, Phase 9) and /tmp.
+  read_only: true
+  tmpfs:
+    - /tmp:size=512m,mode=1777
+  networks: [backend, internal-tools]
+  volumes:
+    - evidence_data:/var/lib/buffalo/evidence
+    - reports_data:/var/lib/buffalo/reports
+    - quarantine_data:/var/lib/buffalo/quarantine
+    - backup_status:/var/lib/buffalo/backup-status:ro
   depends_on:
     postgres:
       condition: service_healthy
@@ -25,12 +55,9 @@ services:
   app:
     <<: *app
     restart: unless-stopped
-    networks: [default, reports, scanning]
-    volumes:
-      - evidence_data:/var/lib/buffalo/evidence
-      - reports_data:/var/lib/buffalo/reports
-      - quarantine_data:/var/lib/buffalo/quarantine
-      - backup_status:/var/lib/buffalo/backup-status:ro
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_APP:-1g}", cpus: "${BUFFALO_CPUS_APP:-2}"}
     healthcheck:
       test:
         - CMD-SHELL
@@ -40,19 +67,39 @@ services:
       retries: 5
       start_period: 10s
 
+  # Runs as the unprivileged nginx user on port 8080 (docker/nginx/nginx.conf).
   nginx:
-    image: nginx:1.30.5-alpine3.24
+    <<: *hardening
+    image: nginx:1.30.5-alpine3.24@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
     restart: unless-stopped
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /var/cache/nginx:size=16m,uid=101,gid=101
+    networks: [frontend, backend]
+    environment:
+      NGINX_ENTRYPOINT_QUIET_LOGS: "1"
     depends_on:
       app:
         condition: service_healthy
       reverb:
-        condition: service_started
+        condition: service_healthy
     volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - map_tiles:/usr/share/nginx/tiles:ro
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_NGINX:-256m}", cpus: "${BUFFALO_CPUS_NGINX:-1}"}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/nginx-ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres:
+    <<: *hardening
     # The pinned PostGIS image plus pgBackRest (docker/postgres/Dockerfile).
     # PostGIS publishes linux/amd64 images only; on arm64 hosts (Apple
     # Silicon) Docker runs this under emulation.
@@ -64,6 +111,13 @@ services:
         GID: ${DOCKER_GID:-1000}
     platform: linux/amd64
     restart: unless-stopped
+    # Runs as postgres from the start (no root entrypoint, no capabilities).
+    user: "70:70"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    shm_size: 256m
+    networks: [backend, backup]
     # Backups (Phase 8C.1): continuous WAL archiving through pgBackRest,
     # configured in the mounted postgresql.conf.
     entrypoint: ["backup-entrypoint.sh", "docker-entrypoint.sh"]
@@ -91,6 +145,9 @@ services:
       - ${BACKUP_REPO2_PATH:-backup_repo2_unused}:/backup-repo2
       - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_POSTGRES:-3g}", cpus: "${BUFFALO_CPUS_POSTGRES:-2}"}
     healthcheck:
       # -h 127.0.0.1: the temporary server used while init scripts run only
       # listens on the Unix socket, so this passes only once init is done.
@@ -105,10 +162,15 @@ services:
   # image as postgres; shares its data volume (read-only) and Unix socket.
   # Writes status JSON for System health to backup_status.
   pgbackrest:
+    <<: *hardening
     image: buffalo-postgres:dev
     platform: linux/amd64
     restart: unless-stopped
     user: "70:70"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    networks: [backup]
     entrypoint: ["backup-entrypoint.sh"]
     command: ["pgbackrest-scheduler.sh"]
     environment:
@@ -123,6 +185,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_PGBACKREST:-512m}", cpus: "${BUFFALO_CPUS_PGBACKREST:-1}"}
     healthcheck:
       # The scheduler records the WAL state every 20 seconds.
       test: ["CMD-SHELL", "find /backup-status/pgbackrest/wal.json -mmin -2 | grep -q ."]
@@ -136,9 +201,14 @@ services:
   # as the application user, who owns the evidence files; reads them
   # read-only. Writes status JSON for System health to backup_status.
   backup:
+    <<: *hardening
     image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
     restart: unless-stopped
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    networks: [backup]
     entrypoint: ["/usr/local/bin/restic-scheduler.sh"]
     environment:
       TZ: Africa/Lagos
@@ -159,6 +229,9 @@ services:
       # postgres seeds the backup volumes' directory layout on first start.
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_BACKUP:-768m}", cpus: "${BUFFALO_CPUS_BACKUP:-1}"}
     healthcheck:
       test: ["CMD-SHELL", "find /backup-status/restic/heartbeat.json -mmin -2 | grep -q ."]
       interval: 30s
@@ -167,8 +240,14 @@ services:
       start_period: 300s
 
   valkey:
-    image: valkey/valkey:9.1.2-alpine3.24
+    <<: *hardening
+    image: valkey/valkey:9.1.2-alpine3.24@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
     restart: unless-stopped
+    user: "999:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    networks: [backend]
     # ACL users (Phase 8A): the default user is off; the application user
     # cannot FLUSHALL/FLUSHDB/CONFIG/KEYS/DEBUG. Passwords may also be given
     # as VALKEY_APP_PASSWORD_FILE / VALKEY_ADMIN_PASSWORD_FILE (Docker secrets).
@@ -181,6 +260,9 @@ services:
     volumes:
       - valkey_data:/data
       - ./docker/valkey/entrypoint.sh:/usr/local/bin/buffalo-valkey-entrypoint:ro
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_VALKEY:-768m}", cpus: "${BUFFALO_CPUS_VALKEY:-1}"}
     healthcheck:
       test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${VALKEY_APP_PASSWORD:-$$(cat \"$${VALKEY_APP_PASSWORD_FILE:-/dev/null}\")}\" valkey-cli --no-auth-warning --user \"$$VALKEY_APP_USERNAME\" ping | grep -q PONG"]
       interval: 5s
@@ -192,12 +274,9 @@ services:
     command: ["php", "artisan", "horizon"]
     restart: always
     stop_signal: SIGTERM
-    networks: [default, reports, scanning]
-    volumes:
-      - evidence_data:/var/lib/buffalo/evidence
-      - reports_data:/var/lib/buffalo/reports
-      - quarantine_data:/var/lib/buffalo/quarantine
-      - backup_status:/var/lib/buffalo/backup-status:ro
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_HORIZON:-1g}", cpus: "${BUFFALO_CPUS_HORIZON:-2}"}
     healthcheck:
       test: ["CMD", "php", "artisan", "horizon:status"]
       interval: 30s
@@ -209,32 +288,50 @@ services:
     <<: *app
     command: ["php", "artisan", "schedule:work"]
     restart: always
-    networks: [default, scanning]
-    volumes:
-      - evidence_data:/var/lib/buffalo/evidence
-      - reports_data:/var/lib/buffalo/reports
-      - quarantine_data:/var/lib/buffalo/quarantine
-      - backup_status:/var/lib/buffalo/backup-status:ro
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_SCHEDULER:-512m}", cpus: "${BUFFALO_CPUS_SCHEDULER:-1}"}
     healthcheck:
-      disable: true
+      # buffalo:health:monitor runs every minute; healthy while it does.
+      test: ["CMD", "php", "artisan", "buffalo:health:scheduler-alive"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 180s
 
   reverb:
     <<: *app
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
     restart: always
+    # Reverb needs neither the tools nor the evidence volumes.
+    networks: [backend]
+    volumes: []
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_REVERB:-512m}", cpus: "${BUFFALO_CPUS_REVERB:-1}"}
     healthcheck:
-      disable: true
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 8080) ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # HTML → PDF for reports (Phase 7D). Chromium-only image (no LibreOffice).
-  # Only on the internal `reports` network: no ports, no route to the
-  # internet. Chromium may load only the files sent with each request
-  # (written under /tmp); http(s) and every other scheme are denied.
-  # Unused features are off: downloading from URLs, webhooks, the PDF engine
-  # routes (merge/split/…) and metrics.
+  # Only on the internal-tools network: no ports, no route to the internet.
+  # Chromium may load only the files sent with each request (written under
+  # /tmp); http(s) and every other scheme are denied. Unused features are
+  # off: downloading from URLs, webhooks, the PDF engine routes
+  # (merge/split/…) and metrics. Runs as the image's gotenberg user.
   gotenberg:
-    image: gotenberg/gotenberg:8.37.0-chromium
+    <<: *hardening
+    image: gotenberg/gotenberg:8.37.0-chromium@sha256:0d28ae9a96441588ef739623726bd500ad0720b77266c6f1351a13e333fbd61c
     restart: unless-stopped
-    networks: [reports]
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g,mode=1777
+      - /home/gotenberg:size=256m,uid=1001,gid=1001
+    networks: [internal-tools]
     command:
       - gotenberg
       - --chromium-allow-list=^file:///tmp/.*
@@ -246,6 +343,9 @@ services:
       - --prometheus-disable-collect=true
       - --api-timeout=60s
       - --log-level=info
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_GOTENBERG:-1536m}", cpus: "${BUFFALO_CPUS_GOTENBERG:-2}"}
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
       interval: 10s
@@ -253,23 +353,31 @@ services:
       retries: 5
 
   # Malware scanning (Phase 8B.4). Official ClamAV image, Debian variant:
-  # clamav/clamav has no arm64 build. 1.5.4, pinned by its multi-arch index
-  # digest. Signatures update online only when CLAMAV_ONLINE_UPDATES=true;
-  # otherwise import them with `make clamav-import-signatures`. clamd's
-  # stream limit is raised above the largest evidence upload (100 MB).
+  # clamav/clamav has no arm64 build. Runs unprivileged (as clamav) with a
+  # read-only root; configuration is mounted (docker/clamav/clamd.conf).
+  # Signatures update online only when CLAMAV_ONLINE_UPDATES=true;
+  # otherwise import them with `make clamav-import-signatures`. clamd holds
+  # about 1.5 GB of signatures and briefly twice that while reloading.
   clamav:
+    <<: *hardening
     image: clamav/clamav-debian:1.5.4@sha256:9bb8712a50f0e75166e936c452cd82dd5e5be0b85586598930b5bbb84a99a578
     restart: unless-stopped
-    networks: [scanning]
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    networks: [internal-tools]
     entrypoint: ["/buffalo-entrypoint.sh"]
     environment:
       CLAMAV_ONLINE_UPDATES: ${CLAMAV_ONLINE_UPDATES:-false}
-      CLAMD_CONF_StreamMaxLength: 160M
-      CLAMD_CONF_MaxFileSize: 160M
-      CLAMD_CONF_MaxScanSize: 400M
     volumes:
       - ./docker/clamav/entrypoint.sh:/buffalo-entrypoint.sh:ro
+      - ./docker/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+      - ./docker/clamav/freshclam.conf:/etc/clamav/freshclam.conf:ro
       - clamav_data:/var/lib/clamav
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_CLAMAV:-3g}", cpus: "${BUFFALO_CPUS_CLAMAV:-1}"}
     healthcheck:
       test: ["CMD-SHELL", "clamdcheck.sh"]
       interval: 30s
@@ -278,12 +386,19 @@ services:
       start_period: 300s
 
 networks:
-  # Shared only by app, Horizon, the scheduler and ClamAV. No gateway.
-  scanning:
+  # nginx only; the one network with published ports.
+  frontend:
+  # Application, workers, Reverb, PostgreSQL, Valkey (and nginx, which
+  # forwards to the app and Reverb). No gateway: an air-gapped default.
+  # Outbound mail (BUFFALO_MAIL_ENABLED) needs a route to the relay: add an
+  # egress network for horizon in the production deployment (Phase 9).
+  backend:
     internal: true
-  # Shared only by app, Horizon and Gotenberg. internal: true has no gateway,
-  # so nothing on it can reach the outside world.
-  reports:
+  # Gotenberg and ClamAV, reached by the app and workers only.
+  internal-tools:
+    internal: true
+  # Backup services and PostgreSQL.
+  backup:
     internal: true
 
 volumes:

@@ -1,5 +1,5 @@
 #!/bin/sh
-# BUFFALO wrapper around the ClamAV image's /init (Phase 8B.4).
+# BUFFALO wrapper around the ClamAV image's /init-unprivileged (Phase 8B.4, 8C.5).
 #
 # - Signatures are updated online (freshclam daemon) only when
 #   CLAMAV_ONLINE_UPDATES=true. Air-gapped deployments import signature
@@ -33,7 +33,9 @@ clamd_running() {
     return 1
 }
 
-/init "$@" &
+# Unprivileged (Phase 8C.5): the container runs as clamav with a read-only
+# root filesystem; configuration comes from the mounted clamd.conf.
+/init-unprivileged "$@" &
 init_pid=$!
 trap 'kill "$init_pid" 2>/dev/null; exit 0' TERM INT
 

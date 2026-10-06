@@ -22,12 +22,12 @@ final class SchedulerCheck implements HealthCheck
         $last = Checks::lastScheduledRun();
         $limit = (int) config('buffalo.health.scheduler_minutes');
 
-        if ($last !== null && $last->gte(CarbonImmutable::now()->subMinutes($limit))) {
+        // Nothing recorded yet (a new installation's first minute): not an
+        // alert; the first scheduled run records itself.
+        if ($last === null || $last->gte(CarbonImmutable::now()->subMinutes($limit))) {
             return [];
         }
 
-        return [Condition::critical('scheduler.stale', 'Scheduler not running', $last === null
-            ? 'No scheduled command has run. Backup monitoring, reminders and report schedules are stopped.'
-            : 'No scheduled command has run since '.$last->setTimezone((string) config('app.timezone'))->format('j M Y H:i').'. Backup monitoring, reminders and report schedules are stopped.')];
+        return [Condition::critical('scheduler.stale', 'Scheduler not running', 'No scheduled command has run since '.$last->setTimezone((string) config('app.timezone'))->format('j M Y H:i').'. Backup monitoring, reminders and report schedules are stopped.')];
     }
 }

@@ -1,6 +1,9 @@
 # BUFFALO development overrides (loaded automatically by `docker compose`).
 #
-# All published ports bind to 127.0.0.1 only.
+# Development relaxations only (Phase 8C.5): the base compose.yml carries
+# the production hardening. All published ports bind to 127.0.0.1 only.
+# Services that need a published port, Mailpit or the host (Xdebug) also
+# join the `default` network, because the base networks have no gateway.
 
 services:
   app:
@@ -10,14 +13,17 @@ services:
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
     extra_hosts:
       - host.docker.internal:host-gateway
+    networks: [default]
 
   horizon:
     volumes:
       - .:/var/www/html
+    networks: [default]
 
   scheduler:
     volumes:
       - .:/var/www/html
+    networks: [default]
 
   reverb:
     volumes:
@@ -27,19 +33,22 @@ services:
     volumes:
       - .:/var/www/html:ro
     ports:
-      - 127.0.0.1:${APP_PORT:-8000}:80
+      - 127.0.0.1:${APP_PORT:-8000}:8080
 
   postgres:
     ports:
       - 127.0.0.1:${FORWARD_DB_PORT:-5432}:5432
+    networks: [default]
 
   valkey:
     ports:
       - 127.0.0.1:${FORWARD_VALKEY_PORT:-6379}:6379
+    networks: [default]
 
   mailpit:
-    image: axllent/mailpit:v1.31.2
+    image: axllent/mailpit:v1.31.2@sha256:74d609a42ec279aa63c6b4622a6fa9b5408d1ad5b1d76a1c4be40a265ce0863d
     restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
     ports:
       - 127.0.0.1:${FORWARD_MAILPIT_UI_PORT:-8025}:8025
     environment:
@@ -50,8 +59,10 @@ services:
       MP_BLOCK_REMOTE_CSS_AND_FONTS: 1
 
   vite:
-    image: node:24.21.0-alpine3.24
+    image: node:24.21.0-alpine3.24@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
     user: ${DOCKER_UID:-1000}:${DOCKER_GID:-1000}
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
     working_dir: /app
     command: ["npm", "run", "dev"]
     restart: unless-stopped

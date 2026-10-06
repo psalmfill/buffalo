@@ -77,14 +77,15 @@ test('each database backup problem is a critical condition', function (array $st
     expect(array_map(fn ($c) => $c->key, $conditions))->toContain($key)
         ->and(collect($conditions)->firstWhere('key', $key)->severity)->toBe('critical');
 })->with([
-    'backup failed' => [[], ['backup-diff', false, 'ERROR: [082]: unable to open'], 'backup.db.backup-diff'],
-    'check failed' => [[], ['check', false, 'ERROR: [087]: archive_command'], 'backup.db.check'],
-    'verify failed' => [[], ['verify', false, 'ERROR: checksum mismatch'], 'backup.db.verify'],
-    'older than 26 hours' => [['backup_at' => now()->subHours(27)], null, 'backup.db.stale'],
-    'no backup at all' => [['backup_at' => null], null, 'backup.db.stale'],
-    'WAL lag over 15 minutes' => [['oldest_ready' => 16 * 60], null, 'backup.db.wal_lag'],
-    'WAL archiving failing' => [['last_failed' => now()->subMinute()], null, 'backup.db.wal_failing'],
-    'sidecar silent' => [['wal_at' => now()->subMinutes(6)], null, 'backup.db.sidecar'],
+    // Closures: evaluated when the test runs, not when the file loads.
+    'backup failed' => fn () => [[], ['backup-diff', false, 'ERROR: [082]: unable to open'], 'backup.db.backup-diff'],
+    'check failed' => fn () => [[], ['check', false, 'ERROR: [087]: archive_command'], 'backup.db.check'],
+    'verify failed' => fn () => [[], ['verify', false, 'ERROR: checksum mismatch'], 'backup.db.verify'],
+    'older than 26 hours' => fn () => [['backup_at' => now()->subHours(27)], null, 'backup.db.stale'],
+    'no backup at all' => fn () => [['backup_at' => null], null, 'backup.db.stale'],
+    'WAL lag over 15 minutes' => fn () => [['oldest_ready' => 16 * 60], null, 'backup.db.wal_lag'],
+    'WAL archiving failing' => fn () => [['last_failed' => now()->subMinute()], null, 'backup.db.wal_failing'],
+    'sidecar silent' => fn () => [['wal_at' => now()->subMinutes(6)], null, 'backup.db.sidecar'],
 ]);
 
 test('a missing status volume is critical', function () {

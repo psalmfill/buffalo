@@ -63,8 +63,8 @@ scan_trivy() {
 }
 
 scan_zap() {
-    local target="${ZAP_TARGET:-http://nginx}"
-    local network="${ZAP_NETWORK:-buffalo_default}"
+    local target="${ZAP_TARGET:-http://nginx:8080}"
+    local network="${ZAP_NETWORK:-buffalo_frontend}"
 
     step "Create a scan session (seeded test user)"
     local cookie

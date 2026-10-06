@@ -86,10 +86,11 @@ wayfinder: ## Regenerate Wayfinder TypeScript routes (run after changing routes)
 	$(PHP_ND) php artisan wayfinder:generate --with-form
 
 ci: ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
+	./scripts/check-compose-hardening.sh
 	docker build -f docker/php/Dockerfile --target ci \
 		--build-arg UID=$(DOCKER_UID) --build-arg GID=$(DOCKER_GID) -t buffalo-app:ci .
 	$(COMPOSE) up -d --wait postgres valkey gotenberg clamav
-	docker run --rm --network buffalo_default --network buffalo_reports --network buffalo_scanning \
+	docker run --rm --network buffalo_backend --network buffalo_internal-tools \
 		-v "$(CURDIR)":/src:ro \
 		-e DB_HOST=postgres -e REDIS_HOST=valkey -e GOTENBERG_URL=http://gotenberg:3000 \
 		-e CLAMAV_HOST=clamav -e BUFFALO_REQUIRE_CLAMAV=true \

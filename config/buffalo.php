@@ -428,7 +428,7 @@ return [
         'failed_jobs' => (int) env('BUFFALO_HEALTH_FAILED_JOBS', 10),
         'queue_wait_minutes' => (int) env('BUFFALO_HEALTH_QUEUE_WAIT_MINUTES', 5),
         'scheduler_minutes' => (int) env('BUFFALO_HEALTH_SCHEDULER_MINUTES', 10),
-        'nginx_url' => env('BUFFALO_HEALTH_NGINX_URL', 'http://nginx/up'),
+        'nginx_url' => env('BUFFALO_HEALTH_NGINX_URL', 'http://nginx:8080/up'),
         'tls_certificate' => env('BUFFALO_TLS_CERTIFICATE', ''),
     ],
 

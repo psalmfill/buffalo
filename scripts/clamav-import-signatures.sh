@@ -36,7 +36,6 @@ docker compose run --rm --no-deps -T --network none \
             [ -f "$f" ] || continue
             cp "$f" /var/lib/clamav/
         done
-        chown clamav:clamav /var/lib/clamav/*
         echo "Signatures copied."
     '
 

@@ -130,7 +130,7 @@ class VerifyRestoreCommand extends Command
         $checked = 0;
         $failures = 0;
 
-        $persons = Person::query()->withoutGlobalScopes()->whereNotNull('nin')->inRandomOrder()->limit($sample)->get();
+        $persons = Person::query()->whereNotNull('nin')->inRandomOrder()->limit($sample)->get();
         foreach ($persons as $person) {
             try {
                 foreach (array_keys(Person::BLIND_INDEXES) as $column) {
@@ -139,7 +139,7 @@ class VerifyRestoreCommand extends Command
                         continue;
                     }
                     $value = $value instanceof \DateTimeInterface ? $value->format('Y-m-d') : (string) $value;
-                    $found = Person::query()->withoutGlobalScopes()->whereBlind($column, Person::BLIND_INDEXES[$column], $value)->whereKey($person->getKey())->exists();
+                    $found = Person::query()->whereBlind($column, Person::BLIND_INDEXES[$column], $value)->whereKey($person->getKey())->exists();
                     $found ? $checked++ : $failures++;
                 }
             } catch (Throwable) {
@@ -154,7 +154,7 @@ class VerifyRestoreCommand extends Command
 
     private function evidence(int $sample, bool $all): void
     {
-        $query = IncidentEvidence::query()->withoutGlobalScopes()->with('media');
+        $query = IncidentEvidence::query()->with('media');
         $items = $all ? $query->orderBy('id')->get() : $query->inRandomOrder()->limit($sample)->get();
         $bad = 0;
         $known = 0;

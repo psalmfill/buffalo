@@ -28,14 +28,14 @@ test('the gotenberg service is pinned, internal-only, publishes no port and deni
     expect($service)->toContain('image: gotenberg/gotenberg:8.37.0-chromium')
         ->not->toContain('ports:')
         ->not->toContain(':latest')
-        ->toContain('networks: [reports]')
+        ->toContain('networks: [internal-tools]')
         ->toContain('--chromium-allow-list=^file:///tmp/.*')
         ->toContain('--chromium-deny-list=^(?!file:///tmp/).*')
         ->toContain('--api-disable-download-from=true')
         ->toContain('--webhook-disable=true')
         ->toContain('--pdfengines-disable-routes=true')
         ->toContain('--prometheus-disable-collect=true');
-    expect($compose)->toMatch('/\nnetworks:\n(?:.*\n)*?  reports:\n    internal: true/')
+    expect($compose)->toMatch('/\nnetworks:\n(?:.*\n)*?  internal-tools:\n    internal: true/')
         ->and((string) file_get_contents(base_path('compose.override.yml')))->not->toMatch('/gotenberg:[\s\S]*?ports:/');
 });
 

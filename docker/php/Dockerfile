@@ -11,13 +11,13 @@
 # Every base image is pinned to an exact version tag.
 # ---------------------------------------------------------------------------
 
-FROM composer:2.10.3 AS composer
-FROM node:24.21.0-trixie-slim AS node-glibc
+FROM composer:2.10.3@sha256:af98f42dfff7c68ba8d53c2164fd9fde1087b7d449514baa38c418b1f6bc4bac AS composer
+FROM node:24.21.0-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66 AS node-glibc
 
 # ---------------------------------------------------------------------------
 # base: PHP-FPM with the extensions BUFFALO needs, running as a non-root user.
 # ---------------------------------------------------------------------------
-FROM php:8.4.26-fpm-trixie AS base
+FROM php:8.4.26-fpm-trixie@sha256:14ae2e2ff06c5b60196e017cfdf4f21858f28cca794571d002171520272864f8 AS base
 
 ARG UID=1000
 ARG GID=1000
@@ -151,7 +151,7 @@ RUN set -eux; \
 # frontend: builds the Vite assets. Wayfinder output comes from the vendor
 # stage because this image has no PHP.
 # ---------------------------------------------------------------------------
-FROM node:24.21.0-alpine3.24 AS frontend
+FROM node:24.21.0-alpine3.24@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS frontend
 
 WORKDIR /app
 

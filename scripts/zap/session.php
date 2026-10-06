@@ -47,7 +47,7 @@ $user->forceFill([
     'deleted_at' => null,
 ])->save();
 
-$base = getenv('ZAP_LOGIN_URL') ?: 'http://nginx';
+$base = getenv('ZAP_LOGIN_URL') ?: 'http://nginx:8080';
 $jar = new CookieJar;
 $http = new Client(['base_uri' => $base, 'cookies' => $jar, 'allow_redirects' => false, 'http_errors' => false, 'timeout' => 20]);
 $xsrf = fn (): string => urldecode((string) $jar->getCookieByName('XSRF-TOKEN')?->getValue());
