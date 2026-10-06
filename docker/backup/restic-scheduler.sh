@@ -3,7 +3,7 @@
 # the application user (who owns the evidence files), with the evidence
 # volume mounted read-only.
 #
-# Africa/Lagos times (TZ): backup nightly 02:00, then retention (daily 14,
+# Africa/Lagos times (TZ): backup nightly 02:00 (BACKUP_EVIDENCE_TIME), then retention (daily 14,
 # weekly 8, monthly 12; BACKUP_EVIDENCE_KEEP_*) and prune; `restic check`
 # Sunday 05:00; `restic check --read-data-subset=5%` on the 1st at 05:30.
 #
@@ -115,7 +115,7 @@ while true; do
     if [ "$minute" != "$last" ]; then
         last=$minute
         case "$minute" in
-            02:00) backup ;;
+            "${BACKUP_EVIDENCE_TIME:-02:00}") backup ;;
             05:00) [ "$(date +%u)" = 7 ] && run_task check check ;;
             05:30) [ "$(date +%d)" = 01 ] && run_task check-data check --read-data-subset=5% ;;
             *:45) write_info ;;

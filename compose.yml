@@ -136,6 +136,8 @@ services:
       BACKUP_PGBACKREST_PASSPHRASE_FILE: ${BACKUP_PGBACKREST_PASSPHRASE_FILE:-}
       BACKUP_PG_RETENTION_FULL: ${BACKUP_PG_RETENTION_FULL:-4}
       BACKUP_REPO2_ENABLED: ${BACKUP_REPO2_ENABLED:-false}
+      BACKUP_PG_TIME: ${BACKUP_PG_TIME:-01:00}
+      BACKUP_PG_FULL_DAY: ${BACKUP_PG_FULL_DAY:-7}
       APP_ENV: ${APP_ENV:-production}
     volumes:
       # PostgreSQL 18+ images keep data under /var/lib/postgresql/<major>/.
@@ -219,6 +221,7 @@ services:
       BACKUP_EVIDENCE_KEEP_DAILY: ${BACKUP_EVIDENCE_KEEP_DAILY:-14}
       BACKUP_EVIDENCE_KEEP_WEEKLY: ${BACKUP_EVIDENCE_KEEP_WEEKLY:-8}
       BACKUP_EVIDENCE_KEEP_MONTHLY: ${BACKUP_EVIDENCE_KEEP_MONTHLY:-12}
+      BACKUP_EVIDENCE_TIME: ${BACKUP_EVIDENCE_TIME:-02:00}
     volumes:
       - ./docker/backup/restic-scheduler.sh:/usr/local/bin/restic-scheduler.sh:ro
       - evidence_data:/evidence:ro

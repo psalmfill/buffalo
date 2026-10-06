@@ -109,7 +109,7 @@ final class SystemHealthReport
                 'reported_at' => self::time($wal['checked_at'] ?? null),
                 'check' => $task('pgbackrest', 'check'),
                 'verify' => $task('pgbackrest', 'verify'),
-                'last_backup' => $task('pgbackrest', 'backup-diff') ?? $task('pgbackrest', 'backup-full'),
+                'last_backup' => collect([$task('pgbackrest', 'backup-diff'), $task('pgbackrest', 'backup-full')])->filter()->sortByDesc('at')->first(),
                 'repo1_bytes' => isset($pgSizes['repo1_kb']) ? (int) $pgSizes['repo1_kb'] * 1024 : null,
                 'repo2_bytes' => isset($pgSizes['repo2_kb']) ? (int) $pgSizes['repo2_kb'] * 1024 : null,
             ],

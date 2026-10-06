@@ -2,7 +2,6 @@ import { Head, router } from '@inertiajs/react';
 import { RefreshCw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import SystemHealthController from '@/actions/App/Http/Controllers/System/SystemHealthController';
-import { formatBytes } from '@/components/evidence/evidence-details';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -169,7 +168,20 @@ function TaskRow({ label, task }: { label: string; task: Task }) {
 }
 
 function bytes(value: number | null | undefined): string {
-    return value === null || value === undefined ? '—' : formatBytes(value);
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = value;
+    let unit = 0;
+
+    while (size >= 1024 && unit < units.length - 1) {
+        size /= 1024;
+        unit++;
+    }
+
+    return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
 /**

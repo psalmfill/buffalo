@@ -3,7 +3,8 @@
 # postgres user, sharing the data volume and Unix socket with `postgres`.
 #
 # Africa/Lagos times (TZ): full backup Sunday 01:00, differential the other
-# days 01:00, `check` daily 03:30, `verify` Saturday 04:00. WAL is archived
+# days 01:00 (BACKUP_PG_TIME, BACKUP_PG_FULL_DAY: 1 = Monday ... 7 = Sunday),
+# `check` daily 03:30, `verify` Saturday 04:00. WAL is archived
 # continuously by PostgreSQL itself (archive_command). Every minute the WAL
 # archiving state is recorded.
 #
@@ -111,7 +112,7 @@ while true; do
     if [ "$minute" != "$last" ]; then
         last=$minute
         case "$minute" in
-            01:00) if [ "$(date +%u)" = 7 ]; then backup full; else backup diff; fi ;;
+            "${BACKUP_PG_TIME:-01:00}") if [ "$(date +%u)" = "${BACKUP_PG_FULL_DAY:-7}" ]; then backup full; else backup diff; fi ;;
             03:30) run_task check pgbackrest --stanza=$STANZA check ;;
             04:00) [ "$(date +%u)" = 6 ] && run_task verify pgbackrest --stanza=$STANZA verify ;;
         esac
