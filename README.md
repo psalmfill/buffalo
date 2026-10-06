@@ -541,6 +541,16 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Retention:** nothing is deleted until the client sets periods (`config/buffalo.php` → `retention`, all `null`). `buffalo:retention:report` shows rows and sizes by year. See `docs/security/retention.md`.
 - **Sign-out:** clears Inertia's cache and encrypted history, recent searches and session storage. Signed-in pages are sent with `Cache-Control: no-store`.
 
+## Application security (Phase 8B)
+
+- **Browser headers:** a nonce-based Content Security Policy on every page (`BUFFALO_CSP_REPORT_ONLY=true` reports violations to `storage/logs/csp-*.log` without blocking), plus Permissions-Policy, COOP, CORP and, over HTTPS, HSTS.
+- **Step-up:** secret report downloads, large incident exports, evidence originals above `restricted`, access approvals, classified disseminations and sensitive user administration need a TOTP code from the last 15 minutes (`BUFFALO_STEP_UP_MINUTES`). The app asks for it in a dialog and retries.
+- **Export controls:** daily per-user quotas on exported rows, reports and evidence downloads (`buffalo.exports`). Unusual volume alerts the DG and covering DDGs. `/audit/exports` (DG, DDG) lists every export, download and print.
+- **Malware scanning:** ClamAV (`clamav` service) scans evidence, person photos, community CSVs and boundary files before acceptance. Evidence waits in quarantine when ClamAV is down or the file is large. Signatures are offline by default: `make clamav-import-signatures dir=...`. See `docs/security/malware-scanning.md`.
+- **Report schedules** pause when an officer's role or jurisdiction changes, or the account is deactivated. **Mail subjects** are generic.
+- **Route inventory:** `docs/security/route-inventory.md` (regenerate with `make artisan cmd="buffalo:security:route-inventory"` after changing routes). Tests fail on any unprotected route, and a generated matrix checks every role inside and outside its jurisdiction.
+- **CI scanning:** `composer audit` and `npm audit` in `scripts/ci.sh`; Trivy and an authenticated OWASP ZAP scan in `scripts/security-scan.sh` (`make security-scan what=trivy|zap`, GitHub job `security`). See `docs/security/zap-accepted.md` and, for an external test, `docs/security/pentest-guide.md`.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.
