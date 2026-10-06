@@ -78,4 +78,17 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | DevTools (Phase 8B.6)
+    |--------------------------------------------------------------------------
+    | Off unless explicitly enabled, in every environment: DevTools records
+    | each request's page props (persons, incidents) to storage and, in the
+    | local environment, serves them at /_inertia/devtools without sign-in.
+    */
+
+    'devtools' => [
+        'enabled' => (bool) env('INERTIA_DEVTOOLS_ENABLED', false),
+    ],
+
 ];

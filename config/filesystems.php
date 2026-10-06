@@ -33,7 +33,9 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Never served (Phase 8B.6): `serve` registers unauthenticated,
+            // signature-only storage/{path} routes.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
