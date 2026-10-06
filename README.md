@@ -551,6 +551,22 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Route inventory:** `docs/security/route-inventory.md` (regenerate with `make artisan cmd="buffalo:security:route-inventory"` after changing routes). Tests fail on any unprotected route, and a generated matrix checks every role inside and outside its jurisdiction.
 - **CI scanning:** `composer audit` and `npm audit` in `scripts/ci.sh`; Trivy and an authenticated OWASP ZAP scan in `scripts/security-scan.sh` (`make security-scan what=trivy|zap`, GitHub job `security`). See `docs/security/zap-accepted.md` and, for an external test, `docs/security/pentest-guide.md`.
 
+## Backups, monitoring and hardening (Phase 8C)
+
+- **Database backups:** pgBackRest, built into the PostgreSQL image (`docker/postgres`). WAL is archived continuously (at least every 5 minutes); the `pgbackrest` service takes a full backup on Sunday and a differential daily at 01:00, checks daily and verifies weekly. 4 full backups are kept.
+- **Evidence backups:** restic (`backup` service), nightly at 02:00. It keeps 14 daily, 8 weekly and 12 monthly snapshots.
+- **Encryption:** both repositories are encrypted (`BACKUP_PGBACKREST_PASSPHRASE`, `BACKUP_RESTIC_PASSWORD`, as secret files in production). The passphrases are escrowed with the keys, never kept with the backups. A second repository is optional (`BACKUP_REPO2_ENABLED`, `BACKUP_REPO2_PATH`).
+- **Restore:** `scripts/restore/` (`restore-database.sh`, including `--target-time` point-in-time recovery, `restore-evidence.sh`, `verify-restore.sh`).
+- **Restore drill:** `make restore-drill` restores into an isolated project, verifies, and writes timings to `docs/drills/`. Run it monthly. See `docs/security/backup-and-recovery.md`.
+- **System health:** super admins only (`/system/health`): services, queues, scheduler, backups, disks, audit chains, key fingerprints.
+- **Alerts:** `buffalo:health:monitor` runs every minute and alerts super admins once per condition until it clears. `/health/detailed` returns JSON with a bearer token (`BUFFALO_HEALTH_TOKEN`), from internal networks only.
+- **Containers:**
+  - Every container runs non-root, with no Linux capabilities, `no-new-privileges` and a read-only root filesystem.
+  - Every image is pinned by digest, and every service has memory and CPU limits and a health check.
+  - The internal networks have no gateway.
+  - `scripts/check-compose-hardening.sh` checks all of this in CI. See `docs/security/container-hardening.md`.
+  - nginx listens on 8080 inside its container; the development URL is unchanged.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.

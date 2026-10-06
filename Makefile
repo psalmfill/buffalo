@@ -90,7 +90,9 @@ ci: ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
 	docker build -f docker/php/Dockerfile --target ci \
 		--build-arg UID=$(DOCKER_UID) --build-arg GID=$(DOCKER_GID) -t buffalo-app:ci .
 	$(COMPOSE) up -d --wait postgres valkey gotenberg clamav
-	docker run --rm --network buffalo_backend --network buffalo_internal-tools \
+	@# The stack's networks have no gateway; Composer and npm need one (buffalo_ci).
+	docker network inspect buffalo_ci >/dev/null 2>&1 || docker network create buffalo_ci >/dev/null
+	docker run --rm --network buffalo_ci --network buffalo_backend --network buffalo_internal-tools \
 		-v "$(CURDIR)":/src:ro \
 		-e DB_HOST=postgres -e REDIS_HOST=valkey -e GOTENBERG_URL=http://gotenberg:3000 \
 		-e CLAMAV_HOST=clamav -e BUFFALO_REQUIRE_CLAMAV=true \
