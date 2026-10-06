@@ -39,8 +39,12 @@ class SecurityHeaders
 
         $response = $next($request);
 
-        $header = config('buffalo.security.csp.report_only') ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
-        $response->headers->set($header, self::policy($nonce));
+        // A response with its own (stricter) policy keeps it: evidence files
+        // are served with `default-src 'none'; sandbox`.
+        if (! $response->headers->has('Content-Security-Policy')) {
+            $header = config('buffalo.security.csp.report_only') ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
+            $response->headers->set($header, self::policy($nonce));
+        }
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()');
         $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
         $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');

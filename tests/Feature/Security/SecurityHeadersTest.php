@@ -111,3 +111,11 @@ test('violation reports are logged without query strings or page content', funct
         'blocked-uri' => 'https://evil.example/x.js?token=secret',
     ]]))->assertNoContent();
 });
+
+test('a response that sets its own stricter policy keeps it', function () {
+    Route::middleware('web')->get('/_test/sandboxed', fn () => response('x')->header('Content-Security-Policy', "default-src 'none'; sandbox"));
+
+    $response = $this->get('/_test/sandboxed');
+    expect($response->headers->get('Content-Security-Policy'))->toBe("default-src 'none'; sandbox")
+        ->and($response->headers->get('Cross-Origin-Resource-Policy'))->toBe('same-origin');
+});
