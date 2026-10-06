@@ -33,6 +33,7 @@ final class Secrets
         'REVERB_APP_SECRET',
         'MAIL_USERNAME',
         'MAIL_PASSWORD',
+        'BUFFALO_HEALTH_TOKEN',
     ];
 
     /** @var array<string, string|null> */

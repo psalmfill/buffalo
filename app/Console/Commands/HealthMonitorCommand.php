@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SchedulerWatchdogJob;
 use App\Support\Health\HealthCheck;
 use App\Support\Health\SystemAlerts;
 use Illuminate\Console\Command;
@@ -43,6 +44,9 @@ class HealthMonitorCommand extends Command
                 $this->components->info("Cleared {$key}");
             }
         }
+
+        // The queue watches the scheduler in turn (one pending job at a time).
+        SchedulerWatchdogJob::dispatch();
 
         return $failed ? self::FAILURE : self::SUCCESS;
     }

@@ -49,7 +49,9 @@ write_info() {
     repo1=$(du -sk /backup/pgbackrest 2>/dev/null | cut -f1)
     repo2=null
     [ "${BACKUP_REPO2_ENABLED:-false}" = "true" ] && repo2=$(du -sk /backup-repo2/pgbackrest 2>/dev/null | cut -f1)
-    printf '{"at":"%s","repo1_kb":%s,"repo2_kb":%s}\n' "$(now)" "${repo1:-null}" "${repo2:-null}" > "$STATUS/sizes.json"
+    df=$(df -kP /backup | awk 'NR==2 {print $2" "$4}')
+    total=${df% *}; free=${df#* }
+    printf '{"at":"%s","repo1_kb":%s,"repo2_kb":%s,"total_kb":%s,"free_kb":%s}\n' "$(now)" "${repo1:-null}" "${repo2:-null}" "${total:-null}" "${free:-null}" > "$STATUS/sizes.json"
 }
 
 write_manifest() {

@@ -413,6 +413,7 @@ describe('navigation', () => {
                     'Reference data',
                     'Audit log',
                     'Login history',
+                    'System health',
                     'Queue monitor',
                 ],
             },

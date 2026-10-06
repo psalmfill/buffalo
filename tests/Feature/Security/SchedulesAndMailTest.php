@@ -16,6 +16,7 @@ use App\Notifications\AccountSetupNotification;
 use App\Notifications\AuditChainBroken;
 use App\Notifications\ReportReady;
 use App\Notifications\ReportSchedulesPaused;
+use App\Notifications\SystemAlert;
 use App\Notifications\TwoFactorResetNotification;
 use App\Support\Auth\PasswordResetNotification;
 use Illuminate\Support\Facades\File;
@@ -130,12 +131,13 @@ function mailables(User $user): array
         AuditChainBroken::class => [new AuditChainBroken('incident_status_history', 4242), 'BUFFALO notification', ['incident_status_history', '4242']],
         TwoFactorResetNotification::class => [new TwoFactorResetNotification, 'BUFFALO notification', []],
         PasswordResetNotification::class => [new PasswordResetNotification('reset-token'), 'BUFFALO: password reset', []],
+        SystemAlert::class => [new SystemAlert('stack.disk.evidence', 'critical', 'Disk almost full: Evidence', 'Evidence (/var/lib/buffalo/evidence) is 95% full.'), 'BUFFALO notification', ['/var/lib/buffalo', '95%']],
     ];
 }
 
 test('every mail-capable notification is covered here', function () {
     $mailCapable = collect(File::files(app_path('Notifications')))
-        ->filter(fn (SplFileInfo $file) => preg_match('/allowsMail\(\): bool\s*\{\s*return true|function toMail/', $file->getContents()) === 1)
+        ->filter(fn (SplFileInfo $file) => preg_match('/function allowsMail\(|function toMail/', $file->getContents()) === 1)
         ->map(fn (SplFileInfo $file) => 'App\\Notifications\\'.$file->getBasename('.php'))
         ->reject(fn (string $class) => (new ReflectionClass($class))->isAbstract())
         // Laravel's password reset mail, with our subject (not a BuffaloNotification).

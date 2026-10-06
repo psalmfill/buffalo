@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\HealthDetailedController;
 use App\Http\Middleware\EnforceSessionPolicy;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\HandleAppearance;
@@ -29,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Outside the web group, so a probe never starts a session.
         then: function (): void {
             Route::get('up', HealthController::class);
+            // Token-protected detailed health (Phase 8C.4); internal only (nginx).
+            Route::get('health/detailed', HealthDetailedController::class)->middleware('throttle:30,1');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

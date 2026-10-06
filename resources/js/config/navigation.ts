@@ -12,6 +12,7 @@ import {
     Crosshair,
     KeyRound,
     Gauge,
+    HeartPulse,
     History,
     LayoutGrid,
     Layers,
@@ -44,6 +45,7 @@ import OrganizationController from '@/actions/App/Http/Controllers/Organizations
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import ExportReviewController from '@/actions/App/Http/Controllers/Audit/ExportReviewController';
+import SystemHealthController from '@/actions/App/Http/Controllers/System/SystemHealthController';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
@@ -145,6 +147,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Audit log', icon: ScrollText, href: AuditLogController.index(), permission: 'audit.view' },
             { title: 'Exports review', icon: FileSearch, href: ExportReviewController.index(), permission: 'audit.exports' },
             { title: 'Login history', icon: History, href: LoginHistoryController.index(), permission: 'login_history.view' },
+            { title: 'System health', icon: HeartPulse, href: SystemHealthController.index(), permission: 'system.settings' },
             { title: 'Queue monitor', icon: Gauge, href: horizon.index(), permission: 'system.horizon', external: true },
         ],
     },

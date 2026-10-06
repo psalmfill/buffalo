@@ -24,6 +24,7 @@ use Throwable;
  * | DB_MIGRATIONS_PASSWORD          | if set (migration containers)   | 16+ characters               |
  * | DB_READONLY_PASSWORD            | if set                          | 16+ characters               |
  * | MAIL_PASSWORD                   | if MAIL_USERNAME is set         | 12+ characters               |
+ * | BUFFALO_HEALTH_TOKEN            | if set (/health/detailed)       | 32+ characters               |
  *
  * DB_ADMIN_PASSWORD (the superuser) should not reach application
  * containers in production; it is reported as a warning.
@@ -86,6 +87,7 @@ class CheckSecrets extends Command
             'DB_MIGRATIONS_PASSWORD' => ['required' => false, 'check' => self::minLength(16)],
             'DB_READONLY_PASSWORD' => ['required' => false, 'check' => self::minLength(16)],
             'MAIL_PASSWORD' => ['required' => Secrets::get('MAIL_USERNAME') !== null, 'check' => self::minLength(12)],
+            'BUFFALO_HEALTH_TOKEN' => ['required' => false, 'check' => self::minLength(32)],
         ];
 
         $problems = [];

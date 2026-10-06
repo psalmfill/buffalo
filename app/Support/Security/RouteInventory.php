@@ -42,6 +42,7 @@ final class RouteInventory
     public const PUBLIC = [
         'GET /' => 'Redirects to sign-in or the dashboard',
         'GET up' => 'Health check (no data)',
+        'GET health/detailed' => 'Detailed health JSON: bearer token (BUFFALO_HEALTH_TOKEN), internal networks only (nginx), no intelligence content',
         'GET login' => 'Sign-in form',
         'POST login' => 'Sign-in (throttled, lockout)',
         'GET two-factor-challenge' => 'TOTP challenge after the password step',

@@ -3,6 +3,7 @@
 namespace App\Support\Health;
 
 use App\Enums\Role;
+use App\Notifications\BuffaloNotification;
 use App\Notifications\SystemAlert;
 use App\Support\Notifications\NotifyRole;
 use Illuminate\Support\Facades\DB;
@@ -74,12 +75,12 @@ final class SystemAlerts
             }
         }
 
-        $this->send(new SystemAlert($condition->key, $condition->severity, $condition->title, $condition->detail), $condition->alsoDirectorGeneral);
+        $this->send($condition->notification ?? new SystemAlert($condition->key, $condition->severity, $condition->title, $condition->detail), $condition->alsoDirectorGeneral);
 
         return true;
     }
 
-    private function send(SystemAlert $alert, bool $alsoDirectorGeneral): void
+    private function send(BuffaloNotification $alert, bool $alsoDirectorGeneral): void
     {
         $this->notify->send($alert, Role::SuperAdmin);
 

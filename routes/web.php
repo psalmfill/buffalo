@@ -31,6 +31,7 @@ require __DIR__.'/auth.php';
 require __DIR__.'/settings.php';
 require __DIR__.'/users.php';
 require __DIR__.'/audit.php';
+require __DIR__.'/system.php';
 require __DIR__.'/reference-data.php';
 require __DIR__.'/local-government.php';
 require __DIR__.'/community-information.php';

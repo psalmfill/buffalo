@@ -46,7 +46,6 @@ Schedule::command('buffalo:audit:anchor')->dailyAt('02:45');
 
 // Malware scanning (Phase 8B.4).
 Schedule::command('buffalo:malware:scan-quarantined')->everyFiveMinutes()->withoutOverlapping();
-Schedule::command('buffalo:malware:check-signatures')->dailyAt('06:45');
 
 // Health and backup monitoring (Phase 8C): raises and clears system alerts.
 Schedule::command('buffalo:health:monitor')->everyMinute()->withoutOverlapping();

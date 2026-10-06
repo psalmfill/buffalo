@@ -2,19 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\Role;
-use App\Models\User;
 use App\Notifications\AuditChainBroken;
 use App\Support\Audit\AuditChain;
+use App\Support\Health\Condition;
+use App\Support\Health\HealthStatus;
+use App\Support\Health\SystemAlerts;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Walks the audit hash chains and reports the first broken link per table
  * (Phase 8A.4). Scheduled nightly; any failure notifies super admins and
- * the DG (critical; table name and row ID only) and exits with an error.
+ * the DG (critical; table name and row ID only), once per broken table
+ * until it verifies again (Phase 8C.4), and exits with an error.
  */
 class VerifyAuditChains extends Command
 {
@@ -24,7 +25,7 @@ class VerifyAuditChains extends Command
 
     protected $description = 'Verify the audit hash chains and report the first broken link';
 
-    public function handle(): int
+    public function handle(SystemAlerts $alerts): int
     {
         $tables = array_keys(AuditChain::TABLES);
         $only = (string) $this->option('table');
@@ -54,6 +55,20 @@ class VerifyAuditChains extends Command
             if (! $result['ok']) {
                 $broken[] = $result;
             }
+
+            // One deduplicated alert per broken table (Phase 8C.4): sent when
+            // first found, cleared when the chain verifies again.
+            $alerts->sync("audit.chain.{$table}", $result['ok'] ? [] : [Condition::critical(
+                "audit.chain.{$table}",
+                'Audit records may have been tampered with',
+                "The audit chain of {$table} is broken".($result['broken']['row_id'] === null ? '.' : " at row {$result['broken']['row_id']}."),
+                alsoDirectorGeneral: true,
+                notification: new AuditChainBroken($table, $result['broken']['row_id']),
+            )]);
+        }
+
+        if ($only === '' && $since === null) {
+            HealthStatus::record('audit.verify', $broken === [], $broken === [] ? 'Every audit chain is intact.' : count($broken).' chain(s) broken: '.implode(', ', array_column($broken, 'table')));
         }
 
         $this->table(['Table', 'Rows checked', 'Result'], $rows);
@@ -64,13 +79,11 @@ class VerifyAuditChains extends Command
             return self::SUCCESS;
         }
 
-        $recipients = User::query()->role([Role::SuperAdmin->value, Role::DirectorGeneral->value])->where('is_active', true)->get();
         foreach ($broken as $result) {
             Log::critical('Audit chain broken', ['table' => $result['table'], 'row_id' => $result['broken']['row_id']]);
-            Notification::send($recipients, new AuditChainBroken($result['table'], $result['broken']['row_id']));
         }
 
-        $this->components->error(count($broken).' audit chain(s) failed verification. Super admins and the DG have been notified.');
+        $this->components->error(count($broken).' audit chain(s) failed verification. Super admins and the DG are notified (once until it is resolved).');
 
         return self::FAILURE;
     }

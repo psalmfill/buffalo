@@ -21,6 +21,9 @@ use App\Support\Backups\BackupStatus;
 use App\Support\CommunityInformation\ReferenceUsageChecks;
 use App\Support\Database\MigrationConnection;
 use App\Support\Flashpoints\ReferenceUsageChecks as FlashpointsReferenceUsageChecks;
+use App\Support\Health\HealthStatus;
+use App\Support\Health\SchedulerCheck;
+use App\Support\Health\StackChecks;
 use App\Support\Incidents\ReferenceUsageChecks as IncidentsReferenceUsageChecks;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
 use App\Support\Jurisdiction\CombinedAccessResolver;
@@ -39,12 +42,15 @@ use App\Support\Security\ReferenceUsageChecks as SecurityReferenceUsageChecks;
 use App\Support\Threats\ReferenceUsageChecks as ThreatsReferenceUsageChecks;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Console\Events\ScheduledTaskFailed;
+use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -66,7 +72,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Health checks run by buffalo:health:monitor (Phase 8C).
         $this->app->bind(BackupStatus::class, fn (): BackupStatus => BackupStatus::make());
-        $this->app->tag([BackupChecks::class], 'buffalo.health_checks');
+        $this->app->tag([BackupChecks::class, StackChecks::class, SchedulerCheck::class], 'buffalo.health_checks');
 
         // Whether a lookup value is in use: each module registers its checks
         // (e.g. App\Support\CommunityInformation\ReferenceUsageChecks).
@@ -129,6 +135,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Each scheduled command's last run, for System health and the
+        // scheduler check (Phase 8C.4).
+        Event::listen(ScheduledTaskFinished::class, fn (ScheduledTaskFinished $e) => HealthStatus::record(
+            'schedule.'.self::scheduledCommand($e->task->command ?? $e->task->description ?? ''), $e->task->exitCode === 0 || $e->task->exitCode === null, null, ['seconds' => round($e->runtime, 1)],
+        ));
+        Event::listen(ScheduledTaskFailed::class, fn (ScheduledTaskFailed $e) => HealthStatus::record(
+            'schedule.'.self::scheduledCommand($e->task->command ?? $e->task->description ?? ''), false, mb_substr($e->exception->getMessage(), 0, 300),
+        ));
+
         $this->configureDefaults();
         $this->configureAuthorization();
         MigrationConnection::register($this->app->make('events'));
@@ -172,6 +187,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('exportAnalytics', fn (User $user): bool => $user->checkPermissionTo(Permission::AnalyticsExport->value));
 
         Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
+        // System health (Phase 8C.4): system administration only.
+        Gate::define('viewSystemHealth', fn (User $user): bool => $user->checkPermissionTo(Permission::SystemSettings->value));
         // Exports review (Phase 8B.3): audit.exports and national reach.
         Gate::define('viewExportReview', fn (User $user): bool => AuditAccess::canViewExportReview($user));
         Gate::define('viewLoginHistory', fn (User $user): bool => AuditAccess::canViewLoginHistory($user));
@@ -209,5 +226,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Same policy in every environment (App\Support\Auth\PasswordRules).
         Password::defaults(fn (): Password => PasswordRules::password());
+    }
+
+    /** "'/usr/local/bin/php' 'artisan' buffalo:x --y" => "buffalo:x" */
+    private static function scheduledCommand(string $command): string
+    {
+        return preg_match("/artisan'?\s+([\w:.-]+)/", $command, $m) === 1 ? $m[1] : mb_substr($command, 0, 100);
     }
 }

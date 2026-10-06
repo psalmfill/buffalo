@@ -405,4 +405,31 @@ return [
         'wal_lag_minutes' => (int) env('BUFFALO_BACKUP_WAL_LAG_MINUTES', 15),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | System health and alerts (Phase 8C.4)
+    |--------------------------------------------------------------------------
+    | buffalo:health:monitor (every minute) raises deduplicated alerts to super
+    | admins. Disks are the volumes mounted in the application container;
+    | BUFFALO_HEALTH_EXTRA_DISKS adds "name=/path" pairs (comma-separated).
+    | /health/detailed answers only with BUFFALO_HEALTH_TOKEN (a secret) and
+    | only from internal networks (nginx).
+    */
+    'health' => [
+        'disks' => [
+            'Evidence' => env('EVIDENCE_ROOT', '/var/lib/buffalo/evidence'),
+            'Reports' => env('REPORTS_ROOT', '/var/lib/buffalo/reports'),
+            'Quarantine' => env('QUARANTINE_ROOT', '/var/lib/buffalo/quarantine'),
+            'Application storage' => storage_path(),
+        ],
+        'extra_disks' => env('BUFFALO_HEALTH_EXTRA_DISKS', ''),
+        'disk_warning_percent' => (int) env('BUFFALO_HEALTH_DISK_WARNING_PERCENT', 80),
+        'disk_critical_percent' => (int) env('BUFFALO_HEALTH_DISK_CRITICAL_PERCENT', 90),
+        'failed_jobs' => (int) env('BUFFALO_HEALTH_FAILED_JOBS', 10),
+        'queue_wait_minutes' => (int) env('BUFFALO_HEALTH_QUEUE_WAIT_MINUTES', 5),
+        'scheduler_minutes' => (int) env('BUFFALO_HEALTH_SCHEDULER_MINUTES', 10),
+        'nginx_url' => env('BUFFALO_HEALTH_NGINX_URL', 'http://nginx/up'),
+        'tls_certificate' => env('BUFFALO_TLS_CERTIFICATE', ''),
+    ],
+
 ];
