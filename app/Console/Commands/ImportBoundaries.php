@@ -2,7 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\UploadKind;
+use App\Models\User;
 use App\Support\Geo\BoundaryImporter;
+use App\Support\Malware\MalwareGuard;
+use App\Support\Malware\ScannerUnavailable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use JsonException;
@@ -38,7 +42,7 @@ class ImportBoundaries extends Command
 
     protected $description = 'Import LGA or state boundaries from a GeoJSON file';
 
-    public function handle(BoundaryImporter $importer): int
+    public function handle(BoundaryImporter $importer, MalwareGuard $guard): int
     {
         $level = (string) $this->option('level');
         $file = (string) $this->argument('file');
@@ -52,6 +56,21 @@ class ImportBoundaries extends Command
         }
         if (! is_file($file)) {
             return $this->fail("File not found: {$file}");
+        }
+
+        // Scanned before anything is read (Phase 8B.4). Fails closed.
+        $operator = $this->option('user') ? User::query()->where('email', (string) $this->option('user'))->first() : null;
+        foreach (array_filter([$file, $this->option('mapping') ? (string) $this->option('mapping') : null]) as $scanned) {
+            if (! is_file($scanned)) {
+                continue;
+            }
+            try {
+                if ($guard->inspect($scanned, UploadKind::BoundaryGeoJson, $operator)->infected) {
+                    return $this->fail('The file was rejected: it contains malware. Super admins have been notified.');
+                }
+            } catch (ScannerUnavailable) {
+                return $this->fail('Malware scanning is unavailable, so the import is refused. Start the clamav service and try again.');
+            }
         }
 
         try {

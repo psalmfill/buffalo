@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Persons;
 
+use App\Enums\UploadKind;
+use App\Rules\MalwareFree;
 use App\Rules\PersonPhoto;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -22,7 +24,7 @@ class PersonPhotoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'photo' => ['required', 'file', 'max:10240', 'mimetypes:image/jpeg,image/png,image/webp', new PersonPhoto],
+            'photo' => ['bail', 'required', 'file', 'max:10240', new MalwareFree(UploadKind::PersonPhoto), 'mimetypes:image/jpeg,image/png,image/webp', new PersonPhoto],
         ];
     }
 

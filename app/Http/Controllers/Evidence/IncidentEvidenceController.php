@@ -32,7 +32,10 @@ class IncidentEvidenceController extends Controller
         $evidence = $store($incident, $request->file('file'), $request->detected(), $request->values(), $user);
         $row = IncidentEvidence::query()->withCoordinates()->whereKey($evidence->id)->firstOrFail();
 
-        return response()->json(['evidence' => EvidencePresenter::row($row, $user, $user->name)], 201);
+        return response()->json([
+            'evidence' => EvidencePresenter::row($row, $user, $user->name),
+            'notice' => $row->isScannedClean() ? null : self::quarantineNotice($row),
+        ], 201);
     }
 
     /** A link to an item (e.g. from a notification) opens its incident. */
@@ -78,5 +81,13 @@ class IncidentEvidenceController extends Controller
     {
         /** @var User */
         return $request->user();
+    }
+
+    /** Why a new upload is held in quarantine (Phase 8B.4). */
+    private static function quarantineNotice(IncidentEvidence $evidence): string
+    {
+        return $evidence->size_bytes > (int) config('buffalo.malware.inline_max_mb') * 1024 * 1024
+            ? 'Uploaded. Large files are held in quarantine until their malware scan finishes; this takes a few minutes.'
+            : 'Uploaded, but malware scanning is unavailable: the file is held in quarantine and will be scanned when the scanner returns.';
     }
 }

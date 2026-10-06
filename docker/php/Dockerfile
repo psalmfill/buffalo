@@ -81,9 +81,9 @@ RUN set -eux; \
     # macOS hosts use GID 20, which already exists in Debian; reuse it.
     getent group "${GID}" > /dev/null || groupadd --gid "${GID}" buffalo; \
     useradd --uid "${UID}" --gid "${GID}" --create-home --shell /bin/bash buffalo; \
-    mkdir -p /var/www/html /var/lib/buffalo/evidence /var/lib/buffalo/reports /tmp/composer; \
+    mkdir -p /var/www/html /var/lib/buffalo/evidence /var/lib/buffalo/reports /var/lib/buffalo/quarantine /tmp/composer; \
     chown -R "${UID}:${GID}" /var/www/html /var/lib/buffalo /tmp/composer; \
-    chmod 0750 /var/lib/buffalo/evidence /var/lib/buffalo/reports
+    chmod 0750 /var/lib/buffalo/evidence /var/lib/buffalo/reports /var/lib/buffalo/quarantine
 
 WORKDIR /var/www/html
 

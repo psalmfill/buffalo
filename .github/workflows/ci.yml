@@ -38,6 +38,20 @@ jobs:
           --health-timeout 3s
           --health-retries 20
 
+      # Malware scanning (Phase 8B.4): the image's bundled signatures; no
+      # freshclam in CI.
+      clamav:
+        image: clamav/clamav-debian:1.5.4@sha256:9bb8712a50f0e75166e936c452cd82dd5e5be0b85586598930b5bbb84a99a578
+        env:
+          CLAMAV_NO_FRESHCLAMD: 'true'
+        ports:
+          - 3310:3310
+        options: >-
+          --health-cmd "clamdcheck.sh"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 30
+
     env:
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
@@ -45,6 +59,9 @@ jobs:
       DB_PASSWORD: buffalo
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: 6379
+      CLAMAV_HOST: 127.0.0.1
+      CLAMAV_PORT: 3310
+      BUFFALO_REQUIRE_CLAMAV: 'true'
 
     steps:
       - name: Checkout code

@@ -72,7 +72,25 @@ export default function EvidenceDetails({
                     </DialogDescription>
                 </DialogHeader>
 
-                {item.processing ? (
+                {item.scan.value === 'infected' ? (
+                    <p
+                        className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive"
+                        data-test="evidence-infected"
+                    >
+                        Malware was found in this file. It has been moved to
+                        quarantine and is never served. Security staff have been
+                        notified; the record and its hash are kept.
+                    </p>
+                ) : item.scan.value === 'quarantined' ? (
+                    <p
+                        className="rounded-md border border-dashed p-4 text-sm text-muted-foreground"
+                        data-test="evidence-quarantined"
+                    >
+                        In quarantine: this file is waiting for its malware scan
+                        and cannot be viewed or downloaded until it is found
+                        clean.
+                    </p>
+                ) : item.processing ? (
                     <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
                         Processing: the file is being verified. It will be
                         available shortly.

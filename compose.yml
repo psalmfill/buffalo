@@ -25,10 +25,11 @@ services:
   app:
     <<: *app
     restart: unless-stopped
-    networks: [default, reports]
+    networks: [default, reports, scanning]
     volumes:
       - evidence_data:/var/lib/buffalo/evidence
       - reports_data:/var/lib/buffalo/reports
+      - quarantine_data:/var/lib/buffalo/quarantine
     healthcheck:
       test:
         - CMD-SHELL
@@ -104,10 +105,11 @@ services:
     command: ["php", "artisan", "horizon"]
     restart: always
     stop_signal: SIGTERM
-    networks: [default, reports]
+    networks: [default, reports, scanning]
     volumes:
       - evidence_data:/var/lib/buffalo/evidence
       - reports_data:/var/lib/buffalo/reports
+      - quarantine_data:/var/lib/buffalo/quarantine
     healthcheck:
       test: ["CMD", "php", "artisan", "horizon:status"]
       interval: 30s
@@ -119,9 +121,11 @@ services:
     <<: *app
     command: ["php", "artisan", "schedule:work"]
     restart: always
+    networks: [default, scanning]
     volumes:
       - evidence_data:/var/lib/buffalo/evidence
       - reports_data:/var/lib/buffalo/reports
+      - quarantine_data:/var/lib/buffalo/quarantine
     healthcheck:
       disable: true
 
@@ -159,7 +163,35 @@ services:
       timeout: 5s
       retries: 5
 
+  # Malware scanning (Phase 8B.4). Official ClamAV image, Debian variant:
+  # clamav/clamav has no arm64 build. 1.5.4, pinned by its multi-arch index
+  # digest. Signatures update online only when CLAMAV_ONLINE_UPDATES=true;
+  # otherwise import them with `make clamav-import-signatures`. clamd's
+  # stream limit is raised above the largest evidence upload (100 MB).
+  clamav:
+    image: clamav/clamav-debian:1.5.4@sha256:9bb8712a50f0e75166e936c452cd82dd5e5be0b85586598930b5bbb84a99a578
+    restart: unless-stopped
+    networks: [scanning]
+    entrypoint: ["/buffalo-entrypoint.sh"]
+    environment:
+      CLAMAV_ONLINE_UPDATES: ${CLAMAV_ONLINE_UPDATES:-false}
+      CLAMD_CONF_StreamMaxLength: 160M
+      CLAMD_CONF_MaxFileSize: 160M
+      CLAMD_CONF_MaxScanSize: 400M
+    volumes:
+      - ./docker/clamav/entrypoint.sh:/buffalo-entrypoint.sh:ro
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+
 networks:
+  # Shared only by app, Horizon, the scheduler and ClamAV. No gateway.
+  scanning:
+    internal: true
   # Shared only by app, Horizon and Gotenberg. internal: true has no gateway,
   # so nothing on it can reach the outside world.
   reports:
@@ -170,4 +202,6 @@ volumes:
   valkey_data:
   evidence_data:
   reports_data:
+  quarantine_data:
+  clamav_data:
   map_tiles:

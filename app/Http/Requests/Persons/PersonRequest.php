@@ -5,10 +5,12 @@ namespace App\Http\Requests\Persons;
 use App\Enums\Classification;
 use App\Enums\Gender;
 use App\Enums\PersonRoleType;
+use App\Enums\UploadKind;
 use App\Models\Community;
 use App\Models\Lga;
 use App\Models\Person;
 use App\Models\User;
+use App\Rules\MalwareFree;
 use App\Rules\PersonPhoto;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
@@ -126,7 +128,7 @@ class PersonRequest extends FormRequest
             'roles' => ['nullable', 'array', 'max:'.count(PersonRoleType::assignable())],
             'roles.*.role' => ['required', 'string', 'distinct', Rule::in(array_map(fn (PersonRoleType $role) => $role->value, PersonRoleType::assignable()))],
             'roles.*.notes' => ['nullable', 'string', 'max:1000'],
-            'photo' => $creating ? ['nullable', 'file', 'max:10240', 'mimetypes:image/jpeg,image/png,image/webp', new PersonPhoto] : ['prohibited'],
+            'photo' => $creating ? ['bail', 'nullable', 'file', 'max:10240', new MalwareFree(UploadKind::PersonPhoto), 'mimetypes:image/jpeg,image/png,image/webp', new PersonPhoto] : ['prohibited'],
             'confirm_new' => $creating ? ['boolean'] : ['prohibited'],
             'hit_justification' => $creating ? ['nullable', 'string', 'min:10', 'max:1000'] : ['prohibited'],
         ];

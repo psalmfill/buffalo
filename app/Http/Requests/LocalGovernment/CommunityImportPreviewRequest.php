@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\LocalGovernment;
 
+use App\Enums\UploadKind;
+use App\Rules\MalwareFree;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -22,7 +24,7 @@ class CommunityImportPreviewRequest extends FormRequest
     {
         return [
             'lga' => ['required', 'string', 'size:26'],
-            'file' => ['required', 'file', 'max:5120', 'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel'],
+            'file' => ['bail', 'required', 'file', 'max:5120', new MalwareFree(UploadKind::CommunityCsv), 'mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel'],
         ];
     }
 }

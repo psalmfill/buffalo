@@ -38,6 +38,7 @@ final class EvidencePresenter
     {
         $media = $evidence->original();
         $exif = $evidence->exif_summary ?? [];
+        $clean = $evidence->isScannedClean();
 
         return [
             'ulid' => $evidence->ulid,
@@ -56,14 +57,16 @@ final class EvidencePresenter
             'exif_time' => is_string($exif['datetime_original'] ?? null) ? $exif['datetime_original'] : null,
             'classification' => ['value' => $evidence->classificationLevel()->value, 'label' => $evidence->classificationLevel()->label()],
             'processing' => ! $evidence->isProcessed(),
-            'has_thumb' => $evidence->evidence_type === EvidenceType::Image && $media?->hasGeneratedConversion('thumb') === true,
-            'has_preview' => $evidence->evidence_type === EvidenceType::Image && $media?->hasGeneratedConversion('preview') === true,
-            'playable' => in_array($evidence->evidence_type, [EvidenceType::Video, EvidenceType::Audio], true),
+            // Only clean files are served (Phase 8B.4).
+            'scan' => ['value' => $evidence->scan_status->value, 'label' => $evidence->scan_status->label()],
+            'has_thumb' => $clean && $evidence->evidence_type === EvidenceType::Image && $media?->hasGeneratedConversion('thumb') === true,
+            'has_preview' => $clean && $evidence->evidence_type === EvidenceType::Image && $media?->hasGeneratedConversion('preview') === true,
+            'playable' => $clean && in_array($evidence->evidence_type, [EvidenceType::Video, EvidenceType::Audio], true),
             'uploaded_by' => $uploader,
             'uploaded_at' => $evidence->created_at?->toIso8601String(),
             'can' => [
                 'update' => $viewer->can('update', $evidence),
-                'download' => $viewer->can('download', $evidence),
+                'download' => $clean && $viewer->can('download', $evidence),
                 'verify' => $viewer->can('verify', $evidence),
                 'delete' => $viewer->can('delete', $evidence),
             ],

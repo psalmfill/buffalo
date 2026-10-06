@@ -27,6 +27,8 @@ use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
 use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\RestrictionType;
+use App\Support\Malware\ClamdScanner;
+use App\Support\Malware\MalwareScanner;
 use App\Support\Persons\ReferenceUsageChecks as PersonsReferenceUsageChecks;
 use App\Support\ReferenceData\Contracts\ReferenceUsage;
 use App\Support\ReferenceData\ReferenceTable;
@@ -57,6 +59,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Malware scanning (Phase 8B.4): clamd on the internal network.
+        $this->app->bind(MalwareScanner::class, ClamdScanner::class);
+
         // Whether a lookup value is in use: each module registers its checks
         // (e.g. App\Support\CommunityInformation\ReferenceUsageChecks).
         $this->app->singleton(ReferenceUsageRegistry::class, function (): ReferenceUsageRegistry {

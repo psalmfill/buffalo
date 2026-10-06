@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { DragEvent } from 'react';
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import EvidenceFileController from '@/actions/App/Http/Controllers/Evidence/EvidenceFileController';
 import IncidentEvidenceController from '@/actions/App/Http/Controllers/Evidence/IncidentEvidenceController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
@@ -128,6 +129,16 @@ export default function EvidenceSection({
             };
             xhr.onload = () => {
                 if (xhr.status === 201) {
+                    const notice = (
+                        JSON.parse(xhr.responseText) as {
+                            notice: string | null;
+                        }
+                    ).notice;
+
+                    if (notice) {
+                        toast.warning(notice);
+                    }
+
                     setPending((rows) => rows.filter((r) => r.key !== row.key));
                     resolve(true);
 
@@ -403,8 +414,10 @@ export default function EvidenceSection({
                                                 className="aspect-square w-full bg-muted object-cover"
                                             />
                                         ) : (
-                                            <span className="flex aspect-square w-full items-center justify-center bg-muted text-xs text-muted-foreground">
-                                                Preparing preview…
+                                            <span className="flex aspect-square w-full items-center justify-center bg-muted p-2 text-center text-xs text-muted-foreground">
+                                                {item.scan.value === 'clean'
+                                                    ? 'Preparing preview…'
+                                                    : item.scan.label}
                                             </span>
                                         )}
                                         <span className="flex items-center justify-between gap-1 p-2 text-xs">

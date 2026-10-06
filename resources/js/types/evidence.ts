@@ -25,6 +25,8 @@ export type EvidenceItem = {
     classification: { value: ClassificationLevel; label: string };
     /** A large upload still being verified on the queue. */
     processing: boolean;
+    /** Malware scan state; only clean files are served (Phase 8B.4). */
+    scan: { value: 'clean' | 'quarantined' | 'infected'; label: string };
     has_thumb: boolean;
     has_preview: boolean;
     playable: boolean;

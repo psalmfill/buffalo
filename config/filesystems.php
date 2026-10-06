@@ -72,6 +72,18 @@ return [
             'report' => false,
         ],
 
+        // Quarantined malware (Phase 8B.4): infected evidence originals moved
+        // out of the evidence disk. Private volume; nothing is ever served
+        // from it.
+        'quarantine' => [
+            'driver' => 'local',
+            'root' => env('QUARANTINE_ROOT', '/var/lib/buffalo/quarantine'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

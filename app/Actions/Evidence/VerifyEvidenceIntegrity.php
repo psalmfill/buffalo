@@ -2,12 +2,14 @@
 
 namespace App\Actions\Evidence;
 
+use App\Enums\EvidenceScanStatus;
 use App\Enums\Role;
 use App\Models\IncidentEvidence;
 use App\Models\User;
 use App\Notifications\EvidenceIntegrityFailure;
 use App\Support\Audit\AuditLog;
 use App\Support\Notifications\NotifyRole;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Recomputes the SHA-256 of a stored original and compares it with the hash
@@ -52,10 +54,16 @@ final class VerifyEvidenceIntegrity
         return false;
     }
 
-    /** The stored original's SHA-256, or null when the file is missing. */
+    /**
+     * The stored original's SHA-256, or null when the file is missing. An
+     * infected original is checked where it now lives, on the quarantine
+     * disk (Phase 8B.4).
+     */
     private function hash(IncidentEvidence $evidence): ?string
     {
-        $path = $evidence->original()?->getPath();
+        $path = $evidence->scan_status === EvidenceScanStatus::Infected
+            ? Storage::disk('quarantine')->path(ScanQuarantinedEvidence::quarantinePath($evidence))
+            : $evidence->original()?->getPath();
 
         if ($path === null || ! is_file($path)) {
             return null;

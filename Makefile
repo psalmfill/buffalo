@@ -15,7 +15,7 @@ NODE    := $(COMPOSE) run --rm --no-deps vite
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell artisan test lint fix fresh logs tiles wayfinder ci
+.PHONY: help setup up down shell artisan test lint fix fresh logs tiles clamav-import-signatures wayfinder ci
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -73,16 +73,20 @@ logs: ## Follow container logs
 tiles: ## Download the Nigeria map extract: make tiles url=<protomaps build URL>
 	./scripts/fetch-map-tiles.sh $(url)
 
+clamav-import-signatures: ## Import ClamAV signature files (air-gapped): make clamav-import-signatures dir=<path>
+	./scripts/clamav-import-signatures.sh $(dir)
+
 wayfinder: ## Regenerate Wayfinder TypeScript routes (run after changing routes)
 	$(PHP_ND) php artisan wayfinder:generate --with-form
 
 ci: ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
 	docker build -f docker/php/Dockerfile --target ci \
 		--build-arg UID=$(DOCKER_UID) --build-arg GID=$(DOCKER_GID) -t buffalo-app:ci .
-	$(COMPOSE) up -d --wait postgres valkey gotenberg
-	docker run --rm --network buffalo_default --network buffalo_reports \
+	$(COMPOSE) up -d --wait postgres valkey gotenberg clamav
+	docker run --rm --network buffalo_default --network buffalo_reports --network buffalo_scanning \
 		-v "$(CURDIR)":/src:ro \
 		-e DB_HOST=postgres -e REDIS_HOST=valkey -e GOTENBERG_URL=http://gotenberg:3000 \
+		-e CLAMAV_HOST=clamav -e BUFFALO_REQUIRE_CLAMAV=true \
 		buffalo-app:ci bash -c '\
 			mkdir -p /tmp/ci && \
 			tar -C /src --exclude=./node_modules --exclude=./vendor --exclude=./.env \

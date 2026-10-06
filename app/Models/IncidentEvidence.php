@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Classification;
+use App\Enums\EvidenceScanStatus;
 use App\Enums\EvidenceType;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\LogsReads;
@@ -43,6 +44,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
  * @property array<string, mixed>|null $exif_summary
  * @property Classification $classification
  * @property CarbonImmutable|null $processed_at
+ * @property EvidenceScanStatus $scan_status
+ * @property CarbonImmutable|null $scanned_at
  * @property int $uploaded_by
  * @property CarbonImmutable|null $deleted_at
  * @property float|null $latitude
@@ -56,6 +59,9 @@ class IncidentEvidence extends IncidentChild implements Classified, HasMedia
     use LogsReads;
 
     public const ORIGINAL = 'original';
+
+    /** Media custom property: the original has not been scanned yet (Phase 8B.4). */
+    public const AWAITING_SCAN = 'awaiting_scan';
 
     protected $table = 'incident_evidence';
 
@@ -75,6 +81,8 @@ class IncidentEvidence extends IncidentChild implements Classified, HasMedia
             'size_bytes' => 'integer',
             'captured_at' => 'immutable_datetime',
             'processed_at' => 'immutable_datetime',
+            'scan_status' => EvidenceScanStatus::class,
+            'scanned_at' => 'immutable_datetime',
         ];
     }
 
@@ -102,6 +110,13 @@ class IncidentEvidence extends IncidentChild implements Classified, HasMedia
             return;
         }
 
+        // Never decode a file that has not been scanned clean (Phase 8B.4);
+        // conversions are generated once the scan passes. Marked on the media
+        // item: medialibrary registers conversions on a blank model.
+        if ($media?->getCustomProperty(self::AWAITING_SCAN) === true) {
+            return;
+        }
+
         $this->addMediaConversion('thumb')
             ->performOnCollections(self::ORIGINAL)
             ->queued()
@@ -120,6 +135,12 @@ class IncidentEvidence extends IncidentChild implements Classified, HasMedia
     {
         /** @var Media|null */
         return $this->getFirstMedia(self::ORIGINAL);
+    }
+
+    /** Only clean files are ever served or converted (Phase 8B.4). */
+    public function isScannedClean(): bool
+    {
+        return $this->scan_status === EvidenceScanStatus::Clean;
     }
 
     public function isProcessed(): bool

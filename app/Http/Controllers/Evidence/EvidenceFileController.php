@@ -89,8 +89,8 @@ class EvidenceFileController extends Controller
         /** @var User $user */
         $user = $request->user();
         // Daily quota on evidence originals (Phase 8B.3).
-        app(ExportControls::class)->assertCanDownloadEvidence($user);
         $media = $this->media($evidence);
+        app(ExportControls::class)->assertCanDownloadEvidence($user);
 
         if (! $verify($evidence, $user, 'download')) {
             return redirect()->route('incidents.show', $evidence->incident)->with('toast', [
@@ -126,6 +126,8 @@ class EvidenceFileController extends Controller
 
     private function media(IncidentEvidence $evidence): Media
     {
+        // Quarantined and infected files are never served (Phase 8B.4).
+        abort_unless($evidence->isScannedClean(), 404);
         $media = $evidence->original();
         abort_if($media === null, 404);
 

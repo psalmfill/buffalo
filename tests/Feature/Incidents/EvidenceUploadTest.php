@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Evidence\ScanQuarantinedEvidence;
 use App\Actions\Evidence\VerifyEvidenceIntegrity;
 use App\Enums\Classification;
 use App\Enums\EvidenceType;
@@ -156,7 +157,7 @@ test('large files are verified on the queue and show as processing until then', 
     expect($evidence->isProcessed())->toBeFalse();
     Queue::assertPushed(ProcessEvidenceJob::class, fn (ProcessEvidenceJob $job) => $job->evidenceId === $evidence->id);
 
-    (new ProcessEvidenceJob($evidence->id, $this->chief->id))->handle(app(JurisdictionContext::class), app(VerifyEvidenceIntegrity::class));
+    (new ProcessEvidenceJob($evidence->id, $this->chief->id))->handle(app(JurisdictionContext::class), app(ScanQuarantinedEvidence::class), app(VerifyEvidenceIntegrity::class));
     expect($evidence->fresh()?->isProcessed())->toBeTrue();
 });
 

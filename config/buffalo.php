@@ -370,4 +370,24 @@ return [
         'secret_alert_count' => (int) env('BUFFALO_EXPORT_SECRET_ALERT_COUNT', 5),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Malware scanning (Phase 8B.4)
+    |--------------------------------------------------------------------------
+    | clamd over TCP on the internal scanning network. Uploads are scanned
+    | before acceptance; when clamd is unavailable they are refused, except
+    | evidence, which is held in quarantine and scanned when it returns.
+    | Evidence above `inline_max_mb` is scanned on the queue. Super admins
+    | are alerted when the signatures are older than `max_signature_age_days`.
+    */
+    'malware' => [
+        'host' => env('CLAMAV_HOST', 'clamav'),
+        'port' => (int) env('CLAMAV_PORT', 3310),
+        'connect_timeout' => (float) env('CLAMAV_CONNECT_TIMEOUT', 3),
+        'scan_timeout' => (int) env('CLAMAV_SCAN_TIMEOUT', 300),
+        'inline_max_mb' => (int) env('BUFFALO_MALWARE_INLINE_MAX_MB', 10),
+        'max_signature_age_days' => (int) env('BUFFALO_MALWARE_MAX_SIGNATURE_AGE_DAYS', 7),
+        'online_updates' => (bool) env('CLAMAV_ONLINE_UPDATES', false),
+    ],
+
 ];
