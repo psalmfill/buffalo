@@ -122,3 +122,24 @@ test('the monitor command runs every registered check', function () {
 
     expect(DB::table('system_alerts')->whereNull('cleared_at')->pluck('key')->all())->toContain('backup.db.wal_lag');
 });
+
+test('evidence backup problems are critical; nothing is checked before the service first reports', function () {
+    writeDatabaseStatus($this->dir);
+    expect(backupConditions())->toBe([]);
+
+    $beat = fn ($at) => file_put_contents("{$this->dir}/restic/heartbeat.json", json_encode(['at' => $at->toIso8601String()]));
+
+    $beat(now());
+    writeTask($this->dir, 'restic', 'backup', true);
+    expect(backupConditions())->toBe([]);
+
+    writeTask($this->dir, 'restic', 'check-data', false, 'Fatal: pack 1a2b is damaged');
+    expect(backupConditions())->toBe(['backup.evidence.check-data']);
+
+    $beat(now()->subMinutes(10));
+    expect(backupConditions())->toContain('backup.evidence.sidecar');
+
+    $this->travel(27)->hours();
+    $beat(now());
+    expect(backupConditions())->toContain('backup.evidence.stale');
+});

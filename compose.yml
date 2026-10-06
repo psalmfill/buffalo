@@ -131,6 +131,41 @@ services:
       retries: 3
       start_period: 120s
 
+  # Evidence backups (Phase 8C.2): restic, nightly 02:00, encrypted and
+  # deduplicated, to the backup_repo volume (and repository 2 if set). Runs
+  # as the application user, who owns the evidence files; reads them
+  # read-only. Writes status JSON for System health to backup_status.
+  backup:
+    image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
+    restart: unless-stopped
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    entrypoint: ["/usr/local/bin/restic-scheduler.sh"]
+    environment:
+      TZ: Africa/Lagos
+      APP_ENV: ${APP_ENV:-production}
+      BACKUP_RESTIC_PASSWORD: ${BACKUP_RESTIC_PASSWORD:-}
+      BACKUP_RESTIC_PASSWORD_FILE: ${BACKUP_RESTIC_PASSWORD_FILE:-}
+      BACKUP_REPO2_ENABLED: ${BACKUP_REPO2_ENABLED:-false}
+      BACKUP_EVIDENCE_KEEP_DAILY: ${BACKUP_EVIDENCE_KEEP_DAILY:-14}
+      BACKUP_EVIDENCE_KEEP_WEEKLY: ${BACKUP_EVIDENCE_KEEP_WEEKLY:-8}
+      BACKUP_EVIDENCE_KEEP_MONTHLY: ${BACKUP_EVIDENCE_KEEP_MONTHLY:-12}
+    volumes:
+      - ./docker/backup/restic-scheduler.sh:/usr/local/bin/restic-scheduler.sh:ro
+      - evidence_data:/evidence:ro
+      - backup_repo:/backup
+      - backup_status:/backup-status
+      - ${BACKUP_REPO2_PATH:-backup_repo2_unused}:/backup-repo2
+    depends_on:
+      # postgres seeds the backup volumes' directory layout on first start.
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "find /backup-status/restic/heartbeat.json -mmin -2 | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+
   valkey:
     image: valkey/valkey:9.1.2-alpine3.24
     restart: unless-stopped
