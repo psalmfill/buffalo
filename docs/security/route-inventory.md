@@ -296,7 +296,7 @@ Routes: 312
 | POST | `two-factor-challenge` | two-factor.login.store | Laravel\Fortify\Http\Controllers\TwoFactorAuthenticatedSessionController@store | guest:web, throttle:two-factor | public | Public: TOTP challenge (throttled) |
 | GET | `two-factor/setup` | two-factor.setup | Http\Controllers\Auth\TwoFactorSetupController@show | auth, RequirePassword | auth | Self-service: Own mandatory two-factor setup |
 | POST | `two-factor/setup/complete` | two-factor.setup.complete | Http\Controllers\Auth\TwoFactorSetupController@complete | auth | auth | Self-service: Own mandatory two-factor setup |
-| GET | `up` |  | Closure |  | public | Public: Health check (no data) |
+| GET | `up` |  | Http\Controllers\HealthController@__invoke |  | public | Public: Health check (no data) |
 | GET | `user/confirm-password` | password.confirm | Laravel\Fortify\Http\Controllers\ConfirmablePasswordController@show | auth:web | auth | Self-service: Confirms the user's own password |
 | POST | `user/confirm-password` | password.confirm.store | Laravel\Fortify\Http\Controllers\ConfirmablePasswordController@store | auth:web | auth | Self-service: Confirms the user's own password |
 | GET | `user/confirmed-password-status` | password.confirmation | Laravel\Fortify\Http\Controllers\ConfirmedPasswordStatusController@show | auth:web | auth | Self-service: Own password confirmation status |

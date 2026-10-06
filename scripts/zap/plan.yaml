@@ -1,0 +1,95 @@
+# OWASP ZAP Automation Framework plan (Phase 8B.7), run by
+# scripts/security-scan.sh zap. ZAP_TARGET (base URL) and ZAP_COOKIE (the
+# session from scripts/zap/session.php) come from the environment.
+#
+# - Authenticated: every request carries the scan session cookie.
+# - Spider: GET only (no form posts), so the scan never changes data.
+# - Passive scan of everything seen.
+# - Active scan limited to a few read-only GET routes with query
+#   parameters (search and list filters).
+env:
+  contexts:
+    - name: buffalo
+      urls:
+        - ${ZAP_TARGET}
+      includePaths:
+        - ${ZAP_TARGET}.*
+      excludePaths:
+        - .*/logout.*
+        - .*/horizon.*
+        - .*/broadcasting/.*
+        - .*/build/assets/.*
+    - name: active
+      urls:
+        - ${ZAP_TARGET}
+      includePaths:
+        - ${ZAP_TARGET}/search\?.*
+        - ${ZAP_TARGET}/incidents\?.*
+        - ${ZAP_TARGET}/threats\?.*
+        - ${ZAP_TARGET}/flashpoints\?.*
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - type: replacer
+    rules:
+      - description: Scan session
+        matchType: req_header
+        matchString: Cookie
+        matchRegex: false
+        replacementString: ${ZAP_COOKIE}
+
+  - type: requestor
+    requests:
+      - url: ${ZAP_TARGET}/
+      - url: ${ZAP_TARGET}/login
+      - url: ${ZAP_TARGET}/dashboard
+      - url: ${ZAP_TARGET}/search?q=test
+      - url: ${ZAP_TARGET}/incidents?status=verified
+      - url: ${ZAP_TARGET}/incidents/map
+      - url: ${ZAP_TARGET}/threats?status=active
+      - url: ${ZAP_TARGET}/flashpoints?level=high
+      - url: ${ZAP_TARGET}/persons
+      - url: ${ZAP_TARGET}/lgas
+      - url: ${ZAP_TARGET}/map
+      - url: ${ZAP_TARGET}/analytics
+      - url: ${ZAP_TARGET}/reports
+      - url: ${ZAP_TARGET}/notifications
+      - url: ${ZAP_TARGET}/audit/exports
+      - url: ${ZAP_TARGET}/settings/security
+      - url: ${ZAP_TARGET}/up
+
+  - type: spider
+    parameters:
+      context: buffalo
+      maxDuration: 3
+      maxDepth: 4
+      processForm: false
+      postForm: false
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  - type: activeScan
+    parameters:
+      context: active
+      maxRuleDurationInMins: 1
+      maxScanDurationInMins: 10
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: /zap/wrk/reports
+      reportFile: zap-report.json
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk/reports
+      reportFile: zap-report.html

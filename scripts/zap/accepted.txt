@@ -1,0 +1,7 @@
+# ZAP alerts accepted for BUFFALO (Phase 8B.7). One plugin ID per line;
+# each is explained in docs/security/zap-accepted.md. Only high-risk alerts
+# fail the build; these are listed so reviewed ones show as accepted.
+10055 # CSP: style-src 'unsafe-inline' (scripts are nonce-only)
+10010 # XSRF-TOKEN cookie readable by JavaScript by design
+10109 # Modern web application (informational)
+10112 # Session management response identified (informational)

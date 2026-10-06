@@ -15,7 +15,7 @@ NODE    := $(COMPOSE) run --rm --no-deps vite
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell artisan test lint fix fresh logs tiles clamav-import-signatures wayfinder ci
+.PHONY: help setup up down shell artisan test lint fix fresh logs tiles security-scan clamav-import-signatures wayfinder ci
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -72,6 +72,9 @@ logs: ## Follow container logs
 
 tiles: ## Download the Nigeria map extract: make tiles url=<protomaps build URL>
 	./scripts/fetch-map-tiles.sh $(url)
+
+security-scan: ## CI security scans: make security-scan what=trivy|zap (reports in build/security)
+	./scripts/security-scan.sh $(what)
 
 clamav-import-signatures: ## Import ClamAV signature files (air-gapped): make clamav-import-signatures dir=<path>
 	./scripts/clamav-import-signatures.sh $(dir)

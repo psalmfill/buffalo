@@ -1,5 +1,5 @@
 # Runs scripts/ci.sh. Keep all CI logic in that script; this file only
-# provides PHP, Node.js and the PostgreSQL/PostGIS and Valkey services.
+# provides PHP, Node.js and the PostgreSQL/PostGIS, Valkey and ClamAV services.
 name: ci
 
 on:
@@ -84,3 +84,42 @@ jobs:
 
       - name: Run CI checks
         run: scripts/ci.sh
+
+  # Phase 8B.7: Trivy (prod image and pinned third-party images) and an
+  # authenticated OWASP ZAP scan of the stack. CI only; scripts/security-scan.sh
+  # holds the logic. Reports are uploaded as an artifact.
+  security:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Trivy
+        run: scripts/security-scan.sh trivy
+
+      - name: Start the stack (built assets, no Vite dev server)
+        run: |
+          cp .env.example .env
+          export DOCKER_UID=$(id -u) DOCKER_GID=$(id -g)
+          docker compose build app
+          docker compose run --rm --no-deps app composer install --no-interaction --no-progress
+          docker compose run --rm --no-deps vite sh -c 'npm ci --no-audit --no-fund && npm run build'
+          docker compose run --rm --no-deps app php artisan key:generate --no-interaction
+          docker compose run --rm --no-deps app php artisan buffalo:encryption-key --no-interaction
+          docker compose up -d --wait postgres valkey app nginx horizon clamav
+          docker compose exec -T app php artisan buffalo:db:provision-roles --database=buffalo
+          docker compose exec -T app php artisan migrate --force
+          docker compose exec -T app php artisan db:seed --force
+
+      - name: OWASP ZAP
+        run: scripts/security-scan.sh zap
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-reports
+          path: build/security
+          retention-days: 30

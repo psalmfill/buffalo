@@ -45,3 +45,4 @@ yarn-error.log
 # Offline map tiles (fetched by scripts/fetch-map-tiles.sh into a Docker volume)
 *.pmtiles
 *.pmtiles.partial
+/build

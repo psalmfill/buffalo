@@ -38,6 +38,17 @@ fi
 step "npm install"
 npm ci --no-audit --no-fund
 
+step "Dependency audit (Composer)"
+# Phase 8B.7: fails on high or critical advisories only.
+composer audit --no-interaction --ignore-severity=low --ignore-severity=medium --abandoned=report
+
+step "Dependency audit (npm, production dependencies)"
+npm audit --omit=dev --audit-level=high
+
+step "Route inventory"
+# Phase 8B.6: docs/security/route-inventory.md must match the routes.
+php artisan buffalo:security:route-inventory --check --no-interaction
+
 step "Frontend build"
 npm run build
 
