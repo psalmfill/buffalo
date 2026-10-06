@@ -30,6 +30,7 @@ services:
       - evidence_data:/var/lib/buffalo/evidence
       - reports_data:/var/lib/buffalo/reports
       - quarantine_data:/var/lib/buffalo/quarantine
+      - backup_status:/var/lib/buffalo/backup-status:ro
     healthcheck:
       test:
         - CMD-SHELL
@@ -52,12 +53,22 @@ services:
       - map_tiles:/usr/share/nginx/tiles:ro
 
   postgres:
+    # The pinned PostGIS image plus pgBackRest (docker/postgres/Dockerfile).
     # PostGIS publishes linux/amd64 images only; on arm64 hosts (Apple
     # Silicon) Docker runs this under emulation.
-    image: postgis/postgis:18-3.6-alpine
+    image: buffalo-postgres:dev
+    build:
+      context: docker/postgres
+      args:
+        UID: ${DOCKER_UID:-1000}
+        GID: ${DOCKER_GID:-1000}
     platform: linux/amd64
     restart: unless-stopped
-    environment:
+    # Backups (Phase 8C.1): continuous WAL archiving through pgBackRest,
+    # configured in the mounted postgresql.conf.
+    entrypoint: ["backup-entrypoint.sh", "docker-entrypoint.sh"]
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    environment: &postgres-env
       POSTGRES_DB: ${DB_DATABASE:-buffalo}
       # The cluster superuser: extensions, databases and roles only (Phase 8A).
       POSTGRES_USER: ${DB_ADMIN_USERNAME:-buffalo}
@@ -66,9 +77,19 @@ services:
       BUFFALO_DB_OWNER_PASSWORD: ${DB_MIGRATIONS_PASSWORD:-}
       BUFFALO_DB_APP_PASSWORD: ${DB_PASSWORD:-}
       BUFFALO_DB_READONLY_PASSWORD: ${DB_READONLY_PASSWORD:-}
+      # pgBackRest repository encryption (escrowed with the keys).
+      BACKUP_PGBACKREST_PASSPHRASE: ${BACKUP_PGBACKREST_PASSPHRASE:-}
+      BACKUP_PGBACKREST_PASSPHRASE_FILE: ${BACKUP_PGBACKREST_PASSPHRASE_FILE:-}
+      BACKUP_PG_RETENTION_FULL: ${BACKUP_PG_RETENTION_FULL:-4}
+      BACKUP_REPO2_ENABLED: ${BACKUP_REPO2_ENABLED:-false}
+      APP_ENV: ${APP_ENV:-production}
     volumes:
       # PostgreSQL 18+ images keep data under /var/lib/postgresql/<major>/.
       - postgres_data:/var/lib/postgresql
+      - postgres_run:/var/run/postgresql
+      - backup_repo:/backup
+      - ${BACKUP_REPO2_PATH:-backup_repo2_unused}:/backup-repo2
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       # -h 127.0.0.1: the temporary server used while init scripts run only
@@ -78,6 +99,37 @@ services:
       timeout: 5s
       retries: 20
       start_period: 30s
+
+  # Database backups (Phase 8C.1): pgBackRest full (Sunday 01:00) and
+  # differential (daily 01:00) backups, daily check, weekly verify. Same
+  # image as postgres; shares its data volume (read-only) and Unix socket.
+  # Writes status JSON for System health to backup_status.
+  pgbackrest:
+    image: buffalo-postgres:dev
+    platform: linux/amd64
+    restart: unless-stopped
+    user: "70:70"
+    entrypoint: ["backup-entrypoint.sh"]
+    command: ["pgbackrest-scheduler.sh"]
+    environment:
+      <<: *postgres-env
+      TZ: Africa/Lagos
+    volumes:
+      - postgres_data:/var/lib/postgresql:ro
+      - postgres_run:/var/run/postgresql
+      - backup_repo:/backup
+      - backup_status:/backup-status
+      - ${BACKUP_REPO2_PATH:-backup_repo2_unused}:/backup-repo2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # The scheduler records the WAL state every 20 seconds.
+      test: ["CMD-SHELL", "find /backup-status/pgbackrest/wal.json -mmin -2 | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
 
   valkey:
     image: valkey/valkey:9.1.2-alpine3.24
@@ -110,6 +162,7 @@ services:
       - evidence_data:/var/lib/buffalo/evidence
       - reports_data:/var/lib/buffalo/reports
       - quarantine_data:/var/lib/buffalo/quarantine
+      - backup_status:/var/lib/buffalo/backup-status:ro
     healthcheck:
       test: ["CMD", "php", "artisan", "horizon:status"]
       interval: 30s
@@ -126,6 +179,7 @@ services:
       - evidence_data:/var/lib/buffalo/evidence
       - reports_data:/var/lib/buffalo/reports
       - quarantine_data:/var/lib/buffalo/quarantine
+      - backup_status:/var/lib/buffalo/backup-status:ro
     healthcheck:
       disable: true
 
@@ -204,4 +258,11 @@ volumes:
   reports_data:
   quarantine_data:
   clamav_data:
+  # Backups (Phase 8C): repository 1 (pgBackRest and restic), status for
+  # System health, and PostgreSQL's socket shared with the backup sidecar.
+  backup_repo:
+  backup_status:
+  postgres_run:
+  # Placeholder mounted at /backup-repo2 when BACKUP_REPO2_PATH is not set.
+  backup_repo2_unused:
   map_tiles:

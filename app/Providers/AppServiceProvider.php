@@ -16,6 +16,8 @@ use App\Services\Search\GlobalSearch;
 use App\Services\Search\Providers;
 use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
+use App\Support\Backups\BackupChecks;
+use App\Support\Backups\BackupStatus;
 use App\Support\CommunityInformation\ReferenceUsageChecks;
 use App\Support\Database\MigrationConnection;
 use App\Support\Flashpoints\ReferenceUsageChecks as FlashpointsReferenceUsageChecks;
@@ -61,6 +63,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Malware scanning (Phase 8B.4): clamd on the internal network.
         $this->app->bind(MalwareScanner::class, ClamdScanner::class);
+
+        // Health checks run by buffalo:health:monitor (Phase 8C).
+        $this->app->bind(BackupStatus::class, fn (): BackupStatus => BackupStatus::make());
+        $this->app->tag([BackupChecks::class], 'buffalo.health_checks');
 
         // Whether a lookup value is in use: each module registers its checks
         // (e.g. App\Support\CommunityInformation\ReferenceUsageChecks).

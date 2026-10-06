@@ -390,4 +390,19 @@ return [
         'online_updates' => (bool) env('CLAMAV_ONLINE_UPDATES', false),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Backups (Phase 8C)
+    |--------------------------------------------------------------------------
+    | The backup sidecars write their status to the backup_status volume,
+    | mounted read-only here. Alerts (critical, to super admins) when the
+    | newest backup is older than max_age_hours or WAL archiving lags more
+    | than wal_lag_minutes.
+    */
+    'backups' => [
+        'status_path' => env('BUFFALO_BACKUP_STATUS_PATH', '/var/lib/buffalo/backup-status'),
+        'max_age_hours' => (int) env('BUFFALO_BACKUP_MAX_AGE_HOURS', 26),
+        'wal_lag_minutes' => (int) env('BUFFALO_BACKUP_WAL_LAG_MINUTES', 15),
+    ],
+
 ];
