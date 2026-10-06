@@ -16,6 +16,8 @@ enum Permission: string
     // Audit (Phase 1)
     case AuditView = 'audit.view';
     case LoginHistoryView = 'login_history.view';
+    // Exports review (Phase 8B.3): who exported, downloaded or printed what.
+    case AuditExports = 'audit.exports';
 
     // System administration (Phase 1)
     case SystemHorizon = 'system.horizon';

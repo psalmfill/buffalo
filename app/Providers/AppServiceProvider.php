@@ -161,6 +161,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('exportAnalytics', fn (User $user): bool => $user->checkPermissionTo(Permission::AnalyticsExport->value));
 
         Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
+        // Exports review (Phase 8B.3): audit.exports and national reach.
+        Gate::define('viewExportReview', fn (User $user): bool => AuditAccess::canViewExportReview($user));
         Gate::define('viewLoginHistory', fn (User $user): bool => AuditAccess::canViewLoginHistory($user));
 
         // A dashboard needs a role whose jurisdiction data is consistent

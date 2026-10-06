@@ -6,6 +6,7 @@ import {
     ClipboardCheck,
     ClipboardList,
     FilePlus2,
+    FileSearch,
     FileText,
     Flame,
     Crosshair,
@@ -42,6 +43,7 @@ import AgencyFormationController from '@/actions/App/Http/Controllers/Security/A
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
+import ExportReviewController from '@/actions/App/Http/Controllers/Audit/ExportReviewController';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
@@ -141,6 +143,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Users', icon: Users, href: UserController.index(), permission: 'users.view' },
             { title: 'Reference data', icon: Library, href: ReferenceDataController.home(), permission: 'reference_data.view' },
             { title: 'Audit log', icon: ScrollText, href: AuditLogController.index(), permission: 'audit.view' },
+            { title: 'Exports review', icon: FileSearch, href: ExportReviewController.index(), permission: 'audit.exports' },
             { title: 'Login history', icon: History, href: LoginHistoryController.index(), permission: 'login_history.view' },
             { title: 'Queue monitor', icon: Gauge, href: horizon.index(), permission: 'system.horizon', external: true },
         ],

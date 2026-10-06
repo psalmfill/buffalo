@@ -11,4 +11,14 @@ enum AccessAction: string
     case Export = 'export';
     case Print = 'print';
     case Download = 'download';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::View => 'Viewed',
+            self::Export => 'Exported',
+            self::Print => 'Printed',
+            self::Download => 'Downloaded',
+        };
+    }
 }

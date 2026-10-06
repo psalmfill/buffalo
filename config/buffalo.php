@@ -352,4 +352,22 @@ return [
         'minutes' => (int) env('BUFFALO_STEP_UP_MINUTES', 15),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Export controls (Phase 8B.3)
+    |--------------------------------------------------------------------------
+    | Daily quotas per user (Africa/Lagos day). Exceeding one blocks further
+    | exports of that kind until midnight; viewing records is unaffected.
+    | Scheduled reports do not count. Passing `alert_fraction` of a quota, or
+    | exporting secret material more than `secret_alert_count` times in a
+    | day, alerts the DG and the DDGs covering the user (once per rule per day).
+    */
+    'exports' => [
+        'daily_rows' => (int) env('BUFFALO_EXPORT_DAILY_ROWS', 100000),
+        'daily_report_runs' => (int) env('BUFFALO_EXPORT_DAILY_REPORT_RUNS', 50),
+        'daily_evidence_downloads' => (int) env('BUFFALO_EXPORT_DAILY_EVIDENCE_DOWNLOADS', 100),
+        'alert_fraction' => (float) env('BUFFALO_EXPORT_ALERT_FRACTION', 0.5),
+        'secret_alert_count' => (int) env('BUFFALO_EXPORT_SECRET_ALERT_COUNT', 5),
+    ],
+
 ];

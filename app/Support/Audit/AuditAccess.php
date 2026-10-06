@@ -25,6 +25,16 @@ final class AuditAccess
         return $user->checkPermissionTo(Permission::LoginHistoryView->value) && self::hasUnfilteredReach($user);
     }
 
+    /**
+     * The exports review (Phase 8B.3): `audit.exports` (DG and DDGs; a super
+     * admin only if explicitly granted it) and system or national reach. DDGs
+     * with zones are limited to their zones by the screen itself.
+     */
+    public static function canViewExportReview(User $user): bool
+    {
+        return $user->checkPermissionTo(Permission::AuditExports->value) && self::hasUnfilteredReach($user);
+    }
+
     public static function hasUnfilteredReach(User $user): bool
     {
         return in_array($user->jurisdiction_level, [JurisdictionLevel::System, JurisdictionLevel::National], true);

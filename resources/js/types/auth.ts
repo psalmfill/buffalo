@@ -10,6 +10,7 @@ export const PERMISSIONS = [
     'users.manage',
     'audit.view',
     'login_history.view',
+    'audit.exports',
     'system.horizon',
     'system.settings',
     'reference_data.view',

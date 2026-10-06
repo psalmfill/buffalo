@@ -80,6 +80,12 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permission::LoginHistoryView->value => [
                     Role::SuperAdmin,
                 ],
+                // Phase 8B.3: export records reveal what intelligence exists,
+                // so super admins do not hold this by default.
+                Permission::AuditExports->value => [
+                    Role::DirectorGeneral,
+                    Role::DeputyDirectorGeneral,
+                ],
             ],
 
             // ---------------------------------------------------------------

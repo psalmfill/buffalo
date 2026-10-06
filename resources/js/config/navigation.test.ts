@@ -28,6 +28,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     director_general: [
         'users.view',
         'audit.view',
+        'audit.exports',
         'reference_data.view',
         'reference_data.manage',
         'lgas.view',
@@ -103,6 +104,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     ],
     deputy_director_general: [
         'users.view',
+        'audit.exports',
         'reference_data.view',
         'lgas.view',
         'lga_profiles.update',
@@ -444,7 +446,12 @@ describe('navigation', () => {
                     'Coverage reports',
                     'Organizations',
                 ],
-                Administration: ['Users', 'Reference data', 'Audit log'],
+                Administration: [
+                    'Users',
+                    'Reference data',
+                    'Audit log',
+                    'Exports review',
+                ],
             },
             deputy_director_general: {
                 Overview: [
@@ -476,7 +483,7 @@ describe('navigation', () => {
                     'Coverage reports',
                     'Organizations',
                 ],
-                Administration: ['Users', 'Reference data'],
+                Administration: ['Users', 'Reference data', 'Exports review'],
             },
             state_director: {
                 Overview: [

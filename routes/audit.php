@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Audit\AuditLogController;
+use App\Http\Controllers\Audit\ExportReviewController;
 use App\Http\Controllers\Audit\LoginHistoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -8,4 +9,5 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth'])->group(function () {
     Route::get('audit', [AuditLogController::class, 'index'])->name('audit.index');
     Route::get('login-history', [LoginHistoryController::class, 'index'])->name('login-history.index');
+    Route::get('audit/exports', [ExportReviewController::class, 'index'])->name('audit.exports-review');
 });

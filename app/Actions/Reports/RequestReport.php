@@ -11,6 +11,7 @@ use App\Models\ReportSchedule;
 use App\Models\User;
 use App\Services\Reports\Builders\IncidentListBuilder;
 use App\Services\Reports\ReportParameters;
+use App\Support\Exports\ExportControls;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -24,7 +25,10 @@ use Illuminate\Validation\ValidationException;
  */
 final class RequestReport
 {
-    public function __construct(private readonly ReportParameters $parameters) {}
+    public function __construct(
+        private readonly ReportParameters $parameters,
+        private readonly ExportControls $exports,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $input
@@ -42,6 +46,8 @@ final class RequestReport
             $parameters['since'] = (string) $input['since'];
         }
 
+        $rows = null;
+
         if ($type === ReportType::IncidentList) {
             $rows = self::estimate($user, $parameters);
 
@@ -49,12 +55,18 @@ final class RequestReport
                 throw ValidationException::withMessages(['filters' => 'This selection has '.number_format($rows).' incidents; exports are limited to '.number_format((int) config('buffalo.reports.max_rows')).'. Narrow the filters.']);
             }
 
-            if ($rows > (int) config('buffalo.reports.confirm_rows') && ! $stepUpConfirmed) {
-                throw new StepUpRequired;
-            }
         }
 
-        $run = DB::transaction(function () use ($user, $type, $format, $parameters, $schedule): ReportRun {
+        // Daily quotas (Phase 8B.3), before asking for a code: scheduled runs do not count.
+        if ($schedule === null) {
+            $this->exports->assertCanRequestReport($user, $rows);
+        }
+
+        if ($rows !== null && $rows > (int) config('buffalo.reports.confirm_rows') && ! $stepUpConfirmed) {
+            throw new StepUpRequired;
+        }
+
+        $run = DB::transaction(function () use ($user, $type, $format, $parameters, $schedule, $rows): ReportRun {
             $run = new ReportRun;
             $run->forceFill([
                 'report_type' => $type,
@@ -62,12 +74,18 @@ final class RequestReport
                 'parameters' => $parameters,
                 'requested_by' => $user->id,
                 'report_schedule_id' => $schedule?->id,
+                // The estimate counts toward today's rows until generation sets the real count.
+                'row_count' => $rows,
             ])->save();
 
             return $run;
         });
 
         GenerateReport::dispatch($run->id);
+
+        if ($schedule === null) {
+            $this->exports->afterExport($user);
+        }
 
         return $run;
     }

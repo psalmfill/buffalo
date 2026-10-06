@@ -20,6 +20,7 @@ use App\Services\Analytics\AnalyticsArea;
 use App\Services\Analytics\AnalyticsFilters;
 use App\Services\Reports\ReportParameters;
 use App\Support\Auth\StepUp;
+use App\Support\Exports\ExportControls;
 use App\Support\Incidents\IncidentFilters;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Http\JsonResponse;
@@ -122,6 +123,7 @@ class ReportController extends Controller
         }
 
         $run->recordAccess(AccessAction::Export, $run->report_type->value);
+        app(ExportControls::class)->afterExport($this->actor($request));
 
         return $disk->download($path, $run->fileName(), [
             'Content-Type' => $run->format->mime(),
