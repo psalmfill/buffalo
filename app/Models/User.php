@@ -8,10 +8,10 @@ use App\Models\Concerns\HasJurisdiction;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Support\Auth\MailConfiguration;
+use App\Support\Auth\PasswordResetNotification;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
 use App\Support\Jurisdiction\JurisdictionLabel;
 use Database\Factories\UserFactory;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -135,7 +135,7 @@ class User extends Authenticatable implements JurisdictionScoped
             return;
         }
 
-        $this->notify(new ResetPassword($token));
+        $this->notify(new PasswordResetNotification($token));
     }
 
     /**

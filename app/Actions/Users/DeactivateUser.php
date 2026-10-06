@@ -2,6 +2,8 @@
 
 namespace App\Actions\Users;
 
+use App\Actions\Reports\PauseReportSchedules;
+use App\Enums\SchedulePauseReason;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
 use App\Support\Auth\SessionTerminator;
@@ -23,6 +25,7 @@ final class DeactivateUser
         private readonly SuperAdmins $superAdmins,
         private readonly SessionTerminator $sessions,
         private readonly OfficerPostings $postings,
+        private readonly PauseReportSchedules $pauseSchedules,
     ) {}
 
     /**
@@ -56,6 +59,9 @@ final class DeactivateUser
                 'deactivated_by' => $actor?->id,
                 'updated_by' => $actor?->id,
             ])->save();
+
+            // Nothing more is generated for a deactivated account (Phase 8B.5).
+            ($this->pauseSchedules)($user, SchedulePauseReason::Deactivated);
 
             // End every session of the user now.
             $this->sessions->terminateAll($user);

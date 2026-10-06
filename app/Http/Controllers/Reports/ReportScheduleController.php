@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reports;
 use App\Enums\ReportFormat;
 use App\Enums\ReportType;
 use App\Enums\Role;
+use App\Enums\SchedulePauseReason;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ReportRunPresenter;
 use App\Http\Requests\Reports\ReportScheduleRequest;
@@ -98,6 +99,8 @@ class ReportScheduleController extends Controller
         $schedule->forceFill([
             'is_active' => (bool) $active,
             'next_run_at' => $active ? $schedule->nextRunAfter(CarbonImmutable::now()) : $schedule->next_run_at,
+            'paused_reason' => $active ? null : SchedulePauseReason::Manual,
+            'paused_at' => $active ? null : now(),
         ])->save();
 
         return back()->with('toast', ['type' => 'success', 'message' => $active ? 'Schedule resumed.' : 'Schedule paused.']);

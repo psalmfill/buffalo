@@ -37,6 +37,12 @@ final class AuditChainBroken extends BuffaloNotification
         return NotificationSeverity::Critical;
     }
 
+    /** No table or row in mail (Phase 8B.5); the notification has them. */
+    public function mailBody(User $notifiable): string
+    {
+        return 'An audit integrity check failed. Sign in to see which records are affected, and investigate before trusting them.';
+    }
+
     public function allowsMail(): bool
     {
         return true;

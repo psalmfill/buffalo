@@ -63,6 +63,10 @@ export type ReportScheduleRow = {
     day_of_month: number | null;
     describe: string;
     is_active: boolean;
+    /** Why it is paused (Phase 8B.5); null when active. */
+    paused_reason: string | null;
+    /** Paused by a posting change: the owner should review it. */
+    review: boolean;
     last_run_at: string | null;
     next_run_at: string;
 };

@@ -3,6 +3,7 @@
 namespace App\Http\Presenters;
 
 use App\Enums\ReportType;
+use App\Enums\SchedulePauseReason;
 use App\Models\CoverageReport;
 use App\Models\Incident;
 use App\Models\Lga;
@@ -59,6 +60,8 @@ final class ReportRunPresenter
             'day_of_month' => $schedule->day_of_month,
             'describe' => $schedule->describe(),
             'is_active' => $schedule->is_active,
+            'paused_reason' => $schedule->is_active ? null : $schedule->paused_reason?->label(),
+            'review' => ! $schedule->is_active && $schedule->paused_reason === SchedulePauseReason::PostingChange,
             'last_run_at' => $schedule->last_run_at?->toIso8601String(),
             'next_run_at' => $schedule->next_run_at->toIso8601String(),
         ];

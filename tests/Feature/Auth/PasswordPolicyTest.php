@@ -3,8 +3,8 @@
 use App\Actions\Auth\SetUserPassword;
 use App\Models\PasswordHistory;
 use App\Models\User;
+use App\Support\Auth\PasswordResetNotification as ResetPassword;
 use App\Support\Auth\PasswordRules;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;

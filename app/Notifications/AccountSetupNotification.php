@@ -38,7 +38,7 @@ class AccountSetupNotification extends BuffaloNotification
     public function toMail(User $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Set up your '.config('app.name').' account')
+            ->subject(config('app.name').': account setup')
             ->greeting("Hello {$notifiable->name},")
             ->line('An account has been created for you. Use the button below to choose your password and set up two-factor authentication.')
             ->action('Set up my account', $this->setupUrl)

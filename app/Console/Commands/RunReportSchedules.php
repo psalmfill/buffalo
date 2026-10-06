@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Actions\Reports\RequestReport;
 use App\Enums\ReportType;
+use App\Enums\SchedulePauseReason;
 use App\Models\ReportSchedule;
 use App\Models\User;
 use App\Support\Jurisdiction\JurisdictionContext;
@@ -40,7 +41,7 @@ class RunReportSchedules extends Command
             $owner = User::query()->withTrashed()->find($schedule->user_id);
 
             if ($owner === null || $owner->isAccessBlocked() || ! $owner->can('schedule', [ReportSchedule::class, $schedule->report_type])) {
-                $schedule->forceFill(['is_active' => false])->save();
+                $schedule->forceFill(['is_active' => false, 'paused_reason' => SchedulePauseReason::OwnerBlocked, 'paused_at' => $now])->save();
                 $paused++;
 
                 continue;

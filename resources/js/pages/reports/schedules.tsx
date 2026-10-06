@@ -88,6 +88,19 @@ export default function ReportSchedules({
                     description="Generated automatically as you, with your access at the time. You are notified when each is ready; files are never attached to emails. Times are West Africa Time (Africa/Lagos)."
                 />
 
+                {schedules.some((s) => s.review) && (
+                    <p
+                        role="status"
+                        className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm"
+                        data-test="schedules-review"
+                    >
+                        Your role or jurisdiction changed, so your schedules
+                        were paused. Check that each report and place is still
+                        right for your new posting, then resume the ones you
+                        need.
+                    </p>
+                )}
+
                 {defaults.some((d) => !d.exists) && (
                     <section className="flex flex-wrap gap-2">
                         {defaults
@@ -148,6 +161,11 @@ export default function ReportSchedules({
                                                 <div className="text-muted-foreground">
                                                     {s.summary}
                                                 </div>
+                                                {s.paused_reason && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {s.paused_reason}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-3 py-2">
                                                 {s.describe}

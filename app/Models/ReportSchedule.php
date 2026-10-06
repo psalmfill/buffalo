@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ReportFormat;
 use App\Enums\ReportType;
+use App\Enums\SchedulePauseReason;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use Carbon\CarbonImmutable;
@@ -27,6 +28,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $weekday
  * @property int|null $day_of_month
  * @property bool $is_active
+ * @property SchedulePauseReason|null $paused_reason
+ * @property CarbonImmutable|null $paused_at
  * @property CarbonImmutable|null $last_run_at
  * @property CarbonImmutable $next_run_at
  * @property-read User $owner
@@ -47,6 +50,8 @@ class ReportSchedule extends Model
             'format' => ReportFormat::class,
             'parameters' => 'array',
             'is_active' => 'boolean',
+            'paused_reason' => SchedulePauseReason::class,
+            'paused_at' => 'immutable_datetime',
             'weekday' => 'integer',
             'day_of_month' => 'integer',
             'last_run_at' => 'immutable_datetime',

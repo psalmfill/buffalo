@@ -113,13 +113,35 @@ abstract class BuffaloNotification extends Notification implements ShouldBeEncry
         return 'buffalo.notification';
     }
 
+    /**
+     * Mail subjects are generic (Phase 8B.5): no references, place names,
+     * incident types or classifications, which mail servers, phones' lock
+     * screens and previews would expose.
+     */
+    public function mailSubject(): string
+    {
+        return config('app.name').' notification';
+    }
+
+    /** The mail body; also the inbox preview, so equally free of details. */
+    public function mailBody(User $notifiable): string
+    {
+        return $this->body($notifiable);
+    }
+
+    /** The link in the mail; never carries a record's reference. */
+    public function mailUrl(User $notifiable): ?string
+    {
+        return $this->url($notifiable);
+    }
+
     public function toMail(User $notifiable): MailMessage
     {
-        $url = $this->url($notifiable);
+        $url = $this->mailUrl($notifiable);
 
         return (new MailMessage)
-            ->subject($this->title($notifiable))
-            ->line($this->body($notifiable))
+            ->subject($this->mailSubject())
+            ->line($this->mailBody($notifiable))
             ->when($url !== null, fn (MailMessage $mail) => $mail->action('Open '.config('app.name'), url((string) $url)));
     }
 }

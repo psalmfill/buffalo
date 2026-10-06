@@ -2,7 +2,7 @@
 
 use App\Http\Responses\GenericPasswordResetLinkResponse;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Support\Auth\PasswordResetNotification as ResetPassword;
 use Illuminate\Support\Facades\Notification;
 
 test('forgot password gives the same answer for active, inactive and unknown addresses', function () {

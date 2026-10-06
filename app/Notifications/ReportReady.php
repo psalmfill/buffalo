@@ -34,6 +34,23 @@ final class ReportReady extends BuffaloNotification
         return '/reports?run='.$this->run->ulid;
     }
 
+    public function mailSubject(): string
+    {
+        return config('app.name').': report ready';
+    }
+
+    /** No report type in mail (Phase 8B.5). */
+    public function mailBody(User $notifiable): string
+    {
+        return 'A report you requested is ready. Sign in to download it.';
+    }
+
+    /** The reports page, not the run's reference. */
+    public function mailUrl(User $notifiable): string
+    {
+        return '/reports';
+    }
+
     public function allowsMail(): bool
     {
         return true;
