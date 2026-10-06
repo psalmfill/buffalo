@@ -1,0 +1,27 @@
+# Restore drill overlay (Phase 8C.3), used only by scripts/restore/drill.sh
+# with its own project name (buffalo-drill): separate networks and volumes,
+# no published ports (compose.override.yml is not loaded), mail, broadcasts
+# and queues off, and no scheduler, queue workers, Reverb, nginx or backup
+# services (the drill starts only postgres, valkey and app).
+#
+# The source project's backup repository is mounted READ-ONLY, and the
+# restored database runs with archive_mode=off, so a drill can never write
+# to the production repository.
+
+services:
+  postgres:
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "archive_mode=off"]
+    volumes:
+      - drill_source_repo:/backup:ro
+
+  app:
+    environment:
+      MAIL_MAILER: log
+      BUFFALO_MAIL_ENABLED: "false"
+      BROADCAST_CONNECTION: log
+      QUEUE_CONNECTION: sync
+
+volumes:
+  drill_source_repo:
+    external: true
+    name: ${DRILL_SOURCE_PROJECT:-buffalo}_backup_repo

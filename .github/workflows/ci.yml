@@ -123,3 +123,34 @@ jobs:
           name: security-reports
           path: build/security
           retention-days: 30
+
+  # Phase 8C.3: restore drill at small scale. Back up a fresh stack with
+  # fixture data, restore it into an isolated project, verify; and check
+  # that a wrong CIPHERSWEET_KEY is refused.
+  restore-drill:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start the stack with backups
+        run: |
+          cp .env.example .env
+          export DOCKER_UID=$(id -u) DOCKER_GID=$(id -g)
+          docker compose build app postgres
+          docker compose run --rm --no-deps app composer install --no-interaction --no-progress
+          docker compose run --rm --no-deps app php artisan key:generate --no-interaction
+          docker compose run --rm --no-deps app php artisan buffalo:encryption-key --no-interaction
+          docker compose up -d --wait postgres valkey app
+          docker compose exec -T app php artisan buffalo:db:provision-roles --database=buffalo
+          docker compose exec -T app php artisan migrate --force
+          docker compose exec -T app php artisan db:seed --force
+          docker compose exec -T app php artisan buffalo:keys:verify
+          docker compose up -d --wait pgbackrest backup
+
+      - name: Restore drill
+        run: |
+          export DOCKER_UID=$(id -u) DOCKER_GID=$(id -g)
+          scripts/restore/ci-drill.sh

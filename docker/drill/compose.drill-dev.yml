@@ -1,0 +1,7 @@
+# Restore drill, development only: the app image's `dev` target has no
+# code, so the working tree is mounted (as compose.override.yml does).
+# Paths are relative to the project directory (the repository root).
+services:
+  app:
+    volumes:
+      - .:/var/www/html
