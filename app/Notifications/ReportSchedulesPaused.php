@@ -25,9 +25,9 @@ final class ReportSchedulesPaused extends BuffaloNotification
 
     public function body(User $notifiable): string
     {
-        $schedules = $this->count === 1 ? '1 report schedule' : "{$this->count} report schedules";
+        $paused = $this->count === 1 ? '1 report schedule was paused' : "{$this->count} report schedules were paused";
 
-        return "Your role or jurisdiction changed, so {$schedules} were paused. Review them and resume the ones you still need.";
+        return "Your role or jurisdiction changed, so {$paused}. Review them and resume the ones you still need.";
     }
 
     public function url(User $notifiable): string

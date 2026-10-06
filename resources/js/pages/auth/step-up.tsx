@@ -32,7 +32,8 @@ export default function StepUp({ intended, minutes }: Props) {
                     <p className="text-sm text-muted-foreground">
                         Enter the current code from your authenticator app to
                         continue. You will not be asked again for {minutes}{' '}
-                        minutes. Recovery codes cannot be used here.
+                        {minutes === 1 ? 'minute' : 'minutes'}. Recovery codes
+                        cannot be used here.
                     </p>
                 </div>
                 <form
