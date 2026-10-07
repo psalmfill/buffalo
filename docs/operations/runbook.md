@@ -59,6 +59,33 @@ fails: [rollback.md](rollback.md). Keep the previous release directory under
 Loading the hierarchy, boundaries and reference data, and checking for demo
 data: [data-loading.md](data-loading.md) (`buffalo:data:status`).
 
+## Go-live check
+
+    dc run --rm tools php artisan buffalo:go-live:check
+
+Every technical item must pass and every client decision must be recorded;
+it exits 1 until then and writes a Markdown report to the private disk
+(`storage/app/private/go-live/`; copy it out with `dc cp`). It also runs
+daily and its latest result is on **System health → Go-live check** and the
+**Go-live** page, where super admins record the client decisions (step-up).
+
+| Technical item | How to make it pass |
+|---|---|
+| Production mode and start-up checks | `buffalo:production:check`, `buffalo:secrets:check`, `buffalo:keys:verify` |
+| TLS valid for 30 days or more | Renew the certificate (read from nginx itself) |
+| No demo or synthetic data; hierarchy and LGA boundaries | [data-loading.md](data-loading.md) |
+| A super admin with 2FA; no test accounts | Accounts on `.test`, `.local`, `.example` or `example.com` addresses must go |
+| Recent full backup, evidence snapshot, repository 2 | [backup-and-recovery.md](../security/backup-and-recovery.md) |
+| Restore drill within 30 days, passing | `scripts/restore/drill.sh` on this server |
+| ClamAV signatures under 7 days old | Online updates, or `scripts/clamav-import-signatures.sh` |
+| Audit chains verified within 24 hours | Runs nightly (`buffalo:audit:verify`) |
+| Vulnerability exceptions not expired; security scan for this version | Install a current signed release (the scan is recorded by `install.sh` / `upgrade.sh`) |
+
+Client decisions: RPO/RTO, retention, key escrow custodians, ZAP accepted
+findings, penetration test (completed or deferred with a reason),
+quarantined malware handling, mail, and the reference data sign-off (which
+lapses when the reference data changes).
+
 ## Backups and restores
 
 See [../security/backup-and-recovery.md](../security/backup-and-recovery.md).

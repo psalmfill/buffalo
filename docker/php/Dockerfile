@@ -191,6 +191,12 @@ RUN set -eux; \
     chown -R buffalo storage; \
     test -f bootstrap/cache/packages.php
 
+# The release version (Phase 9B.6): the go-live check compares it with the
+# security scan recorded for this release. Last, so it does not bust the
+# layer cache.
+ARG BUFFALO_VERSION=dev
+ENV BUFFALO_VERSION=${BUFFALO_VERSION}
+
 USER buffalo
 
 CMD ["php-fpm"]

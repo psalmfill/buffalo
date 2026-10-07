@@ -35,7 +35,7 @@ build() { # build <image> <args...>
     docker build "${plat[@]+"${plat[@]}"}" "${cache[@]+"${cache[@]}"}" --build-arg UID=1000 --build-arg GID=1000 "$@" >/dev/null
 }
 
-build app -f docker/php/Dockerfile --target prod -t "buffalo/app:$version" .
+build app -f docker/php/Dockerfile --target prod -t "buffalo/app:$version" --build-arg BUFFALO_VERSION="$version" .
 build nginx -f docker/nginx/Dockerfile --target prod -t "buffalo/nginx:$version" \
     --build-arg BASE_IMAGE="buffalo/patched-nginx:$version" --build-arg APP_IMAGE="buffalo/app:$version" .
 # PostGIS is linux/amd64 only.

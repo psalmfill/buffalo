@@ -1,6 +1,7 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { RefreshCw } from 'lucide-react';
 import type { ReactNode } from 'react';
+import GoLiveController from '@/actions/App/Http/Controllers/System/GoLiveController';
 import SystemHealthController from '@/actions/App/Http/Controllers/System/SystemHealthController';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -113,6 +114,11 @@ type Report = {
         detail: string;
         raised_at: string;
     }[];
+    golive: {
+        passed: boolean;
+        checked_at: string;
+        outstanding: number;
+    } | null;
 };
 
 function State({
@@ -211,6 +217,26 @@ export default function SystemHealth({ report }: { report: Report }) {
                         <RefreshCw className="size-4" /> Refresh
                     </Button>
                 </div>
+
+                <Card data-test="health-golive">
+                    <CardHeader>
+                        <CardTitle>Go-live check</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <span>
+                            {report.golive === null
+                                ? 'Not run yet.'
+                                : report.golive.passed
+                                  ? `Ready to go live (checked ${timeAgo(report.golive.checked_at)}).`
+                                  : `Not ready: ${report.golive.outstanding} item(s) outstanding (checked ${timeAgo(report.golive.checked_at)}).`}
+                        </span>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={GoLiveController.index()}>
+                                Open go-live
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
 
                 <Card data-test="health-alerts">
                     <CardHeader>

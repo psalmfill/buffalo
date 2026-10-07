@@ -444,4 +444,24 @@ return [
         'enforce' => (bool) env('BUFFALO_ROLLOUT_ENFORCE', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Go-live check (Phase 9B.6)
+    |--------------------------------------------------------------------------
+    | buffalo:go-live:check runs daily and on demand. `version` is baked into
+    | the release image (BUFFALO_VERSION). TLS is read from the certificate
+    | nginx actually serves on the internal network.
+    */
+    'golive' => [
+        'version' => env('BUFFALO_VERSION', 'dev'),
+        'tls_host' => env('BUFFALO_GOLIVE_TLS_HOST', 'nginx'),
+        'tls_port' => (int) env('BUFFALO_GOLIVE_TLS_PORT', 8443),
+        'tls_min_days' => (int) env('BUFFALO_GOLIVE_TLS_MIN_DAYS', 30),
+        'full_backup_max_days' => (int) env('BUFFALO_GOLIVE_FULL_BACKUP_MAX_DAYS', 8),
+        'drill_max_days' => (int) env('BUFFALO_GOLIVE_DRILL_MAX_DAYS', 30),
+        'audit_verify_max_hours' => (int) env('BUFFALO_GOLIVE_AUDIT_VERIFY_MAX_HOURS', 24),
+        'report_disk' => env('BUFFALO_GOLIVE_REPORT_DISK', 'local'),
+        'exceptions_file' => base_path('security/vulnerability-exceptions.yaml'),
+    ],
+
 ];

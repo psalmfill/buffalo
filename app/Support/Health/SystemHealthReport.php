@@ -3,6 +3,7 @@
 namespace App\Support\Health;
 
 use App\Support\Backups\BackupStatus;
+use App\Support\GoLive\GoLiveCheck;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +40,12 @@ final class SystemHealthReport
             'certificate' => ($expiry = StackChecks::certificateExpiry()) === null
                 ? ['configured' => (string) config('buffalo.health.tls_certificate') !== '', 'expires_at' => null, 'days_left' => null]
                 : ['configured' => true, 'expires_at' => self::time($expiry), 'days_left' => (int) floor(CarbonImmutable::now()->diffInDays($expiry, false))],
+            // Latest go-live check (Phase 9B.6): summary only; details on the Go-live page.
+            'golive' => ($golive = HealthStatus::get(GoLiveCheck::STATUS_KEY)) === null ? null : [
+                'passed' => (bool) $golive['ok'],
+                'checked_at' => self::time($golive['at']),
+                'outstanding' => count(array_filter((array) ($golive['data']['items'] ?? []), fn ($item) => is_array($item) && in_array($item['status'] ?? '', ['fail', 'missing'], true))),
+            ],
             'alerts' => DB::table('system_alerts')->whereNull('cleared_at')->orderByRaw("severity = 'critical' DESC")->orderBy('raised_at')
                 ->get(['key', 'severity', 'title', 'detail', 'raised_at'])
                 ->map(fn (object $a) => ['key' => $a->key, 'severity' => $a->severity, 'title' => $a->title, 'detail' => $a->detail, 'raised_at' => self::time($a->raised_at)])->all(),

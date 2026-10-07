@@ -46,6 +46,7 @@ import OrganizationController from '@/actions/App/Http/Controllers/Organizations
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import ExportReviewController from '@/actions/App/Http/Controllers/Audit/ExportReviewController';
+import GoLiveController from '@/actions/App/Http/Controllers/System/GoLiveController';
 import RolloutController from '@/actions/App/Http/Controllers/System/RolloutController';
 import SystemHealthController from '@/actions/App/Http/Controllers/System/SystemHealthController';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
@@ -151,6 +152,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Login history', icon: History, href: LoginHistoryController.index(), permission: 'login_history.view' },
             { title: 'System health', icon: HeartPulse, href: SystemHealthController.index(), permission: 'system.settings' },
             { title: 'Rollout', icon: Rocket, href: RolloutController.index(), permission: 'system.settings' },
+            { title: 'Go-live', icon: ClipboardCheck, href: GoLiveController.index(), permission: 'system.settings' },
             { title: 'Queue monitor', icon: Gauge, href: horizon.index(), permission: 'system.horizon', external: true },
         ],
     },

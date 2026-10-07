@@ -49,3 +49,7 @@ Schedule::command('buffalo:malware:scan-quarantined')->everyFiveMinutes()->witho
 
 // Health and backup monitoring (Phase 8C): raises and clears system alerts.
 Schedule::command('buffalo:health:monitor')->everyMinute()->withoutOverlapping();
+
+// Go-live readiness (Phase 9B.6): stored for System health.
+// --record: before go-live the check fails daily by design; not a task failure.
+Schedule::command('buffalo:go-live:check --record')->dailyAt('06:30');

@@ -231,6 +231,10 @@ stage="during or after the database migrations"
 say "Running migrations (as the owner role)"
 run compose run --rm -T tools php artisan buffalo:db:provision-roles --database="$(setting DB_DATABASE)" --no-interaction
 run compose run --rm -T tools php artisan migrate --force --no-interaction
+say "Recording the release's security scan (for the go-live check)"
+if [ -f "$target/security-scan.json" ]; then
+    run sh -c "cd '$install_dir/current' && docker compose --env-file '$config' run --rm -T tools php artisan buffalo:release:record < '$target/security-scan.json'"
+fi
 say "Updating BUFFALO's reference data"
 for seeder in RolesAndPermissionsSeeder ZonesAndStatesSeeder ReferenceDataSeeder; do
     run compose run --rm -T tools php artisan db:seed --class="Database\\Seeders\\$seeder" --force --no-interaction

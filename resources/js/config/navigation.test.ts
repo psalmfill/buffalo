@@ -415,6 +415,7 @@ describe('navigation', () => {
                     'Login history',
                     'System health',
                     'Rollout',
+                    'Go-live',
                     'Queue monitor',
                 ],
             },

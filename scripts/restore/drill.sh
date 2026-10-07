@@ -143,14 +143,17 @@ if $REPORT; then
     $WRONG_KEYS && suffix="-wrong-keys"
     [[ -n "$TARGET_TIME" ]] && suffix="$suffix-pitr"
     file="docs/drills/$(date -u +%Y-%m-%d-%H%M)$suffix.md"
+    mkdir -p docs/drills
     printf '%s\n' "$report" > "$file"
     say "Report: $file"
 fi
 
 # Last drill, for System health (backup_status volume of the source project).
-printf '{"at":"%s","result":"%s","seconds":%s,"within_rto":%s,"mode":"%s"}\n' \
+# The host name lets the go-live check show where the drill ran (Phase 9B.6).
+printf '{"at":"%s","result":"%s","seconds":%s,"within_rto":%s,"mode":"%s","host":"%s"}\n' \
     "$started_at" "$result" "$total" "$([[ $within_rto == yes ]] && echo true || echo false)" \
-    "$($WRONG_KEYS && echo wrong-keys || ([[ -n "$TARGET_TIME" ]] && echo pitr || echo full))" |
+    "$($WRONG_KEYS && echo wrong-keys || ([[ -n "$TARGET_TIME" ]] && echo pitr || echo full))" \
+    "$(hostname | tr -cd 'A-Za-z0-9.-')" |
     docker run --rm -i --platform linux/amd64 --network none --user 0 -v "$(volume "$SOURCE_PROJECT" backup_status)":/s --entrypoint sh "$POSTGRES_IMAGE" \
         -c 'mkdir -p /s/drill && cat > /s/drill/last.json && chmod 0755 /s/drill && chmod 0644 /s/drill/last.json'
 

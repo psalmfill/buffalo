@@ -17,7 +17,8 @@
 # Options (environment): RELEASE_KEY (private key, required), SINCE (git ref
 # of the previous release for the notes; default: the last tag),
 # PLATFORM (default linux/amd64), REUSE_IMAGES=1 (skip the image build if
-# buffalo/*:<version> already exist).
+# buffalo/*:<version> already exist), SKIP_SCAN=1 (test releases only: no
+# Trivy gate; the go-live check then fails).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -46,6 +47,17 @@ fi
 embedded=$(sed -n "/^# >>> release-signing.pub/,/^# <<< release-signing.pub/p" scripts/ops/install.sh | sed -e '1d' -e '$d' -e "s/^ALLOWED_SIGNERS='//" -e "s/'\$//")
 [[ "$embedded" == "$(grep -v '^#' security/release-signing.pub | sed '/^$/d')" ]] \
     || { echo "scripts/ops/install.sh embeds a different key from security/release-signing.pub; update it." >&2; exit 1; }
+
+step "Security scan of the release images (Trivy gate)"
+if [[ "${SKIP_SCAN:-0}" == 1 ]]; then
+    # Test releases only: the go-live check fails on a skipped scan.
+    mkdir -p build/security
+    printf '{"version":"%s","result":"skipped","scanned_at":"%s","commit":"%s","scanner":"none (SKIP_SCAN=1)","images":[]}\n' \
+        "$version" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git rev-parse --short HEAD)" > build/security/release-scan.json
+    echo "Scan skipped (SKIP_SCAN=1): this release will not pass the go-live check."
+else
+    scripts/security-scan.sh trivy-release "$version"
+fi
 
 step "Image manifest (images.lock: image IDs, verified at install)"
 stage=$(mktemp -d)
@@ -93,6 +105,7 @@ cp deploy/buffalo.env.example "$bundle/deploy/"
 cp docker/drill/compose.drill.yml "$bundle/docker/drill/"
 cp security/release-signing.pub "$bundle/security/"
 cp "$out/RELEASE-NOTES.md" "$bundle/"
+cp build/security/release-scan.json "$bundle/security-scan.json"
 echo "$version" > "$bundle/VERSION"
 tar -C "$stage" -cf - "buffalo-$version" | zstd -q -T0 -19 -o "$out/buffalo-$version-bundle.tar.zst"
 cp scripts/ops/install.sh "$out/install.sh"

@@ -95,8 +95,46 @@ scan_zap() {
     python3 scripts/zap/check.py "$REPORTS/zap-report.json" scripts/zap/accepted.txt
 }
 
+# The images of a release (Phase 9B.6), as built by build-release-images.sh,
+# with the same gate. Writes build/security/release-scan.json, which
+# make release puts in the signed bundle and install.sh / upgrade.sh record
+# for the go-live check.
+scan_release() {
+    local version=${1:?usage: $0 trivy-release <version>}
+    step "Exceptions file"
+    python3 scripts/security/check-exceptions.py
+    rm -f "$REPORTS"/trivy-*.json "$REPORTS"/trivy-*.txt
+
+    local failed=0 name image summary=""
+    for name in app nginx postgres clamav valkey restic patched-gotenberg; do
+        image="buffalo/$name:$version"
+        step "Trivy: $image"
+        trivy image --quiet --scanners vuln --format json --output "/reports/trivy-$name.json" "$image"
+        if trivy image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+            --ignorefile /exceptions.yaml --exit-code 1 --format table "$image" | tee "$REPORTS/trivy-$name.txt"; then
+            summary="$summary{\"image\":\"$name\",\"gate\":\"passed\"},"
+        else
+            summary="$summary{\"image\":\"$name\",\"gate\":\"failed\"},"
+            failed=1
+        fi
+    done
+
+    local result=passed
+    [[ $failed -eq 0 ]] || result=failed
+    printf '{"version":"%s","result":"%s","scanned_at":"%s","commit":"%s","scanner":"%s","images":[%s]}\n' \
+        "$version" "$result" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git rev-parse --short HEAD)" "trivy 0.75.0, HIGH/CRITICAL fixable, exceptions file" \
+        "${summary%,}" > "$REPORTS/release-scan.json"
+    cat "$REPORTS/release-scan.json"
+
+    if [[ $failed -ne 0 ]]; then
+        echo "Trivy found fixable high or critical vulnerabilities without an exception (see $REPORTS)." >&2
+        exit 1
+    fi
+}
+
 case "${1:-}" in
     trivy) scan_trivy ;;
+    trivy-release) scan_release "${2:-}" ;;
     zap) scan_zap ;;
-    *) echo "Usage: $0 trivy|zap" >&2; exit 2 ;;
+    *) echo "Usage: $0 trivy|trivy-release <version>|zap" >&2; exit 2 ;;
 esac
