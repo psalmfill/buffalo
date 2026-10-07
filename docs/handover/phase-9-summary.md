@@ -19,7 +19,7 @@ profiles, releases) and [`phase-9b.md`](phase-9b.md) (go-live readiness).
 | Pilot rollout (9B) | States go live one at a time. Officers of a state that is not live cannot sign in but can enrol during training. |
 | Help (9B) | In-app manuals (getting started, six role manuals, eight task guides), contextual "?" links, and printable RESTRICTED quick reference cards. |
 | UAT (9B) | `make uat-up`: production images, `APP_ENV=uat`, synthetic data, accounts for every role, banner and feedback. Six role scripts, and a runner that executes them (67/67 steps passing). |
-| Go-live check (9B) | `buffalo:go-live:check`: 17 technical items and 8 recorded client decisions (append-only, hash-chained), with a report for the client's records. |
+| Go-live check (9B) | `buffalo:go-live:check`: 15 technical items and 8 recorded client decisions (append-only, hash-chained), with a report for the client's records. |
 
 ## 2. The whole system (Phases 0–9)
 
