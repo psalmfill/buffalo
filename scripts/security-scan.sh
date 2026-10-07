@@ -25,12 +25,13 @@ step() {
 }
 
 # Images scanned: BUFFALO's production image, the BUFFALO-patched
-# third-party images (docker/patched/, Phase 9A.2) and the digest-pinned
-# upstream images BUFFALO layers its own configuration on.
+# third-party images (docker/patched/, Phase 9A.2), and BUFFALO's Valkey
+# and restic images (upstream plus Alpine updates and configuration).
 scan_targets() {
     echo buffalo-app:prod
     for name in postgis nginx clamav gotenberg; do echo "buffalo/patched-${name}:scan"; done
-    grep -hE '^FROM [a-z].*@sha256:' docker/valkey/Dockerfile docker/backup/Dockerfile | awk '{print $2}'
+    echo buffalo/valkey:scan
+    echo buffalo/restic:scan
 }
 
 trivy() {
@@ -49,6 +50,9 @@ scan_trivy() {
     step "Build the production and patched images (linux/amd64, fresh updates)"
     docker build --platform linux/amd64 -f docker/php/Dockerfile --target prod -t buffalo-app:prod . >/dev/null
     scripts/build-patched-images.sh scan --platform linux/amd64 --no-cache
+    docker build --platform linux/amd64 --no-cache --pull -t buffalo/valkey:scan docker/valkey >/dev/null
+    docker build --platform linux/amd64 --no-cache --pull -t buffalo/restic:scan docker/backup >/dev/null
+    rm -f "$REPORTS"/trivy-*.json "$REPORTS"/trivy-*.txt
 
     local failed=0 image name
     for image in $(scan_targets); do
