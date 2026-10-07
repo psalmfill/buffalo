@@ -15,13 +15,14 @@ NODE    := $(COMPOSE) run --rm --no-deps vite
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell artisan test lint fix fresh logs tiles restore-drill security-scan clamav-import-signatures wayfinder ci
+.PHONY: help setup up down shell artisan test lint fix fresh logs tiles images restore-drill security-scan clamav-import-signatures wayfinder ci
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
 
 setup: ## First-time setup: .env, images, dependencies, app key, migrations, seeders
 	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example")
+	$(MAKE) images
 	$(COMPOSE) build
 	$(PHP_ND) composer install --no-interaction
 	$(NODE) npm ci --no-audit --no-fund
@@ -73,6 +74,9 @@ logs: ## Follow container logs
 tiles: ## Download the Nigeria map extract: make tiles url=<protomaps build URL>
 	./scripts/fetch-map-tiles.sh $(url)
 
+images: ## Build the BUFFALO-patched base images (before the first build, and weekly)
+	./scripts/build-patched-images.sh dev
+
 restore-drill: ## Restore the latest backups into an isolated project, verify, report timings (docs/drills)
 	./scripts/restore/drill.sh $(args)
 
@@ -85,8 +89,9 @@ clamav-import-signatures: ## Import ClamAV signature files (air-gapped): make cl
 wayfinder: ## Regenerate Wayfinder TypeScript routes (run after changing routes)
 	$(PHP_ND) php artisan wayfinder:generate --with-form
 
-ci: ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
+ci: images ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
 	./scripts/check-compose-hardening.sh
+	python3 scripts/security/check-exceptions.py
 	docker build -f docker/php/Dockerfile --target ci \
 		--build-arg UID=$(DOCKER_UID) --build-arg GID=$(DOCKER_GID) -t buffalo-app:ci .
 	$(COMPOSE) up -d --wait postgres valkey gotenberg clamav

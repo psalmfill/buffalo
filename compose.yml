@@ -22,6 +22,12 @@ name: buffalo
 x-hardening: &hardening
   security_opt: ["no-new-privileges:true"]
   cap_drop: [ALL]
+  # Docker log rotation on every service (Phase 9A).
+  logging:
+    driver: json-file
+    options:
+      max-size: "${BUFFALO_LOG_MAX_SIZE:-20m}"
+      max-file: "${BUFFALO_LOG_MAX_FILES:-5}"
 
 x-app: &app
   <<: *hardening
@@ -70,7 +76,12 @@ services:
   # Runs as the unprivileged nginx user on port 8080 (docker/nginx/nginx.conf).
   nginx:
     <<: *hardening
-    image: nginx:1.30.5-alpine3.24@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
+    # BUFFALO-patched nginx with the configuration baked in (docker/nginx).
+    image: buffalo/nginx:${BUFFALO_VERSION:-dev}
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+      target: base
     restart: unless-stopped
     user: "101:101"
     read_only: true
@@ -86,9 +97,8 @@ services:
       reverb:
         condition: service_healthy
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - map_tiles:/usr/share/nginx/tiles:ro
+      - maintenance:/var/lib/buffalo/maintenance:ro
     deploy:
       resources:
         limits: {memory: "${BUFFALO_MEM_NGINX:-256m}", cpus: "${BUFFALO_CPUS_NGINX:-1}"}
@@ -103,7 +113,7 @@ services:
     # The pinned PostGIS image plus pgBackRest (docker/postgres/Dockerfile).
     # PostGIS publishes linux/amd64 images only; on arm64 hosts (Apple
     # Silicon) Docker runs this under emulation.
-    image: buffalo-postgres:dev
+    image: buffalo/postgres:${BUFFALO_VERSION:-dev}
     build:
       context: docker/postgres
       args:
@@ -145,8 +155,6 @@ services:
       - postgres_run:/var/run/postgresql
       - backup_repo:/backup
       - ${BACKUP_REPO2_PATH:-backup_repo2_unused}:/backup-repo2
-      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     deploy:
       resources:
         limits: {memory: "${BUFFALO_MEM_POSTGRES:-3g}", cpus: "${BUFFALO_CPUS_POSTGRES:-2}"}
@@ -165,7 +173,7 @@ services:
   # Writes status JSON for System health to backup_status.
   pgbackrest:
     <<: *hardening
-    image: buffalo-postgres:dev
+    image: buffalo/postgres:${BUFFALO_VERSION:-dev}
     platform: linux/amd64
     restart: unless-stopped
     user: "70:70"
@@ -204,14 +212,15 @@ services:
   # read-only. Writes status JSON for System health to backup_status.
   backup:
     <<: *hardening
-    image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
+    # restic with the schedule script baked in (docker/backup).
+    image: buffalo/restic:${BUFFALO_VERSION:-dev}
+    build: docker/backup
     restart: unless-stopped
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     read_only: true
     tmpfs:
       - /tmp:size=512m,mode=1777
     networks: [backup]
-    entrypoint: ["/usr/local/bin/restic-scheduler.sh"]
     environment:
       TZ: Africa/Lagos
       APP_ENV: ${APP_ENV:-production}
@@ -223,7 +232,6 @@ services:
       BACKUP_EVIDENCE_KEEP_MONTHLY: ${BACKUP_EVIDENCE_KEEP_MONTHLY:-12}
       BACKUP_EVIDENCE_TIME: ${BACKUP_EVIDENCE_TIME:-02:00}
     volumes:
-      - ./docker/backup/restic-scheduler.sh:/usr/local/bin/restic-scheduler.sh:ro
       - evidence_data:/evidence:ro
       - backup_repo:/backup
       - backup_status:/backup-status
@@ -244,7 +252,9 @@ services:
 
   valkey:
     <<: *hardening
-    image: valkey/valkey:9.1.2-alpine3.24@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    # Valkey with the ACL entrypoint baked in (docker/valkey).
+    image: buffalo/valkey:${BUFFALO_VERSION:-dev}
+    build: docker/valkey
     restart: unless-stopped
     user: "999:1000"
     read_only: true
@@ -254,7 +264,6 @@ services:
     # ACL users (Phase 8A): the default user is off; the application user
     # cannot FLUSHALL/FLUSHDB/CONFIG/KEYS/DEBUG. Passwords may also be given
     # as VALKEY_APP_PASSWORD_FILE / VALKEY_ADMIN_PASSWORD_FILE (Docker secrets).
-    entrypoint: ["/usr/local/bin/buffalo-valkey-entrypoint"]
     command: ["--appendonly", "yes", "--save", "60", "1000"]
     environment:
       VALKEY_APP_USERNAME: ${REDIS_USERNAME:-buffalo}
@@ -262,7 +271,6 @@ services:
       VALKEY_ADMIN_PASSWORD: ${VALKEY_ADMIN_PASSWORD:-}
     volumes:
       - valkey_data:/data
-      - ./docker/valkey/entrypoint.sh:/usr/local/bin/buffalo-valkey-entrypoint:ro
     deploy:
       resources:
         limits: {memory: "${BUFFALO_MEM_VALKEY:-768m}", cpus: "${BUFFALO_CPUS_VALKEY:-1}"}
@@ -327,7 +335,9 @@ services:
   # (merge/split/…) and metrics. Runs as the image's gotenberg user.
   gotenberg:
     <<: *hardening
-    image: gotenberg/gotenberg:8.37.0-chromium@sha256:0d28ae9a96441588ef739623726bd500ad0720b77266c6f1351a13e333fbd61c
+    # BUFFALO-patched Gotenberg (docker/patched/gotenberg).
+    image: buffalo/patched-gotenberg:${BUFFALO_VERSION:-dev}
+    build: docker/patched/gotenberg
     restart: unless-stopped
     user: "1001:1001"
     read_only: true
@@ -363,20 +373,18 @@ services:
   # about 1.5 GB of signatures and briefly twice that while reloading.
   clamav:
     <<: *hardening
-    image: clamav/clamav-debian:1.5.4@sha256:9bb8712a50f0e75166e936c452cd82dd5e5be0b85586598930b5bbb84a99a578
+    # BUFFALO-patched ClamAV with configuration baked in (docker/clamav).
+    image: buffalo/clamav:${BUFFALO_VERSION:-dev}
+    build: docker/clamav
     restart: unless-stopped
     user: "1000:1000"
     read_only: true
     tmpfs:
       - /tmp:size=512m,mode=1777
     networks: [internal-tools]
-    entrypoint: ["/buffalo-entrypoint.sh"]
     environment:
       CLAMAV_ONLINE_UPDATES: ${CLAMAV_ONLINE_UPDATES:-false}
     volumes:
-      - ./docker/clamav/entrypoint.sh:/buffalo-entrypoint.sh:ro
-      - ./docker/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
-      - ./docker/clamav/freshclam.conf:/etc/clamav/freshclam.conf:ro
       - clamav_data:/var/lib/clamav
     deploy:
       resources:
@@ -419,3 +427,5 @@ volumes:
   # Placeholder mounted at /backup-repo2 when BACKUP_REPO2_PATH is not set.
   backup_repo2_unused:
   map_tiles:
+  # Maintenance-mode flag for nginx (scripts/ops/upgrade.sh).
+  maintenance:

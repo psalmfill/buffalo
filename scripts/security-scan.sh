@@ -8,7 +8,8 @@
 #   scripts/security-scan.sh zap     # OWASP ZAP against the running stack
 #
 # Reports go to build/security/. Both fail on high or critical findings;
-# Trivy only on fixable ones, ZAP except for the accepted alerts listed in
+# Trivy only on fixable ones not listed in security/vulnerability-exceptions.yaml
+# (dated, at most 60 days), ZAP except for the accepted alerts listed in
 # docs/security/zap-accepted.md (scripts/zap/accepted.txt).
 
 set -euo pipefail
@@ -23,10 +24,13 @@ step() {
     printf '\n\033[1;34m==> %s\033[0m\n' "$1"
 }
 
-# Runtime images from compose.yml (the dev-only Mailpit and Node images are
-# not deployed and are not scanned).
-third_party_images() {
-    grep -E '^\s+image:' compose.yml | awk '{print $2}' | grep -v '^buffalo-app'
+# Images scanned: BUFFALO's production image, the BUFFALO-patched
+# third-party images (docker/patched/, Phase 9A.2) and the digest-pinned
+# upstream images BUFFALO layers its own configuration on.
+scan_targets() {
+    echo buffalo-app:prod
+    for name in postgis nginx clamav gotenberg; do echo "buffalo/patched-${name}:scan"; done
+    grep -hE '^FROM [a-z].*@sha256:' docker/valkey/Dockerfile docker/backup/Dockerfile | awk '{print $2}'
 }
 
 trivy() {
@@ -34,30 +38,34 @@ trivy() {
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v buffalo_trivy_cache:/root/.cache/trivy \
         -v "$PWD/$REPORTS":/reports \
-        -v "$PWD/.trivyignore":/.trivyignore:ro \
+        -v "$PWD/security/vulnerability-exceptions.yaml":/exceptions.yaml:ro \
         "$TRIVY_IMAGE" "$@"
 }
 
 scan_trivy() {
-    step "Build the production image"
-    docker build -f docker/php/Dockerfile --target prod -t buffalo-app:prod . >/dev/null
+    step "Exceptions file"
+    python3 scripts/security/check-exceptions.py
+
+    step "Build the production and patched images (linux/amd64, fresh updates)"
+    docker build --platform linux/amd64 -f docker/php/Dockerfile --target prod -t buffalo-app:prod . >/dev/null
+    scripts/build-patched-images.sh scan --platform linux/amd64 --no-cache
 
     local failed=0 image name
-    for image in buffalo-app:prod $(third_party_images); do
+    for image in $(scan_targets); do
         name=$(echo "$image" | sed 's/@.*//; s#[/:]#_#g')
         step "Trivy: $image"
-        docker pull -q "$image" >/dev/null 2>&1 || true
+        docker pull -q --platform linux/amd64 "$image" >/dev/null 2>&1 || true
         # Full report (all severities, fixed or not) as an artifact.
-        trivy image --quiet --scanners vuln --format json --output "/reports/trivy-$name.json" "$image"
-        # Gate: fixable high and critical vulnerabilities.
-        if ! trivy image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
-            --ignorefile /.trivyignore --exit-code 1 --format table "$image" | tee "$REPORTS/trivy-$name.txt"; then
+        trivy image --quiet --platform linux/amd64 --scanners vuln --format json --output "/reports/trivy-$name.json" "$image"
+        # Gate: fixable high and critical findings without a dated exception.
+        if ! trivy image --quiet --platform linux/amd64 --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+            --ignorefile /exceptions.yaml --exit-code 1 --format table "$image" | tee "$REPORTS/trivy-$name.txt"; then
             failed=1
         fi
     done
 
     if [[ $failed -ne 0 ]]; then
-        echo "Trivy found fixable high or critical vulnerabilities (see $REPORTS)." >&2
+        echo "Trivy found fixable high or critical vulnerabilities without an exception (see $REPORTS)." >&2
         exit 1
     fi
 }

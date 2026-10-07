@@ -1,0 +1,54 @@
+# Phase 9A.2: rebuild the BUFFALO-patched third-party images weekly (and on
+# demand) with fresh OS security updates, scan them with Trivy, push them to
+# the project registry for connected/cloud deployments, and keep the
+# vulnerability report. Fails on an expired exception or a new fixable
+# high/critical finding without one (security/vulnerability-exceptions.yaml).
+name: images
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"   # Mondays 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  patched-images:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build, scan and gate
+        run: scripts/security-scan.sh trivy
+
+      - name: Push to the project registry
+        # Set BUFFALO_REGISTRY (e.g. registry.example.gov.ng/buffalo) and the
+        # REGISTRY_USERNAME / REGISTRY_PASSWORD secrets to publish; skipped
+        # otherwise. Tags: <name>:<date> and <name>:weekly.
+        env:
+          BUFFALO_REGISTRY: ${{ vars.BUFFALO_REGISTRY }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          if [ -z "$BUFFALO_REGISTRY" ]; then echo "No registry configured; skipping push."; exit 0; fi
+          echo "$REGISTRY_PASSWORD" | docker login "${BUFFALO_REGISTRY%%/*}" -u "$REGISTRY_USERNAME" --password-stdin
+          date=$(date -u +%Y%m%d)
+          for name in postgis nginx clamav gotenberg; do
+            for tag in "$date" weekly; do
+              docker tag "buffalo/patched-${name}:scan" "$BUFFALO_REGISTRY/patched-${name}:$tag"
+              docker push "$BUFFALO_REGISTRY/patched-${name}:$tag"
+            done
+          done
+
+      - name: Upload vulnerability report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vulnerability-report
+          path: build/security
+          retention-days: 90

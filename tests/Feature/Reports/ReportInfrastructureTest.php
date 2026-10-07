@@ -25,7 +25,10 @@ test('the gotenberg service is pinned, internal-only, publishes no port and deni
     $compose = (string) file_get_contents(base_path('compose.yml'));
     $service = gotenbergService();
 
-    expect($service)->toContain('image: gotenberg/gotenberg:8.37.0-chromium')
+    // Phase 9A: the BUFFALO-patched image, built from the digest-pinned upstream.
+    expect($service)->toContain('image: buffalo/patched-gotenberg:')
+        ->and((string) file_get_contents(base_path('docker/patched/gotenberg/Dockerfile')))->toContain('gotenberg/gotenberg:8.37.0-chromium@sha256:');
+    expect($service)
         ->not->toContain('ports:')
         ->not->toContain(':latest')
         ->toContain('networks: [internal-tools]')

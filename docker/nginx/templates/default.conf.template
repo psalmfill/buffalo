@@ -1,0 +1,63 @@
+# BUFFALO nginx: production (Phase 9A). Rendered at start by the nginx
+# image's envsubst step into /tmp/nginx-conf.d (the root filesystem is
+# read-only). Variables: BUFFALO_SERVER_NAME, BUFFALO_TLS_CERTIFICATE,
+# BUFFALO_TLS_KEY (paths inside the container), NGINX_OCSP_STAPLING (on only
+# when the profile gives nginx egress).
+
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+# Plain HTTP: health check, ACME HTTP-01 challenges, and a redirect for
+# everything else.
+server {
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
+    server_name _;
+    server_tokens off;
+
+    location = /nginx-ping {
+        access_log off;
+        allow 127.0.0.1;
+        deny all;
+        return 204;
+    }
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/acme;
+        default_type text/plain;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 8443 ssl default_server;
+    listen [::]:8443 ssl default_server;
+    http2 on;
+    server_name ${BUFFALO_SERVER_NAME};
+
+    ssl_certificate ${BUFFALO_TLS_CERTIFICATE};
+    ssl_certificate_key ${BUFFALO_TLS_KEY};
+
+    # TLS 1.2 and 1.3 only; Mozilla "intermediate" ciphers (forward secrecy,
+    # AEAD only). No session tickets (they weaken forward secrecy).
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    ssl_ecdh_curve X25519:prime256v1:secp384r1;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:BUFFALO_TLS:10m;
+    ssl_session_tickets off;
+
+    # OCSP stapling needs to reach the CA's responder: only with egress.
+    ssl_stapling ${NGINX_OCSP_STAPLING};
+    ssl_stapling_verify ${NGINX_OCSP_STAPLING};
+
+    include /etc/nginx/buffalo/app.conf;
+}

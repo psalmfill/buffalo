@@ -3,8 +3,11 @@
 # (WAL archive-push runs inside PostgreSQL) and by the `pgbackrest` sidecar
 # (scheduled backups, check, verify), so both run the same pgBackRest.
 #
-# PostGIS publishes linux/amd64 images only.
-FROM postgis/postgis:18-3.6-alpine@sha256:ffcf0c4b904e41b9779f8098007fb5a9484025319c18c70cf8e1bcebb742b9b7
+# Built on the BUFFALO-patched PostGIS image (docker/patched/postgis, which
+# pins the upstream image by digest). PostGIS publishes linux/amd64 only.
+# Configuration is baked in (Phase 9A): postgresql.conf and the init scripts.
+ARG BASE_IMAGE=buffalo/patched-postgis:dev
+FROM ${BASE_IMAGE}
 
 ARG UID=1000
 ARG GID=1000
@@ -22,4 +25,6 @@ RUN apk add --no-cache pgbackrest=2.58.0-r0 \
     && chmod 0755 /backup /backup/manifests /backup-status /backup-status/pgbackrest /backup-status/restic
 
 COPY pgbackrest.conf /etc/pgbackrest/pgbackrest.conf
+COPY postgresql.conf /etc/postgresql/postgresql.conf
+COPY init/ /docker-entrypoint-initdb.d/
 COPY backup-entrypoint.sh pgbackrest-scheduler.sh /usr/local/bin/

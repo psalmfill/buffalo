@@ -25,20 +25,33 @@ cfg = json.loads(os.environ["CONFIG"])
 problems, notes = [], []
 
 def dockerfile_pinned(context, dockerfile):
+    """Every FROM is pinned by digest, a local stage, or (through an ARG
+    default) a BUFFALO image built from another checked Dockerfile."""
     path = os.path.join(context, dockerfile or "Dockerfile")
-    stages = set()
+    stages, args = set(), {}
     ok = True
     for line in open(path):
+        a = re.match(r"\s*ARG\s+(\w+)=(\S+)", line)
+        if a:
+            args[a.group(1)] = a.group(2)
+            continue
         m = re.match(r"\s*FROM\s+(\S+)(?:\s+AS\s+(\S+))?", line, re.I)
         if not m:
             continue
         image, alias = m.group(1), m.group(2)
-        if image not in stages and "@sha256:" not in image:
+        resolved = re.sub(r"\$\{(\w+)\}", lambda v: args.get(v.group(1), v.group(0)), image)
+        if resolved in stages or "@sha256:" in resolved or resolved.startswith("buffalo/"):
+            pass
+        else:
             problems.append(f"{path}: base image {image} is not pinned by digest")
             ok = False
         if alias:
             stages.add(alias)
     return ok
+
+# The patched third-party images are always checked (Phase 9A.2).
+for patched in sorted(os.listdir("docker/patched")):
+    dockerfile_pinned(os.path.join("docker/patched", patched), "Dockerfile")
 
 # Images built by a service here (their Dockerfiles are checked instead).
 built = {s.get("image") for s in cfg["services"].values() if "build" in s}
