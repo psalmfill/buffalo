@@ -12,4 +12,7 @@ enum SetupLinkDelivery: string
 
     /** Shown once to the administrator, who hands it over another way. */
     case Manual = 'manual';
+
+    /** Revealed once during an onboarding handover session (Phase 9B.2). */
+    case Handover = 'handover';
 }

@@ -262,7 +262,7 @@ class UserController extends Controller
         }
 
         return response()
-            ->json(['delivery' => 'manual', 'url' => $issue($user, $this->actor($request), SetupLinkDelivery::Manual)])
+            ->json(['delivery' => $delivery->value, 'url' => $issue($user, $this->actor($request), $delivery)])
             ->header('Cache-Control', 'no-store');
     }
 

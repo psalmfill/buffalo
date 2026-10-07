@@ -1,8 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Send, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
+import OnboardingController from '@/actions/App/Http/Controllers/Users/OnboardingController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
+import UserImportController from '@/actions/App/Http/Controllers/Users/UserImportController';
 import Heading from '@/components/heading';
 import NativeSelect from '@/components/native-select';
 import Pagination from '@/components/pagination';
@@ -94,11 +96,23 @@ export default function UsersIndex({
                         }
                     />
                     {can.create && (
-                        <Button asChild>
-                            <Link href={UserController.create()}>
-                                <Plus /> New user
-                            </Link>
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" asChild>
+                                <Link href={OnboardingController.index()}>
+                                    <Send /> Onboarding
+                                </Link>
+                            </Button>
+                            <Button variant="outline" asChild>
+                                <Link href={UserImportController.create()}>
+                                    <Upload /> Import
+                                </Link>
+                            </Button>
+                            <Button asChild>
+                                <Link href={UserController.create()}>
+                                    <Plus /> New user
+                                </Link>
+                            </Button>
+                        </div>
                     )}
                 </div>
 

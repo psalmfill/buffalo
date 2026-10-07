@@ -9,6 +9,7 @@ enum UploadKind: string
     case PersonPhoto = 'person_photo';
     case CommunityCsv = 'community_csv';
     case BoundaryGeoJson = 'boundary_geojson';
+    case UserCsv = 'user_csv';
 
     public function label(): string
     {
@@ -17,6 +18,7 @@ enum UploadKind: string
             self::PersonPhoto => 'Person photo',
             self::CommunityCsv => 'Community import file',
             self::BoundaryGeoJson => 'Boundary GeoJSON file',
+            self::UserCsv => 'User import file',
         };
     }
 }
