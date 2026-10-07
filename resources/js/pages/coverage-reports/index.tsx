@@ -83,6 +83,7 @@ export default function CoverageReportsIndex({
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
+                        help={{ topic: 'guides/coverage-reports' }}
                         title="Coverage reports"
                         description="Each LGA's statement, per period, of which agencies are deployed where, what they cover and where the gaps are."
                     />

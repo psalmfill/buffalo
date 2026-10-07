@@ -156,6 +156,7 @@ export default function GoLive({ check, decisions, history }: Props) {
             <Head title="Go-live" />
             <div className="space-y-6 p-4">
                 <Heading
+                    help={{ topic: 'roles/super-admin', section: 'go-live' }}
                     title="Go-live"
                     description="Every technical check must pass and every client decision must be recorded before go-live. The check runs daily; run php artisan buffalo:go-live:check for an immediate result and a report."
                 />

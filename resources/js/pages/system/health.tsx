@@ -206,6 +206,10 @@ export default function SystemHealth({ report }: { report: Report }) {
             <div className="flex flex-col gap-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
+                        help={{
+                            topic: 'roles/super-admin',
+                            section: 'monitoring',
+                        }}
                         title="System health"
                         description={`Generated ${formatDateTime(report.generated_at)}. Alerts are sent to super admins once per condition until it clears.`}
                     />

@@ -363,7 +363,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 describe('navigation', () => {
     it('shows only the dashboard without permissions', () => {
         expect(titles(visibleNavigation([]))).toEqual({
-            Overview: ['Dashboard'],
+            Overview: ['Dashboard', 'Help'],
         });
     });
 
@@ -407,7 +407,7 @@ describe('navigation', () => {
 
         expect(byRole).toEqual({
             super_admin: {
-                Overview: ['Dashboard'],
+                Overview: ['Dashboard', 'Help'],
                 Administration: [
                     'Users',
                     'Reference data',
@@ -425,6 +425,7 @@ describe('navigation', () => {
                     'Operational map',
                     'Analytics',
                     'Reports',
+                    'Help',
                 ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
@@ -462,6 +463,7 @@ describe('navigation', () => {
                     'Operational map',
                     'Analytics',
                     'Reports',
+                    'Help',
                 ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
@@ -494,6 +496,7 @@ describe('navigation', () => {
                     'Operational map',
                     'Analytics',
                     'Reports',
+                    'Help',
                 ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
@@ -526,6 +529,7 @@ describe('navigation', () => {
                     'Operational map',
                     'Analytics',
                     'Reports',
+                    'Help',
                 ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [
@@ -558,6 +562,7 @@ describe('navigation', () => {
                     'Operational map',
                     'Analytics',
                     'Reports',
+                    'Help',
                 ],
                 Incidents: ['Report incident', 'Incidents', 'Incident map'],
                 'Threats & flashpoints': [

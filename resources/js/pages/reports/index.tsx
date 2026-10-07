@@ -192,6 +192,7 @@ export default function ReportsIndex({
             <div className="flex flex-col gap-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
+                        help={{ topic: 'guides/reports-and-exports' }}
                         title="Reports"
                         description={`Generated through your own access, marked with their classification and your name, and kept for ${limits.expiry_days} days. Only you can download your reports; every download is logged.`}
                     />

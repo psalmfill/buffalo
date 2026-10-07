@@ -23,6 +23,7 @@ export default function Rollout({ states }: { states: OnboardingRow[] }) {
             <Head title="Rollout" />
             <div className="flex flex-col gap-6 p-4">
                 <Heading
+                    help={{ topic: 'roles/super-admin', section: 'rollout' }}
                     title="Rollout"
                     description={`${live} of ${states.length - 1} states live. Officers in a state that is not live cannot sign in yet; national users are always active.`}
                 />

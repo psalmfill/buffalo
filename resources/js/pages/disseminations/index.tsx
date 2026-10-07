@@ -50,6 +50,10 @@ export default function DisseminationsIndex({
             <Head title="Shared threats & flashpoints" />
             <div className="space-y-6 p-4">
                 <Heading
+                    help={{
+                        topic: 'guides/threats-and-dissemination',
+                        section: 'sharing-across-borders-dissemination',
+                    }}
                     title="Shared threats & flashpoints"
                     description="Threat reports and flashpoints shared across state and LGA borders. Shared records are read-only for recipients and end when revoked or expired."
                 />

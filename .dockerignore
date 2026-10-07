@@ -24,5 +24,7 @@ resources/js/wayfinder
 .vscode
 .claude
 docs
+# The in-app manuals are bundled (Phase 9B.4).
+!docs/manuals
 compose*.yml
 Makefile

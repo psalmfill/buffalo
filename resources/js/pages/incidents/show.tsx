@@ -44,6 +44,7 @@ import type {
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
 import ExportReportButton from '@/components/reports/export-report-button';
+import HelpLink from '@/components/help-link';
 
 type Tab =
     | 'overview'
@@ -153,6 +154,10 @@ export default function IncidentShow({
                             <h1 className="text-xl font-semibold">
                                 {incident.title}
                             </h1>
+                            <HelpLink
+                                topic="guides/reporting-incidents"
+                                section="the-incident-page-tabs"
+                            />
                             <NearFlashpointBadge data={flashpoints} />
                             <PossibleThreatBadge data={threats} />
                             <Badge variant="secondary">

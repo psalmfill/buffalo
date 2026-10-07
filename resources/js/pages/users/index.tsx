@@ -88,6 +88,10 @@ export default function UsersIndex({
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <Heading
+                        help={{
+                            topic: 'roles/super-admin',
+                            section: 'accounts',
+                        }}
                         title="Users"
                         description={
                             can.create

@@ -748,6 +748,11 @@ export default function AccessRequestsIndex(props: Props) {
             <Head title="Access requests" />
             <div className="space-y-6 p-4">
                 <Heading
+                    help={{
+                        topic: 'guides/persons-and-cross-state-requests',
+                        section:
+                            'requesting-access-lga-security-chief-state-director-deputy',
+                    }}
                     title="Access requests"
                     description="Temporary, read-only access to records held by other jurisdictions. Every step and every view is recorded."
                 />

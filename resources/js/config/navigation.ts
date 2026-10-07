@@ -18,6 +18,7 @@ import {
     Layers,
     LayoutGrid,
     Library,
+    LifeBuoy,
     Map as MapIcon,
     MapPin,
     MapPinned,
@@ -47,6 +48,7 @@ import CoverageReportController from '@/actions/App/Http/Controllers/Security/Co
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import ExportReviewController from '@/actions/App/Http/Controllers/Audit/ExportReviewController';
 import GoLiveController from '@/actions/App/Http/Controllers/System/GoLiveController';
+import HelpController from '@/actions/App/Http/Controllers/HelpController';
 import RolloutController from '@/actions/App/Http/Controllers/System/RolloutController';
 import SystemHealthController from '@/actions/App/Http/Controllers/System/SystemHealthController';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
@@ -98,6 +100,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Operational map', icon: Layers, href: MapController.show(), permission: 'map.view' },
             { title: 'Analytics', icon: ChartLine, href: AnalyticsController.index(), permission: 'analytics.view' },
             { title: 'Reports', icon: FileText, href: ReportController.index(), permission: 'reports.generate' },
+            { title: 'Help', icon: LifeBuoy, href: HelpController.index(), permission: null },
         ],
     },
     {

@@ -41,6 +41,7 @@ import type {
     IncidentTypeOption,
 } from '@/types/incidents';
 import type { Option } from '@/types/local-government';
+import HelpLink from '@/components/help-link';
 
 type Props = Partial<IncidentRecord> & {
     incident: IncidentRecord['incident'] | null;
@@ -330,10 +331,14 @@ export default function IncidentForm(props: Props) {
                 noValidate
             >
                 <div>
-                    <h1 className="text-xl font-semibold">
+                    <h1 className="flex items-center gap-1 text-xl font-semibold">
                         {editing
                             ? `Edit draft: ${incident.title}`
                             : 'Report incident'}
+                        <HelpLink
+                            topic="guides/reporting-incidents"
+                            section="reporting-an-incident"
+                        />
                     </h1>
                     <p className="text-sm text-muted-foreground">
                         Save as a draft at any time. Submission for verification

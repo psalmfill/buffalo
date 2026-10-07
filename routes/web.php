@@ -52,3 +52,4 @@ require __DIR__.'/search.php';
 require __DIR__.'/analytics.php';
 require __DIR__.'/reports.php';
 require __DIR__.'/step-up.php';
+require __DIR__.'/help.php';

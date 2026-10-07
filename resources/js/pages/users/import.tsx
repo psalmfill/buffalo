@@ -34,6 +34,7 @@ export default function UserImport({ columns, maxRows, roles, zones }: Props) {
             <Head title="Import users" />
             <form onSubmit={submit} className="max-w-3xl space-y-6 p-4">
                 <Heading
+                    help={{ topic: 'roles/super-admin', section: 'accounts' }}
                     title="Import users"
                     description="Create many accounts from one CSV file. You will see every row before anything is created. No setup links are sent: issue them afterwards from Onboarding."
                 />

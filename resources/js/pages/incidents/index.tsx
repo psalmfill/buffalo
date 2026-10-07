@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import type { IncidentListRow, IncidentListShared } from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
 import ExportReportButton from '@/components/reports/export-report-button';
+import HelpLink from '@/components/help-link';
 
 type Props = IncidentListShared & {
     incidents: Paginated<IncidentListRow>;
@@ -27,7 +28,13 @@ export default function IncidentIndex(props: Props) {
             <div className="space-y-4 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                        <h1 className="text-xl font-semibold">Incidents</h1>
+                        <h1 className="flex items-center gap-1 text-xl font-semibold">
+                            Incidents
+                            <HelpLink
+                                topic="guides/reporting-incidents"
+                                section="finding-incidents"
+                            />
+                        </h1>
                         <p className="text-sm text-muted-foreground">
                             {incidents.total.toLocaleString('en-NG')} incident
                             {incidents.total === 1 ? '' : 's'} in this view

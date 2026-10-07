@@ -120,6 +120,10 @@ export default function PersonsIndex({
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
+                        help={{
+                            topic: 'guides/persons-and-cross-state-requests',
+                            section: 'searching-for-a-person',
+                        }}
                         title="Persons"
                         description="Search persons within your jurisdiction by name, NIN or phone number."
                     />

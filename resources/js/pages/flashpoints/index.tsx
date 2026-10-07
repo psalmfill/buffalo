@@ -107,6 +107,7 @@ export default function FlashpointsIndex({
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
+                        help={{ topic: 'guides/flashpoints' }}
                         title="Flashpoints and blackspots"
                         description="Flashpoints are places where tension could erupt into violence; blackspots are places where incidents repeatedly happen."
                     />

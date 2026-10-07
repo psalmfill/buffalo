@@ -71,6 +71,10 @@ export default function BlackspotSuggestions({
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
+                        help={{
+                            topic: 'guides/flashpoints',
+                            section: 'suggested-blackspots',
+                        }}
                         title="Suggested blackspots"
                         description={`Places where at least ${settings.min_points} incidents happened within about ${settings.eps_meters} m of each other in the last ${settings.days} days, clearly more than chance, and no flashpoint covers yet. Refreshed nightly.`}
                     />

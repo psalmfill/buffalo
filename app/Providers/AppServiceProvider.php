@@ -27,6 +27,7 @@ use App\Support\GoLive\DemoData;
 use App\Support\Health\HealthStatus;
 use App\Support\Health\SchedulerCheck;
 use App\Support\Health\StackChecks;
+use App\Support\Help\ManualLibrary;
 use App\Support\Incidents\ReferenceUsageChecks as IncidentsReferenceUsageChecks;
 use App\Support\Jurisdiction\AuthenticationUserProvider;
 use App\Support\Jurisdiction\CombinedAccessResolver;
@@ -75,6 +76,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Health checks run by buffalo:health:monitor (Phase 8C).
         $this->app->bind(BackupStatus::class, fn (): BackupStatus => BackupStatus::make());
+        $this->app->singleton(ManualLibrary::class, fn (): ManualLibrary => ManualLibrary::make());
         $this->app->tag([BackupChecks::class, StackChecks::class, SchedulerCheck::class], 'buffalo.health_checks');
 
         // Whether a lookup value is in use: each module registers its checks
@@ -197,6 +199,8 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('viewAudit', fn (User $user): bool => AuditAccess::canViewAudit($user));
         // System health (Phase 8C.4): system administration only.
+        // Help (Phase 9B.4): every signed-in user with a role.
+        Gate::define('viewHelp', fn (User $user): bool => $user->getRole() !== null);
         Gate::define('viewSystemHealth', fn (User $user): bool => $user->checkPermissionTo(Permission::SystemSettings->value));
         // Exports review (Phase 8B.3): audit.exports and national reach.
         Gate::define('viewExportReview', fn (User $user): bool => AuditAccess::canViewExportReview($user));

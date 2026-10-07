@@ -146,6 +146,10 @@ export default function AnalyticsIndex({
             <div className="space-y-5 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <Heading
+                        help={{
+                            topic: 'guides/reports-and-exports',
+                            section: 'analytics',
+                        }}
                         title="Analytics"
                         description={`${filters.label}${filters.comparison ? ` compared with ${filters.comparison.label}` : ''} · by ${filters.granularity}${filters.lga ? ` · ${filters.lga.name} LGA` : filters.state ? ` · ${filters.state.name}` : filters.zone ? ` · ${filters.zone.name} Zone` : ''}`}
                     />

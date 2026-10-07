@@ -60,6 +60,7 @@ export default function Handover({ users }: { users: OnboardingUser[] }) {
             <Head title="Handover session" />
             <div className="space-y-6 p-4">
                 <Heading
+                    help={{ topic: 'roles/super-admin', section: 'accounts' }}
                     title="Handover session"
                     description="Reveal each officer's setup link when they are with you (or on the phone), let them copy or type it, then hide it. Only one link is shown at a time, and each reveal is recorded."
                 />

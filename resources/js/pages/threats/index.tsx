@@ -96,6 +96,7 @@ export default function ThreatsIndex({
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
+                        help={{ topic: 'guides/threats-and-dissemination' }}
                         title="Threat reports"
                         description="Early warnings of what may be about to happen, most urgent first."
                     />

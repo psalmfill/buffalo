@@ -69,6 +69,10 @@ export default function Onboarding({
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
+                        help={{
+                            topic: 'roles/super-admin',
+                            section: 'accounts',
+                        }}
                         title="Onboarding"
                         description="Issue account setup links in batches. Each user gets their own one-time link; links are never listed or exported."
                     />
