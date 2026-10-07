@@ -282,6 +282,10 @@ test('no media URL helpers are used anywhere in the application', function () {
     $offending = [];
 
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(app_path())) as $file) {
+        // MarkdownRenderer reads CommonMark link nodes (Link::getUrl), not media (Phase 9B.4).
+        if (str_ends_with($file->getPathname(), 'app/Support/Help/MarkdownRenderer.php')) {
+            continue;
+        }
         if ($file->isFile() && $file->getExtension() === 'php' && preg_match('/\b(getUrl|getFullUrl|getTemporaryUrl)\s*\(/', (string) file_get_contents($file->getPathname())) === 1) {
             $offending[] = $file->getPathname();
         }

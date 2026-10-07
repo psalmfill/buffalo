@@ -587,6 +587,17 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - Both scripts have `--help` and `--dry-run`. Rollback: `docs/operations/rollback.md`.
 - **Documentation:** `docs/operations/`: installation, releases, rollback, runbook, host hardening, sizing.
 
+## Go-live readiness (Phase 9B)
+
+- **Production data:** `buffalo:data:status` shows the hierarchy, boundaries, communities and reference data version, what is missing, and any demo or synthetic data. It exits 1 until the system is ready. The order of loading is in `docs/operations/data-loading.md`. Demo generators are not even registered in production.
+- **Onboarding:** **Users → Import** takes a CSV that is previewed row by row and created in one transaction, with no links. **Users → Onboarding** emails setup links in batches, or reveals them one at a time in a handover session. The super admin dashboard shows progress per state.
+- **Pilot rollout:** **Rollout** makes states live one at a time (reason and authenticator code). Until then, a state's officers see "BUFFALO is not yet active for your state." after signing in. They can still complete setup and 2FA during training.
+- **Help:** `/help` has getting started, a manual per role, task guides, and printable RESTRICTED quick reference cards. A "?" next to page titles opens the relevant section. The source is `docs/manuals/`.
+- **UAT:** `make uat-up` runs the production images with `APP_ENV=uat` on https://localhost:19443. It has synthetic data, an account per role (credentials printed once), a UAT banner and a feedback button.
+  - Scripts per role are in `docs/uat/`.
+  - `python3 scripts/uat/run.py --credentials <file>` runs them all and records results in `docs/uat/results/`.
+- **Go-live check:** `php artisan buffalo:go-live:check` (also on **Go-live** and System health) checks 15 technical items and 8 client decisions recorded on the Go-live page. It exits 1 until everything is ready and writes a report.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.

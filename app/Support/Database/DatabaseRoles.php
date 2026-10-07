@@ -35,6 +35,7 @@ final class DatabaseRoles
         'activity_log',
         'analytics_exports',
         'audit_anchors',
+        'golive_decisions',
         'login_histories',
         'record_access_logs',
         'record_match_events',

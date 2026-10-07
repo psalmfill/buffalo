@@ -159,6 +159,11 @@ test('media is never given a public URL anywhere in the code', function () {
                 continue;
             }
 
+            // MarkdownRenderer reads CommonMark link nodes (Link::getUrl), not media (Phase 9B.4).
+            if (str_ends_with((string) $file->getRealPath(), 'app/Support/Help/MarkdownRenderer.php')) {
+                continue;
+            }
+
             if (preg_match('/\b(getUrl|getFullUrl|getTemporaryUrl)\s*\(/', $file->getContents()) === 1) {
                 $violations[] = str_replace(base_path().'/', '', (string) $file->getRealPath());
             }
