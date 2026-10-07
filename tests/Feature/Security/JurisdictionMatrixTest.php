@@ -50,6 +50,7 @@ const EXCLUDED = [
     'organizations/{organization}/sites/create' => 'National organization directory: Organizations/OrganizationsTest',
     'reference-data/incident-types/{incidentType}/schema' => 'Reference data (no jurisdiction): ReferenceData tests',
     'senatorial-districts/{district}' => 'Reference data (no jurisdiction): LocalGovernment tests',
+    'system/rollout/{state}' => 'Pilot rollout switch (states are national reference data; super admins only): GoLive/PilotRolloutTest',
     'reports/runs/{run}/download' => 'Requester-only report file: Reports/ReportsTest',
     'reports/schedules/{schedule}' => 'Owner-only schedule: Reports/ReportsTest',
 ];

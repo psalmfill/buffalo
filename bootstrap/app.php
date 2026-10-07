@@ -3,6 +3,7 @@
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HealthDetailedController;
 use App\Http\Middleware\EnforceSessionPolicy;
+use App\Http\Middleware\EnsureStateIsLive;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -50,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SetJurisdictionContext::class,
             EnforceSessionPolicy::class,
             EnsureTwoFactorEnrolled::class,
+            EnsureStateIsLive::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

@@ -22,7 +22,9 @@ type Props = {
     destructive?: boolean;
     requireReason?: boolean;
     /** HTTP method of the action (default POST). */
-    method?: 'post' | 'delete';
+    method?: 'post' | 'put' | 'delete';
+    /** Extra fields sent with the action. */
+    data?: Record<string, string | number | boolean>;
 };
 
 /**
@@ -39,6 +41,7 @@ export default function ConfirmActionDialog({
     destructive = false,
     requireReason = false,
     method = 'post',
+    data = {},
 }: Props) {
     const [reason, setReason] = useState('');
     const [error, setError] = useState<string | undefined>();
@@ -47,13 +50,16 @@ export default function ConfirmActionDialog({
     const confirm = () => {
         router.visit(url, {
             method,
-            data: requireReason ? { reason } : {},
+            data: requireReason ? { ...data, reason } : data,
             preserveScroll: true,
             onStart: () => setProcessing(true),
             onFinish: () => setProcessing(false),
             onError: (errors) =>
                 setError(
-                    errors.reason ?? errors.user ?? Object.values(errors)[0],
+                    errors.reason ??
+                        errors.user ??
+                        errors.state ??
+                        Object.values(errors)[0],
                 ),
             onSuccess: () => {
                 setReason('');

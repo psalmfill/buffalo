@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasActiveScope;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
+use Carbon\CarbonImmutable;
 use Database\Factories\StateFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * @property string $name
  * @property string|null $capital
  * @property bool $is_active
+ * @property bool $is_live
+ * @property CarbonImmutable|null $went_live_at
  */
 class State extends Model
 {
@@ -63,6 +66,8 @@ class State extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_live' => 'boolean',
+            'went_live_at' => 'immutable_datetime',
         ];
     }
 

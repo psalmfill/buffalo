@@ -18,4 +18,6 @@ enum LoginEvent: string
     // Step-up authentication for sensitive actions (Phase 8B.2).
     case StepUpSuccess = 'step_up_success';
     case StepUpFailed = 'step_up_failed';
+    // Signed in to a state that is not live yet (Phase 9B.3).
+    case StateNotLive = 'state_not_live';
 }

@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Enums\LoginEvent;
 use App\Models\User;
 use App\Support\Auth\LoginHistoryRecorder;
+use App\Support\Rollout\Rollout;
 use Illuminate\Auth\Events\Login;
 
 /**
@@ -19,7 +20,10 @@ class RecordSuccessfulLogin
     {
         $user = $event->user;
 
-        if (! $user instanceof User) {
+        // A user whose state is not live yet: EnsureStateIsLive ends the
+        // session on the next request and records `state_not_live` instead
+        // (Phase 9B.3).
+        if (! $user instanceof User || Rollout::blocks($user)) {
             return;
         }
 

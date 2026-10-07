@@ -24,6 +24,7 @@ const labels: Record<string, string> = {
     session_expired: 'Session expired',
     signed_out_elsewhere: 'Signed out (signed in elsewhere)',
     setup_completed: 'Account setup completed',
+    state_not_live: 'Refused: state not live yet',
 };
 
 /**

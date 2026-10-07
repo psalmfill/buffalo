@@ -2,8 +2,10 @@ import { Head, Link } from '@inertiajs/react';
 import { ExternalLink } from 'lucide-react';
 import LoginHistoryController from '@/actions/App/Http/Controllers/Audit/LoginHistoryController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
+import RolloutController from '@/actions/App/Http/Controllers/System/RolloutController';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import StatCard from '@/components/dashboard/stat-card';
+import OnboardingTable from '@/components/rollout/onboarding-table';
 import ActivityTable from '@/components/users/activity-table';
 import { useAuth } from '@/hooks/use-auth';
 import { dashboard } from '@/routes';
@@ -39,6 +41,9 @@ export default function SystemDashboard({
     lockouts7d,
     recentAudit,
     queueStatus,
+    onboarding,
+    liveStates,
+    totalStates,
 }: SystemDashboardProps) {
     const { can } = useAuth();
 
@@ -163,6 +168,22 @@ export default function SystemDashboard({
                         </ul>
                     </section>
                 </div>
+
+                <section className="space-y-3" data-test="rollout-panel">
+                    <div className="flex items-baseline justify-between gap-2">
+                        <h2 className="text-sm font-medium">
+                            Rollout and onboarding ({liveStates} of{' '}
+                            {totalStates} states live)
+                        </h2>
+                        <Link
+                            href={RolloutController.index()}
+                            className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                        >
+                            Manage rollout
+                        </Link>
+                    </div>
+                    <OnboardingTable rows={onboarding} />
+                </section>
 
                 {recentAudit !== null && (
                     <section className="space-y-3">

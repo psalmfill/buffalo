@@ -414,6 +414,7 @@ describe('navigation', () => {
                     'Audit log',
                     'Login history',
                     'System health',
+                    'Rollout',
                     'Queue monitor',
                 ],
             },

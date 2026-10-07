@@ -6,8 +6,10 @@ use App\Enums\LoginEvent;
 use App\Enums\Role;
 use App\Http\Presenters\ActivityPresenter;
 use App\Models\LoginHistory;
+use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\QueueHealth;
+use App\Support\Onboarding\OnboardingStats;
 use App\Support\Users\UserStatusFilter;
 use Spatie\Activitylog\Models\Activity;
 
@@ -18,7 +20,10 @@ use Spatie\Activitylog\Models\Activity;
  */
 final class BuildSystemDashboard
 {
-    public function __construct(private readonly QueueHealth $queue) {}
+    public function __construct(
+        private readonly QueueHealth $queue,
+        private readonly OnboardingStats $onboarding,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -54,6 +59,14 @@ final class BuildSystemDashboard
                     ->map(fn (Activity $activity): array => ActivityPresenter::present($activity))->all()
                 : null,
             'queueStatus' => $this->queue->status(),
+            // Onboarding progress and pilot rollout (Phase 9B.2/9B.3): national
+            // users and every state that is live or has users.
+            'onboarding' => array_values(array_filter(
+                $this->onboarding->perState(),
+                fn (array $row): bool => $row['state'] === null || $row['state']['is_live'] || $row['total'] > 0,
+            )),
+            'liveStates' => State::query()->where('is_live', true)->count(),
+            'totalStates' => State::query()->count(),
         ];
     }
 }

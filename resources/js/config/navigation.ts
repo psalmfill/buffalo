@@ -5,27 +5,28 @@ import {
     ChartLine,
     ClipboardCheck,
     ClipboardList,
+    Crosshair,
     FilePlus2,
     FileSearch,
     FileText,
     Flame,
-    Crosshair,
-    KeyRound,
     Gauge,
     HeartPulse,
     History,
-    LayoutGrid,
-    Layers,
+    KeyRound,
     Landmark,
+    Layers,
+    LayoutGrid,
     Library,
     Map as MapIcon,
     MapPin,
     MapPinned,
     Network,
+    Rocket,
     ScrollText,
-    Sparkles,
     Share2,
     Shield,
+    Sparkles,
     TriangleAlert,
     UserSearch,
     Users,
@@ -45,6 +46,7 @@ import OrganizationController from '@/actions/App/Http/Controllers/Organizations
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import ExportReviewController from '@/actions/App/Http/Controllers/Audit/ExportReviewController';
+import RolloutController from '@/actions/App/Http/Controllers/System/RolloutController';
 import SystemHealthController from '@/actions/App/Http/Controllers/System/SystemHealthController';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
@@ -148,6 +150,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Exports review', icon: FileSearch, href: ExportReviewController.index(), permission: 'audit.exports' },
             { title: 'Login history', icon: History, href: LoginHistoryController.index(), permission: 'login_history.view' },
             { title: 'System health', icon: HeartPulse, href: SystemHealthController.index(), permission: 'system.settings' },
+            { title: 'Rollout', icon: Rocket, href: RolloutController.index(), permission: 'system.settings' },
             { title: 'Queue monitor', icon: Gauge, href: horizon.index(), permission: 'system.horizon', external: true },
         ],
     },

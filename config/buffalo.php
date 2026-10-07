@@ -432,4 +432,16 @@ return [
         'tls_certificate' => env('BUFFALO_TLS_CERTIFICATE', ''),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pilot rollout (Phase 9B.3)
+    |--------------------------------------------------------------------------
+    | Until a state is live, its state- and LGA-level users cannot sign in.
+    | Always enforced in production (buffalo:production:check refuses false);
+    | the test suite switches it off except in the rollout tests.
+    */
+    'rollout' => [
+        'enforce' => (bool) env('BUFFALO_ROLLOUT_ENFORCE', true),
+    ],
+
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\Rollout\Rollout;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
 use Laravel\Horizon\Horizon;
@@ -37,6 +38,7 @@ class ProductionCheckCommand extends Command
             'The Content Security Policy must be enforced (BUFFALO_CSP_REPORT_ONLY=false)' => (bool) config('buffalo.security.csp.report_only'),
             'The Horizon dashboard must require the viewHorizon gate' => ! self::horizonRestricted(),
             'Inertia DevTools must be off (INERTIA_DEVTOOLS_ENABLED)' => (bool) config('inertia.devtools.enabled'),
+            'Pilot rollout gating must be enforced (BUFFALO_ROLLOUT_ENFORCE=true)' => ! Rollout::enforced(),
         ]));
 
         if ($problems !== []) {

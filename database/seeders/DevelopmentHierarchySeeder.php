@@ -65,6 +65,13 @@ class DevelopmentHierarchySeeder extends Seeder
                         );
                     }
                 }
+
+                // Local development: the demo states are live, so their demo
+                // officers can sign in (Phase 9B.3). The UAT environment sets
+                // its own rollout.
+                if (app()->environment('local') && ! $state->is_live) {
+                    $state->forceFill(['is_live' => true, 'went_live_at' => now()])->save();
+                }
             }
         });
 

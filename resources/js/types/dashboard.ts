@@ -1,3 +1,4 @@
+import type { OnboardingRow } from '@/types/rollout';
 import type {
     LgaThreatFigures,
     NationalThreatFigures,
@@ -70,6 +71,9 @@ export type SystemDashboardProps = {
     lockouts7d: number;
     recentAudit: ActivityEntry[] | null;
     queueStatus: QueueStatus;
+    onboarding: OnboardingRow[];
+    liveStates: number;
+    totalStates: number;
 };
 
 export type NationalDashboardProps = {
