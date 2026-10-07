@@ -54,24 +54,38 @@ async function authorizeChannel(
  * Laravel Echo client for Reverb.
  *
  * Browsers connect through nginx (same host and port as the app), which
- * proxies /app/* to the reverb container. Host, port and scheme come from the
- * VITE_REVERB_* variables in .env.
+ * proxies /app/* to the reverb container. Configured at run time (Phase 9A),
+ * so one build serves every installation: the public app key from the
+ * page's <meta name="reverb-key">, and host, port and scheme from the page's
+ * own address. The VITE_REVERB_* variables apply only to the development
+ * server (Vite on another port).
  *
  * Only native WebSocket transports are enabled: pusher-js's fallback
  * transports would load scripts from js.pusher.com, and usage stats (sent to
  * stats.pusher.com) stay disabled. BUFFALO makes no requests to external hosts.
  */
 export function initializeEcho(): void {
-    const scheme = import.meta.env.VITE_REVERB_SCHEME ?? 'https';
-    const port = Number(import.meta.env.VITE_REVERB_PORT ?? 443);
+    const dev = import.meta.env.DEV;
+    const https = dev
+        ? (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https'
+        : window.location.protocol === 'https:';
+    const port = dev
+        ? Number(import.meta.env.VITE_REVERB_PORT ?? 443)
+        : Number(window.location.port || (https ? 443 : 80));
+    const key =
+        document
+            .querySelector<HTMLMetaElement>('meta[name="reverb-key"]')
+            ?.getAttribute('content') || import.meta.env.VITE_REVERB_APP_KEY;
 
     configureEcho({
         broadcaster: 'reverb',
-        key: import.meta.env.VITE_REVERB_APP_KEY,
-        wsHost: import.meta.env.VITE_REVERB_HOST ?? window.location.hostname,
+        key,
+        wsHost: dev
+            ? (import.meta.env.VITE_REVERB_HOST ?? window.location.hostname)
+            : window.location.hostname,
         wsPort: port,
         wssPort: port,
-        forceTLS: scheme === 'https',
+        forceTLS: https,
         enabledTransports: ['ws', 'wss'],
         channelAuthorization: {
             endpoint: '/broadcasting/auth',

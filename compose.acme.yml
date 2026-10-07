@@ -1,0 +1,76 @@
+# Opt-in (connected/cloud, Phase 9A.1): TLS certificates from an ACME CA
+# (Let's Encrypt by default) with HTTP-01 challenges, renewed automatically.
+# Off by default; requires port 80 reachable from the CA.
+#
+# certbot runs as uid 101 (nginx's), so nginx can read the issued key, with
+# no capabilities and a read-only root. It writes challenges to the shared
+# acme_webroot volume (served by nginx on port 80) and copies each new
+# certificate to /etc/letsencrypt/buffalo/, which nginx uses; nginx reloads
+# when the certificate changes (docker/nginx/cert-reload.sh). install.sh
+# --acme prepares the volume and a temporary self-signed certificate so
+# nginx can start before the first issuance.
+
+services:
+  certbot:
+    image: certbot/certbot:v5.8.0@sha256:f70ad0adbb7e117f0fe42a63c553f28ea451edabc0148757b6efcd9735acaa20
+    restart: unless-stopped
+    user: "101:101"
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    logging:
+      driver: json-file
+      options:
+        max-size: "${BUFFALO_LOG_MAX_SIZE:-20m}"
+        max-file: "${BUFFALO_LOG_MAX_FILES:-5}"
+    networks:
+      egress:
+        gw_priority: 100
+    environment:
+      BUFFALO_SERVER_NAME: ${BUFFALO_SERVER_NAME:?set BUFFALO_SERVER_NAME}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL for ACME}
+      ACME_SERVER: ${ACME_SERVER:-}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -u
+        d=/etc/letsencrypt
+        args="--config-dir $$d --work-dir /tmp/le-work --logs-dir /tmp/le-logs --webroot -w /var/www/acme --non-interactive --agree-tos -m $$ACME_EMAIL"
+        [ -n "$$ACME_SERVER" ] && args="$$args --server $$ACME_SERVER"
+        while true; do
+          if certbot certonly $$args -d "$$BUFFALO_SERVER_NAME" --keep-until-expiring; then
+            mkdir -p "$$d/buffalo"
+            cp "$$d/live/$$BUFFALO_SERVER_NAME/fullchain.pem" "$$d/buffalo/fullchain.pem.new" && mv "$$d/buffalo/fullchain.pem.new" "$$d/buffalo/fullchain.pem"
+            cp "$$d/live/$$BUFFALO_SERVER_NAME/privkey.pem" "$$d/buffalo/privkey.pem.new" && mv "$$d/buffalo/privkey.pem.new" "$$d/buffalo/privkey.pem"
+            date -u +%FT%TZ > /tmp/last-success
+          fi
+          sleep 43200
+        done
+    volumes:
+      - acme_webroot:/var/www/acme
+      - letsencrypt:/etc/letsencrypt
+    depends_on:
+      nginx:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: {memory: "${BUFFALO_MEM_CERTBOT:-256m}", cpus: "${BUFFALO_CPUS_CERTBOT:-0.5}"}
+    healthcheck:
+      # Healthy while the certificate nginx uses exists.
+      test: ["CMD-SHELL", "test -s /etc/letsencrypt/buffalo/fullchain.pem"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+
+  nginx:
+    environment:
+      BUFFALO_TLS_CERTIFICATE: /etc/letsencrypt/buffalo/fullchain.pem
+      BUFFALO_TLS_KEY: /etc/letsencrypt/buffalo/privkey.pem
+    volumes:
+      - letsencrypt:/etc/letsencrypt:ro
+
+volumes:
+  letsencrypt:

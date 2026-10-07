@@ -1,0 +1,9 @@
+# Opt-in (connected/cloud, Phase 9A.1): ClamAV updates its signatures online
+# (freshclam) from the mirror. Without this overlay, import them offline.
+services:
+  clamav:
+    networks:
+      egress:
+        gw_priority: 100
+    environment:
+      CLAMAV_ONLINE_UPDATES: "true"

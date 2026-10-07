@@ -16,13 +16,17 @@ cd "$(dirname "$0")/.."
 running=false
 [[ "${1:-}" == "--running" ]] && running=true
 
-config=$(DOCKER_UID=1000 DOCKER_GID=1000 docker compose -f compose.yml config --format json)
-
-CONFIG="$config" python3 - <<'PY'
+check() { # check <label> <compose args...>
+CONFIG="$(DOCKER_UID=1000 DOCKER_GID=1000 BUFFALO_VERSION=0.0.0 BUFFALO_SERVER_NAME=buffalo.test ACME_EMAIL=ops@buffalo.test \
+    BUFFALO_SECRETS_DIR=/etc/buffalo/secrets BUFFALO_CONFIG=/dev/null docker compose "${@:2}" config --format json)" LABEL="$1" python3 - <<'PY'
 import json, os, re, sys
 
 cfg = json.loads(os.environ["CONFIG"])
+label = os.environ["LABEL"]
 problems, notes = [], []
+# One-off administration containers (install/upgrade only): no health check
+# or limits needed.
+ONE_OFF = {"tools"}
 
 def dockerfile_pinned(context, dockerfile):
     """Every FROM is pinned by digest, a local stage, or (through an ARG
@@ -60,7 +64,10 @@ for name, s in sorted(cfg["services"].items()):
     image = s.get("image", "")
     if "build" in s:
         dockerfile_pinned(s["build"]["context"], s["build"].get("dockerfile"))
-    elif image not in built and "@sha256:" not in image:
+    # buffalo/* images are BUFFALO's own release images: built from the
+    # digest-pinned Dockerfiles checked here, and verified against the signed
+    # release manifest by install.sh / upgrade.sh (Phase 9A.3).
+    elif image not in built and "@sha256:" not in image and not image.startswith("buffalo/"):
         problems.append(f"{name}: image {image} is not pinned by digest")
     if "no-new-privileges:true" not in s.get("security_opt", []):
         problems.append(f"{name}: missing security_opt no-new-privileges:true")
@@ -69,14 +76,14 @@ for name, s in sorted(cfg["services"].items()):
     if s.get("cap_add"):
         notes.append(f"{name}: adds capabilities {s['cap_add']}")
     hc = s.get("healthcheck")
-    if not hc or hc.get("disable"):
+    if name not in ONE_OFF and (not hc or hc.get("disable")):
         problems.append(f"{name}: no health check")
     limits = s.get("deploy", {}).get("resources", {}).get("limits", {})
-    if not limits.get("memory") or not limits.get("cpus"):
+    if name not in ONE_OFF and (not limits.get("memory") or not limits.get("cpus")):
         problems.append(f"{name}: missing memory or CPU limits")
     if not s.get("read_only"):
         notes.append(f"{name}: root filesystem is writable")
-    if not s.get("user") and image not in built:
+    if not s.get("user") and image not in built and not image.startswith("buffalo/"):
         notes.append(f"{name}: no user set (the image's default user is used)")
 
 for n in notes:
@@ -84,8 +91,15 @@ for n in notes:
 if problems:
     print("\n".join(f"FAIL: {p}" for p in problems))
     sys.exit(1)
-print(f"OK: {len(cfg['services'])} services pass the static hardening checks.")
+print(f"OK ({label}): {len(cfg['services'])} services pass the static hardening checks.")
 PY
+}
+
+check "base" -f compose.yml
+# Production with every profile and feature overlay (Phase 9A).
+check "production, all overlays" -f compose.yml -f compose.prod.yml -f compose.profile-connected.yml \
+    -f compose.egress-mail.yml -f compose.egress-clamav.yml -f compose.acme.yml --profile tools
+check "production, airgapped" -f compose.yml -f compose.prod.yml -f compose.profile-airgapped.yml
 
 if $running; then
     status=0

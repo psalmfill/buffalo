@@ -1,0 +1,19 @@
+# Deployment profile `airgapped` (Phase 9A.1): no container can reach any
+# network outside the server.
+#
+# - The base networks (backend, internal-tools, backup) have no gateway.
+# - nginx's frontend network carries the published ports (inbound) but has
+#   IP masquerading off, so nothing on it can open connections out.
+# - No egress network exists; ClamAV signatures are imported offline
+#   (make clamav-import-signatures), mail is off or goes to a relay on the
+#   same server network, certificates come from the client's CA.
+
+networks:
+  frontend:
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+
+services:
+  clamav:
+    environment:
+      CLAMAV_ONLINE_UPDATES: "false"

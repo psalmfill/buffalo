@@ -1,0 +1,271 @@
+# BUFFALO production (Phase 9A.1). Used INSTEAD of compose.override.yml:
+#
+#   docker compose -f compose.yml -f compose.prod.yml -f compose.profile-<profile>.yml [feature overlays]
+#
+# scripts/ops/install.sh writes the file list to the installation's
+# buffalo.env (COMPOSE_FILE), so plain `docker compose ...` uses it.
+#
+# - Images: the release's prod images (no source mounts, no builds). They
+#   are loaded from the signed bundle or pulled and digest-verified by the
+#   install/upgrade scripts; compose never pulls anything itself.
+# - Configuration is baked into the images (nginx, PHP, PostgreSQL,
+#   pgBackRest, ClamAV, Valkey, restic). Settings that differ per
+#   installation come from the installation's buffalo.env.
+# - Secrets: each service receives only the secret files it needs, from
+#   ${BUFFALO_SECRETS_DIR} (default /etc/buffalo/secrets). See
+#   docs/operations/install.md for the list and file permissions.
+# - Laravel's writable paths live on the `app_storage` volume, so the
+#   application containers keep read-only root filesystems.
+# - nginx terminates TLS on 443 (8443 in the container) and redirects 80.
+# - Application logs go to stderr (Docker's rotated json-file logs).
+# Requires Docker Compose 2.24+ (`!reset`, `!override`).
+
+x-prod-app: &prod-app
+  image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/app:${BUFFALO_VERSION:?set BUFFALO_VERSION}
+  build: !reset null
+  pull_policy: never
+  env_file: ${BUFFALO_CONFIG:-/etc/buffalo/buffalo.env}
+  environment: &prod-app-env
+    APP_ENV: production
+    APP_DEBUG: "false"
+    LOG_CHANNEL: stderr
+    LOG_LEVEL: ${LOG_LEVEL:-info}
+    APP_KEY_FILE: /run/secrets/app_key
+    CIPHERSWEET_KEY_FILE: /run/secrets/ciphersweet_key
+    DB_PASSWORD_FILE: /run/secrets/db_password
+    REDIS_PASSWORD_FILE: /run/secrets/redis_password
+    REVERB_APP_KEY_FILE: /run/secrets/reverb_app_key
+    REVERB_APP_SECRET_FILE: /run/secrets/reverb_app_secret
+  secrets: &prod-app-secrets
+    - app_key
+    - ciphersweet_key
+    - db_password
+    - redis_password
+    - reverb_app_key
+    - reverb_app_secret
+  volumes: !override
+    - app_storage:/var/www/html/storage
+    - evidence_data:/var/lib/buffalo/evidence
+    - reports_data:/var/lib/buffalo/reports
+    - quarantine_data:/var/lib/buffalo/quarantine
+    - backup_status:/var/lib/buffalo/backup-status:ro
+
+services:
+  app:
+    <<: *prod-app
+    environment:
+      <<: *prod-app-env
+      MAIL_PASSWORD_FILE: /run/secrets/mail_password
+      BUFFALO_HEALTH_TOKEN_FILE: /run/secrets/health_token
+    secrets:
+      - app_key
+      - ciphersweet_key
+      - db_password
+      - redis_password
+      - reverb_app_key
+      - reverb_app_secret
+      - mail_password
+      - health_token
+
+  horizon:
+    <<: *prod-app
+    environment:
+      <<: *prod-app-env
+      MAIL_PASSWORD_FILE: /run/secrets/mail_password
+    secrets:
+      - app_key
+      - ciphersweet_key
+      - db_password
+      - redis_password
+      - reverb_app_key
+      - reverb_app_secret
+      - mail_password
+
+  scheduler:
+    <<: *prod-app
+
+  reverb:
+    <<: *prod-app
+    volumes: !override
+      - app_storage:/var/www/html/storage
+
+  # One-off administration (install and upgrade only): migrations as the
+  # owner role and role provisioning as the superuser. Never running; the
+  # web and worker containers never receive these passwords.
+  tools:
+    <<: *prod-app
+    profiles: [tools]
+    restart: "no"
+    networks: [backend]
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    command: ["php", "artisan", "list"]
+    environment:
+      <<: *prod-app-env
+      # The start-up checks need a migrated database; tools prepare it.
+      BUFFALO_SKIP_STARTUP_CHECKS: "1"
+      DB_MIGRATIONS_PASSWORD_FILE: /run/secrets/db_migrations_password
+      DB_ADMIN_PASSWORD_FILE: /run/secrets/db_admin_password
+      DB_READONLY_PASSWORD_FILE: /run/secrets/db_readonly_password
+    secrets:
+      - app_key
+      - ciphersweet_key
+      - db_password
+      - redis_password
+      - reverb_app_key
+      - reverb_app_secret
+      - db_migrations_password
+      - db_admin_password
+      - db_readonly_password
+    depends_on: !reset {}
+    healthcheck:
+      disable: true
+
+  nginx:
+    image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/nginx:${BUFFALO_VERSION:?set BUFFALO_VERSION}
+    build: !reset null
+    pull_policy: never
+    ports:
+      - "${BUFFALO_BIND_ADDRESS:-0.0.0.0}:${BUFFALO_HTTP_PORT:-80}:8080"
+      - "${BUFFALO_BIND_ADDRESS:-0.0.0.0}:${BUFFALO_HTTPS_PORT:-443}:8443"
+    environment:
+      BUFFALO_SERVER_NAME: ${BUFFALO_SERVER_NAME:?set BUFFALO_SERVER_NAME}
+      BUFFALO_TLS_CERTIFICATE: ${BUFFALO_TLS_CERTIFICATE:-/etc/buffalo/tls/fullchain.pem}
+      BUFFALO_TLS_KEY: ${BUFFALO_TLS_KEY:-/run/secrets/tls_key}
+      NGINX_OCSP_STAPLING: "off"
+    secrets:
+      - tls_key
+    volumes:
+      - ${BUFFALO_TLS_CERTIFICATE_FILE:-/etc/buffalo/tls/fullchain.pem}:/etc/buffalo/tls/fullchain.pem:ro
+      - acme_webroot:/var/www/acme:ro
+
+  postgres:
+    image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/postgres:${BUFFALO_VERSION:?set BUFFALO_VERSION}
+    build: !reset null
+    pull_policy: never
+    environment: &prod-postgres-env
+      POSTGRES_DB: ${DB_DATABASE:-buffalo}
+      POSTGRES_USER: ${DB_ADMIN_USERNAME:-buffalo}
+      POSTGRES_PASSWORD: ""
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_admin_password
+      BUFFALO_DB_OWNER_PASSWORD: ""
+      BUFFALO_DB_OWNER_PASSWORD_FILE: /run/secrets/db_migrations_password
+      BUFFALO_DB_APP_PASSWORD: ""
+      BUFFALO_DB_APP_PASSWORD_FILE: /run/secrets/db_password
+      BUFFALO_DB_READONLY_PASSWORD: ""
+      BUFFALO_DB_READONLY_PASSWORD_FILE: /run/secrets/db_readonly_password
+      BACKUP_PGBACKREST_PASSPHRASE: ""
+      BACKUP_PGBACKREST_PASSPHRASE_FILE: /run/secrets/pgbackrest_passphrase
+      BACKUP_PG_RETENTION_FULL: ${BACKUP_PG_RETENTION_FULL:-4}
+      BACKUP_REPO2_ENABLED: ${BACKUP_REPO2_ENABLED:-false}
+      BACKUP_PG_TIME: ${BACKUP_PG_TIME:-01:00}
+      BACKUP_PG_FULL_DAY: ${BACKUP_PG_FULL_DAY:-7}
+      APP_ENV: production
+    secrets:
+      - db_admin_password
+      - db_migrations_password
+      - db_password
+      - db_readonly_password
+      - pgbackrest_passphrase
+
+  pgbackrest:
+    image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/postgres:${BUFFALO_VERSION:?set BUFFALO_VERSION}
+    pull_policy: never
+    environment: !override
+      POSTGRES_DB: ${DB_DATABASE:-buffalo}
+      POSTGRES_USER: ${DB_ADMIN_USERNAME:-buffalo}
+      BACKUP_PGBACKREST_PASSPHRASE_FILE: /run/secrets/pgbackrest_passphrase
+      BACKUP_PG_RETENTION_FULL: ${BACKUP_PG_RETENTION_FULL:-4}
+      BACKUP_REPO2_ENABLED: ${BACKUP_REPO2_ENABLED:-false}
+      BACKUP_PG_TIME: ${BACKUP_PG_TIME:-01:00}
+      BACKUP_PG_FULL_DAY: ${BACKUP_PG_FULL_DAY:-7}
+      APP_ENV: production
+      TZ: Africa/Lagos
+    secrets:
+      - pgbackrest_passphrase
+
+  backup:
+    image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/restic:${BUFFALO_VERSION:?set BUFFALO_VERSION}
+    build: !reset null
+    pull_policy: never
+    # The application user of the prod image (UID/GID 1000).
+    user: "1000:1000"
+    environment:
+      APP_ENV: production
+      BACKUP_RESTIC_PASSWORD: ""
+      BACKUP_RESTIC_PASSWORD_FILE: /run/secrets/restic_password
+    secrets:
+      - restic_password
+
+  valkey:
+    image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/valkey:${BUFFALO_VERSION:?set BUFFALO_VERSION}
+    build: !reset null
+    pull_policy: never
+    environment:
+      VALKEY_APP_PASSWORD: ""
+      VALKEY_APP_PASSWORD_FILE: /run/secrets/redis_password
+      VALKEY_ADMIN_PASSWORD: ""
+      VALKEY_ADMIN_PASSWORD_FILE: /run/secrets/valkey_admin_password
+    secrets:
+      - redis_password
+      - valkey_admin_password
+
+  gotenberg:
+    image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/patched-gotenberg:${BUFFALO_VERSION:?set BUFFALO_VERSION}
+    build: !reset null
+    pull_policy: never
+
+  clamav:
+    image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/clamav:${BUFFALO_VERSION:?set BUFFALO_VERSION}
+    build: !reset null
+    pull_policy: never
+
+# Each file must exist (install.sh checks; values are never printed). Files
+# are bind-mounted read-only into the containers that list them: keep them
+# mode 0444 inside a directory only root can enter (0700).
+secrets:
+  app_key:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/app_key
+  ciphersweet_key:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/ciphersweet_key
+  db_password:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/db_password
+  db_migrations_password:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/db_migrations_password
+  db_readonly_password:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/db_readonly_password
+  db_admin_password:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/db_admin_password
+  redis_password:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/redis_password
+  valkey_admin_password:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/valkey_admin_password
+  reverb_app_key:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/reverb_app_key
+  reverb_app_secret:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/reverb_app_secret
+  mail_password:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/mail_password
+  health_token:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/health_token
+  pgbackrest_passphrase:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/pgbackrest_passphrase
+  restic_password:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/restic_password
+  tls_key:
+    file: ${BUFFALO_SECRETS_DIR:-/etc/buffalo/secrets}/tls_key
+
+networks:
+  # A fixed bridge name, so the host firewall can stop nginx's network from
+  # opening outbound connections (scripts/ops/egress-firewall.sh): Docker
+  # cannot publish ports from a network without a gateway.
+  frontend:
+    driver_opts:
+      com.docker.network.bridge.name: ${BUFFALO_FRONTEND_BRIDGE:-buffalo-front}
+
+volumes:
+  app_storage:
+  acme_webroot:

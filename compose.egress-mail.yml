@@ -1,0 +1,8 @@
+# Opt-in (connected/cloud, Phase 9A.1): queued mail reaches the SMTP relay.
+# Mail is sent only from the queue (Horizon); the web process never sends
+# mail itself, so it stays off the egress network.
+services:
+  horizon:
+    networks:
+      egress:
+        gw_priority: 100

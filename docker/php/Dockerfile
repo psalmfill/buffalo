@@ -5,8 +5,8 @@
 #
 # Targets:
 #   dev   - PHP-FPM for local development (Xdebug installed, off by default).
-#   prod  - Self-contained image with vendor/ and built frontend assets.
-#           Production configuration is finalised in Phase 9.
+#   prod  - Self-contained image with vendor/ and built frontend assets
+#           (Phase 9A: read-only root, storage/ on a volume, start-up checks).
 #
 # Every base image is pinned to an exact version tag.
 # ---------------------------------------------------------------------------
@@ -145,6 +145,7 @@ RUN composer install --no-dev --no-interaction --no-progress --no-scripts --no-a
 COPY --chown=buffalo . .
 RUN set -eux; \
     composer dump-autoload --no-dev --optimize --classmap-authoritative --no-interaction; \
+    php artisan package:discover --ansi; \
     php artisan wayfinder:generate --with-form
 
 # ---------------------------------------------------------------------------
@@ -180,6 +181,15 @@ ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0 \
 
 COPY --from=vendor --chown=buffalo /var/www/html /var/www/html
 COPY --from=frontend --chown=buffalo /app/public/build /var/www/html/public/build
+
+# The root filesystem is read-only in production (Phase 9A): Laravel writes
+# only to storage/, a volume seeded from this layout on first start.
+# bootstrap/cache (package manifest) was generated at build time.
+RUN set -eux; \
+    mkdir -p storage/app/private storage/app/public storage/framework/cache/data \
+        storage/framework/sessions storage/framework/views storage/logs; \
+    chown -R buffalo storage; \
+    test -f bootstrap/cache/packages.php
 
 USER buffalo
 

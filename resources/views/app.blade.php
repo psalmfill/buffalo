@@ -5,6 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         {{-- The CSP nonce for scripts and styles added at runtime (Phase 8B.1). --}}
         <meta name="csp-nonce" content="{{ Vite::cspNonce() }}">
+        {{-- Reverb's public app key, per installation (Phase 9A); the app secret never leaves the server. --}}
+        <meta name="reverb-key" content="{{ config('broadcasting.connections.reverb.key') }}">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script nonce="{{ Vite::cspNonce() }}">

@@ -3,15 +3,20 @@
 namespace App\Support\Auth;
 
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
  * Laravel's password reset mail with a generic BUFFALO subject (Phase 8B.5).
- * Mail only and sent at once, like Laravel's own; it is not a
- * BuffaloNotification (no in-app copy, no broadcast), so it lives here.
+ * Mail only; it is not a BuffaloNotification (no in-app copy, no
+ * broadcast), so it lives here. Queued (Phase 9A): mail leaves only from the
+ * queue workers, so the web process never needs a route to the mail relay.
  */
-final class PasswordResetNotification extends ResetPassword
+final class PasswordResetNotification extends ResetPassword implements ShouldQueue
 {
+    use Queueable;
+
     /**
      * @param  string  $url
      */

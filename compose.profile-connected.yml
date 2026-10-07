@@ -1,0 +1,29 @@
+# Deployment profile `connected` (Phase 9A.1): government network with controlled internet egress.
+#
+# An `egress` network (with a gateway) exists, joined ONLY by services that
+# need to reach out. Here: nginx, for OCSP stapling of the TLS certificate.
+# Opt-in overlays add the others, chosen at install time:
+#   compose.egress-mail.yml    horizon (queued mail to the relay)
+#   compose.egress-clamav.yml  clamav (freshclam online updates)
+#   compose.acme.yml           certbot (ACME HTTP-01 certificates)
+# The web process (app), PostgreSQL, Valkey and Gotenberg never join it.
+#
+# Docker networks do not restrict destinations: the host firewall must
+# allow egress only to the named hosts (mail relay, ClamAV mirror, ACME and
+# OCSP endpoints). See docs/operations/host-hardening.md.
+
+networks:
+  frontend:
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+  egress:
+
+services:
+  nginx:
+    # The default route goes through egress, not the frontend network
+    # (whose outbound connections the host firewall drops).
+    networks:
+      egress:
+        gw_priority: 100
+    environment:
+      NGINX_OCSP_STAPLING: "on"
