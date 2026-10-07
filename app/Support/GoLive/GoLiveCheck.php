@@ -65,6 +65,12 @@ final class GoLiveCheck
         ];
     }
 
+    /** A date and time in the application's time zone, with the zone. */
+    private static function time(CarbonImmutable $at): string
+    {
+        return $at->setTimezone((string) config('app.timezone'))->format('Y-m-d H:i T');
+    }
+
     /**
      * @return Item
      */
@@ -164,11 +170,11 @@ final class GoLiveCheck
         return [
             self::item('backup_database', 'Recent full database backup', $fullOk && $recentOk, sprintf(
                 'Newest full backup: %s (at most %d days old required); newest backup: %s (at most %d hours).',
-                $full === null ? 'none' : $full['finished_at']->toDateTimeString(), $fullDays,
-                $newest === null ? 'none' : $newest['finished_at']->toDateTimeString(), $maxHours,
+                $full === null ? 'none' : self::time($full['finished_at']), $fullDays,
+                $newest === null ? 'none' : self::time($newest['finished_at']), $maxHours,
             )),
             self::item('backup_evidence', 'Recent evidence snapshot', $snapshotOk, sprintf(
-                'Newest snapshot: %s (at most %d hours old required).', $newestSnapshot?->toDateTimeString() ?? 'none', $maxHours,
+                'Newest snapshot: %s (at most %d hours old required).', $newestSnapshot instanceof CarbonImmutable ? self::time($newestSnapshot) : 'none', $maxHours,
             )),
             self::item('backup_repo2', 'Second backup repository configured', $repo2,
                 $repo2 ? 'Both the database and evidence backups report a second repository.' : 'Repository 2 is not in use (BACKUP_REPO2_ENABLED, BACKUP_REPO2_PATH).'),
@@ -189,7 +195,7 @@ final class GoLiveCheck
 
         return self::item('restore_drill', "Restore drill on this server within {$maxDays} days, passing", $ok, $drill === null
             ? 'No restore drill has been recorded on this server (scripts/restore/drill.sh).'
-            : sprintf('Last drill: %s, %s mode, result %s, %s the RTO%s.', $at?->toDateTimeString() ?? 'unknown', $drill['mode'] ?? '?', $drill['result'] ?? '?',
+            : sprintf('Last drill: %s, %s mode, result %s, %s the RTO%s.', $at instanceof CarbonImmutable ? self::time($at) : 'unknown', $drill['mode'] ?? '?', $drill['result'] ?? '?',
                 ($drill['within_rto'] ?? false) ? 'within' : 'NOT within', isset($drill['host']) ? ', host '.$drill['host'] : ''));
     }
 
@@ -217,7 +223,7 @@ final class GoLiveCheck
 
         return self::item('audit_chains', "Audit chains verified within {$hours} hours", $ok, $verify === null
             ? 'buffalo:audit:verify has not run yet.'
-            : sprintf('Last verification %s: %s', $verify['at']->toDateTimeString(), $verify['detail'] ?? ($verify['ok'] ? 'intact' : 'broken')));
+            : sprintf('Last verification %s: %s', self::time($verify['at']), $verify['detail'] ?? ($verify['ok'] ? 'intact' : 'broken')));
     }
 
     /** @return Item */

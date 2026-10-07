@@ -96,7 +96,9 @@ services:
     <<: *prod-app
     profiles: [tools]
     restart: "no"
-    networks: [backend]
+    # internal-tools: uploads it imports (boundary files) are malware-scanned
+    # by ClamAV (Phase 9B: the boundary import failed without it).
+    networks: [backend, internal-tools]
     read_only: true
     tmpfs:
       - /tmp:size=256m,mode=1777

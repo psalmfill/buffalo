@@ -286,6 +286,8 @@ return [
         // Absolute maximum session age, whatever the activity. The idle
         // timeout is SESSION_LIFETIME (minutes).
         'session_max_hours' => (int) env('BUFFALO_SESSION_MAX_HOURS', 12),
+        // Account setup requests per IP and minute (a training room shares one).
+        'setup_per_minute_per_ip' => (int) env('BUFFALO_SETUP_PER_MINUTE_PER_IP', 60),
 
         'lockout' => [
             // Consecutive failed attempts (password or 2FA code) before a lock.

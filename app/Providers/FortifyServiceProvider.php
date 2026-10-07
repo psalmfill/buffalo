@@ -105,8 +105,16 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
 
+        // Per link (and IP), plus a per-IP ceiling high enough for a
+        // training room behind one address (Phase 9B: onboarding sessions).
+        // The 64-character random token makes guessing infeasible either way.
         RateLimiter::for('account-setup', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip());
+            $token = (string) $request->route('token');
+
+            return [
+                Limit::perMinute(10)->by('link:'.$request->ip().'|'.hash('sha256', $token)),
+                Limit::perMinute((int) config('buffalo.auth.setup_per_minute_per_ip'))->by('ip:'.$request->ip()),
+            ];
         });
 
         // Per email+IP and per IP, in addition to the per-account lockout.

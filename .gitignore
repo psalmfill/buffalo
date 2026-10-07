@@ -48,3 +48,4 @@ yarn-error.log
 /build
 /dist
 /.uat
+__pycache__/

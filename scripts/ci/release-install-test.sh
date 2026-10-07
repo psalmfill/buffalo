@@ -51,7 +51,7 @@ teardown
 rm -rf "$work/secrets" "$work/opt" "$work/tls"
 mkdir -p "$work/tls"
 sh scripts/ops/generate-secrets.sh --dir "$work/secrets" >/dev/null
-openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 7 -subj /CN=localhost \
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 90 -subj /CN=localhost \
     -addext "subjectAltName=DNS:localhost" -keyout "$work/tls.key" -out "$work/tls/fullchain.pem" 2>/dev/null
 chmod 0644 "$work/tls/fullchain.pem"
 chmod u+w "$work/secrets"; mv "$work/tls.key" "$work/secrets/tls_key"; chmod 0444 "$work/secrets/tls_key"; chmod 0700 "$work/secrets"

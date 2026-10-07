@@ -161,3 +161,18 @@ test('the setup route is rate limited per IP', function () {
 
     $this->get($url)->assertTooManyRequests();
 });
+
+test('a training room behind one address can open many setup links, but one link is throttled', function () {
+    // Phase 9B: officers in a handover session share one IP address.
+    $links = collect(range(1, 12))->map(fn () => parse_url(app(IssueAccountSetupLink::class)(User::factory()->directorGeneral()->withoutTwoFactor()->create(['password_changed_at' => null])), PHP_URL_PATH));
+
+    foreach ($links as $path) {
+        $this->get($path)->assertOk();
+    }
+
+    $one = $links->first();
+    foreach (range(1, 9) as $i) {
+        $this->get($one)->assertOk();
+    }
+    $this->get($one)->assertStatus(429);
+});

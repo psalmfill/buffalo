@@ -17,6 +17,19 @@ if [[ -z "$dir" || ! -d "$dir" ]]; then
 fi
 dir="$(cd "$dir" && pwd)"
 
+# Development: compose.yml and .env in the repository. A production
+# installation (Phase 9B): the release directory and its settings file
+# (/etc/buffalo/buffalo.env, or BUFFALO_CONFIG), whose COMPOSE_FILE lists
+# the installation's compose files.
+cd "$(dirname "$0")/.."
+config="${BUFFALO_CONFIG:-}"
+if [[ -z "$config" && ! -f .env && -f /etc/buffalo/buffalo.env ]]; then
+    config=/etc/buffalo/buffalo.env
+fi
+compose() {
+    if [[ -n "$config" ]]; then docker compose --env-file "$config" "$@"; else docker compose "$@"; fi
+}
+
 for db in main daily bytecode; do
     if [[ ! -f "$dir/$db.cvd" && ! -f "$dir/$db.cld" ]]; then
         echo "Missing $db.cvd (or $db.cld) in $dir." >&2
@@ -24,8 +37,9 @@ for db in main daily bytecode; do
     fi
 done
 
-# A throwaway container on no network: verify, then copy into the volume.
-docker compose run --rm --no-deps -T --network none \
+# A throwaway clamav container (its networks are internal: no route out):
+# verify, then copy into the volume.
+compose run --rm --no-deps -T \
     --entrypoint sh -v "$dir":/import:ro clamav -c '
         set -e
         for f in /import/*.cvd /import/*.cld; do
@@ -39,10 +53,10 @@ docker compose run --rm --no-deps -T --network none \
         echo "Signatures copied."
     '
 
-if docker compose ps --status running --services | grep -qx clamav; then
-    docker compose exec -T clamav clamdscan --reload
+if compose ps --status running --services | grep -qx clamav; then
+    compose exec -T clamav clamdscan --reload
 else
-    docker compose up -d clamav
+    compose up -d clamav
 fi
 
-echo "Done. Check with: make artisan cmd=\"buffalo:malware:check-signatures\""
+echo "Done. Check with: buffalo:malware:check-signatures (make artisan in development)."
