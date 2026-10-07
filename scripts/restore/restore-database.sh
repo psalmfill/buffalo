@@ -12,6 +12,10 @@
 #                           Default: the latest state (all archived WAL).
 #   --set LABEL             Restore this backup set (default: the newest
 #                           that can reach the target).
+#   --backup-only           Stop recovery as soon as the backup is consistent
+#                           (no later WAL is replayed). With --set: return to
+#                           the state of that backup, e.g. the pre-upgrade
+#                           backup after a failed upgrade (Phase 9A).
 #   --compose-file FILE     Extra compose file(s) for the target project
 #                           (repeatable; the drill uses this).
 #   --dry-run               Show the backups and what would be done; change nothing.
@@ -28,6 +32,7 @@ source "$(dirname "$0")/common.sh"
 
 TARGET_TIME=""
 SET=""
+BACKUP_ONLY=false
 COMPOSE_FILES=()
 SOURCE_SET=false
 
@@ -37,6 +42,7 @@ while [[ $# -gt 0 ]]; do
         --source-project) SOURCE_PROJECT=$2; SOURCE_SET=true; shift 2 ;;
         --target-time) TARGET_TIME=$2; shift 2 ;;
         --set) SET=$2; shift 2 ;;
+        --backup-only) BACKUP_ONLY=true; shift ;;
         --compose-file) COMPOSE_FILES+=(-f "$2"); shift 2 ;;
         --dry-run) DRY_RUN=true; shift ;;
         --yes) ASSUME_YES=true; shift ;;
@@ -45,8 +51,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 $SOURCE_SET || SOURCE_PROJECT=$PROJECT
-[[ ${#COMPOSE_FILES[@]} -gt 0 ]] || COMPOSE_FILES=(-f compose.yml)
-compose() { docker compose -p "$PROJECT" "${COMPOSE_FILES[@]}" "$@"; }
+# Default: the installation's compose files (production: COMPOSE_FILE in the
+# settings file; development: compose.yml).
+[[ ${#COMPOSE_FILES[@]} -gt 0 || -n "$CONFIG_FILE" ]] || COMPOSE_FILES=(-f compose.yml)
+compose() { docker compose -p "$PROJECT" "${ENV_ARGS[@]+"${ENV_ARGS[@]}"}" "${COMPOSE_FILES[@]+"${COMPOSE_FILES[@]}"}" "$@"; }
 
 require_volume "$(volume "$SOURCE_PROJECT" backup_repo)"
 
@@ -55,7 +63,11 @@ pgbackrest_repo pgbackrest --stanza=buffalo --repo=1 info
 
 args=(--stanza=buffalo --repo=1 --delta --log-level-console=info)
 [[ -n "$SET" ]] && args+=(--set="$SET")
-if [[ -n "$TARGET_TIME" ]]; then
+if $BACKUP_ONLY; then
+    [[ -z "$TARGET_TIME" ]] || die "--backup-only and --target-time cannot be combined."
+    args+=(--type=immediate --target-action=promote)
+    say "Recovery to the end of backup ${SET:-(newest)} only (no later WAL)"
+elif [[ -n "$TARGET_TIME" ]]; then
     args+=(--type=time "--target=$TARGET_TIME" --target-action=promote)
     say "Point-in-time recovery to $TARGET_TIME"
 else

@@ -46,3 +46,4 @@ yarn-error.log
 *.pmtiles
 *.pmtiles.partial
 /build
+/dist

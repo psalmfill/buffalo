@@ -1,0 +1,6 @@
+# BUFFALO release verification key(s) (Phase 9A.3), ssh-keygen allowed_signers format.
+# Principal 'buffalo-release' = production key; 'buffalo-release-test' = the
+# development TEST key below, which installers refuse without --allow-test-signature.
+# REPLACE with the project owner's key before the first production release:
+# scripts/ops/release-key.sh (see docs/operations/releases.md).
+buffalo-release-test namespaces="buffalo-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHltdcovo4Nj/ogW+OHm2jV7Di9U+lI0ED9fygQ4Lwck buffalo-release-TEST-KEY (phase 9A development only)

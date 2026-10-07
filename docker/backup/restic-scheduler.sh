@@ -76,13 +76,16 @@ write_info() {
 
 heartbeat() { printf '{"at":"%s"}\n' "$(now)" > "$STATUS/heartbeat.json"; }
 
-backup() {
+backup() { # returns the backup's result (upgrade.sh relies on it)
+    result=0
     run_task backup backup "$SOURCE" --tag evidence --one-file-system \
         && run_task forget forget --tag evidence --prune \
             --keep-daily "${BACKUP_EVIDENCE_KEEP_DAILY:-14}" \
             --keep-weekly "${BACKUP_EVIDENCE_KEEP_WEEKLY:-8}" \
-            --keep-monthly "${BACKUP_EVIDENCE_KEEP_MONTHLY:-12}"
+            --keep-monthly "${BACKUP_EVIDENCE_KEEP_MONTHLY:-12}" \
+        || result=1
     write_info
+    return $result
 }
 
 # Initialise repositories that do not exist yet.

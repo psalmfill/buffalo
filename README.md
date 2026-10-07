@@ -567,6 +567,26 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - `scripts/check-compose-hardening.sh` checks all of this in CI. See `docs/security/container-hardening.md`.
   - nginx listens on 8080 inside its container; the development URL is unchanged.
 
+## Production deployment and releases (Phase 9A)
+
+- **Production compose:** `compose.yml` with `compose.prod.yml`, plus one profile: `compose.profile-airgapped.yml`, `-connected.yml` or `-cloud.yml`. The production compose runs release images only: configuration is baked in, there are no source mounts, and Laravel storage is a volume. Each container gets only its own secret files, from `/etc/buffalo/secrets`. Settings live in `/etc/buffalo/buffalo.env` (template: `deploy/buffalo.env.example`).
+- **Profiles and egress:**
+  - In `airgapped`, no container can reach outside.
+  - In `connected` and `cloud`, only nginx (OCSP stapling) joins the `egress` network.
+  - Opt-in overlays give egress to horizon (mail, `compose.egress-mail.yml`), clamav (online signatures, `compose.egress-clamav.yml`) and certbot (ACME, `compose.acme.yml`).
+  - `scripts/ops/egress-firewall.sh` stops nginx's frontend bridge from opening outbound connections.
+- **TLS:** nginx serves TLS 1.2/1.3 with modern AEAD ciphers and redirects HTTP to HTTPS. Use your own certificate (`BUFFALO_TLS_CERTIFICATE_FILE` and the `tls_key` secret), or ACME.
+- **Boot checks:** production containers refuse to start if `APP_DEBUG` is on, `APP_URL` is not https, cookies are not Secure/HttpOnly/SameSite, the CSP is report-only, Horizon is open, or a secret or key is wrong (`buffalo:production:check`, `buffalo:secrets:check`, `buffalo:keys:verify`).
+- **Patched images:** `docker/patched/` rebuilds PostGIS, nginx, ClamAV and Gotenberg with current OS packages (`make images`). They are rebuilt and scanned weekly (`.github/workflows/images.yml`). Accepted findings are listed in `security/vulnerability-exceptions.yaml`, each with a review date; CI fails once a date passes.
+- **Releases:**
+  - `make release VERSION=x.y.z RELEASE_KEY=/path/outside/repo` builds every image for linux/amd64 and writes `dist/buffalo-x.y.z/`. The release holds an images archive, a bundle and release notes, with `SHA256SUMS` signed by `ssh-keygen -Y sign`.
+  - **The committed public key is a development TEST key.** The project owner must create the real key (`scripts/ops/release-key.sh`) before the first production release.
+- **Install and upgrade:**
+  - `install.sh --profile airgapped|connected|cloud` verifies the release and installs it.
+  - `/opt/buffalo/current/scripts/ops/upgrade.sh <release dir>` upgrades. It verifies the release, backs up, shows a maintenance page, migrates and runs smoke checks.
+  - Both scripts have `--help` and `--dry-run`. Rollback: `docs/operations/rollback.md`.
+- **Documentation:** `docs/operations/`: installation, releases, rollback, runbook, host hardening, sizing.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.

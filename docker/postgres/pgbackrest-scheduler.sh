@@ -76,11 +76,15 @@ write_wal() {
     printf '{"at":"%s","oldest_ready_seconds":%s,"stats":%s}\n' "$(now)" "$age" "${stats:-null}" > "$STATUS/wal.json"
 }
 
-backup() { # backup <full|diff>
+backup() { # backup <full|diff>; returns the backup's result (upgrade.sh relies on it)
+    result=0
     if run_task "backup-$1" pgbackrest --stanza=$STANZA --type="$1" backup; then
         write_manifest
+    else
+        result=1
     fi
     write_info
+    return $result
 }
 
 # On demand (operators, the restore drill, CI):

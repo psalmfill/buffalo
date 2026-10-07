@@ -45,9 +45,16 @@ while [[ $# -gt 0 ]]; do
 done
 
 export DRILL_SOURCE_PROJECT=$SOURCE_PROJECT
-FILES=(-f compose.yml -f docker/drill/compose.drill.yml)
+# Production: the release images and secrets, never any egress overlay.
+if [[ -n "$CONFIG_FILE" ]]; then
+    BASE_FILES=(compose.yml compose.prod.yml compose.profile-airgapped.yml)
+else
+    BASE_FILES=(compose.yml)
+fi
+FILES=(); RESTORE_FILES=()
+for f in "${BASE_FILES[@]}" docker/drill/compose.drill.yml; do FILES+=(-f "$f"); RESTORE_FILES+=(--compose-file "$f"); done
 [[ "$(env_value APP_ENV)" == "local" ]] && FILES+=(-f docker/drill/compose.drill-dev.yml)
-drill() { docker compose -p "$DRILL" "${FILES[@]}" "$@"; }
+drill() { docker compose -p "$DRILL" "${ENV_ARGS[@]+"${ENV_ARGS[@]}"}" "${FILES[@]}" "$@"; }
 teardown() { drill down -v --remove-orphans >/dev/null 2>&1 || true; }
 
 if [[ "${TEARDOWN_ONLY:-false}" == true ]]; then
@@ -66,7 +73,7 @@ step_start=$(date +%s)
 pit_args=()
 [[ -n "$TARGET_TIME" ]] && pit_args=(--target-time "$TARGET_TIME")
 scripts/restore/restore-database.sh --project "$DRILL" --source-project "$SOURCE_PROJECT" \
-    --compose-file compose.yml --compose-file docker/drill/compose.drill.yml "${pit_args[@]+"${pit_args[@]}"}" --yes
+    "${RESTORE_FILES[@]}" "${pit_args[@]+"${pit_args[@]}"}" --yes
 t_database=$(( $(date +%s) - step_start ))
 
 step_start=$(date +%s)

@@ -57,14 +57,14 @@ docker run --rm --network none --user 0 -v "$(volume "$PROJECT" evidence_data)":
 
 restic() {
     local password
-    password=$(env_value BACKUP_RESTIC_PASSWORD_FILE)
+    password=$(secret_file BACKUP_RESTIC_PASSWORD)
     local secret=(-e "RESTIC_PASSWORD=$(env_value BACKUP_RESTIC_PASSWORD)")
     [[ -n "$password" ]] && secret=(-v "$password":/run/secrets/restic:ro -e RESTIC_PASSWORD_FILE=/run/secrets/restic)
     docker run --rm --network none --user "$RUN_UID:$RUN_GID" \
         -v "$(volume "$SOURCE_PROJECT" backup_repo)":/backup:ro \
         -v "$(volume "$PROJECT" evidence_data)":/evidence \
         -e RESTIC_CACHE_DIR=/tmp/restic-cache "${secret[@]}" \
-        "$RESTIC_IMAGE" -r /backup/restic --no-lock "$@"
+        --entrypoint restic "$RESTIC_IMAGE" -r /backup/restic --no-lock "$@"
 }
 
 if $LIST; then

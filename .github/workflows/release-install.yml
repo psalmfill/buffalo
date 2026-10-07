@@ -1,0 +1,58 @@
+# Fresh-host installation test (Phase 9A.6): builds a release on a clean
+# runner, signs it with a throwaway key generated in the job (never the real
+# release key), installs it with install.sh as root, and proves from inside
+# every container which ones can reach the internet, for the airgapped and
+# connected profiles. Weekly and on demand (it takes about 40 minutes).
+name: release-install
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [airgapped, connected]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Tools
+        run: sudo apt-get update -q && sudo apt-get install -yq zstd
+
+      - name: Throwaway signing key (test principal)
+        run: |
+          mkdir -p "$RUNNER_TEMP/key"
+          ssh-keygen -q -t ed25519 -N "" -C "buffalo-release-TEST-KEY (CI ${GITHUB_RUN_ID})" -f "$RUNNER_TEMP/key/k"
+          line="buffalo-release-test namespaces=\"buffalo-release\" $(cat "$RUNNER_TEMP/key/k.pub")"
+          { grep '^#' security/release-signing.pub; echo "$line"; } > /tmp/pub && mv /tmp/pub security/release-signing.pub
+          python3 - "$line" <<'PY'
+          import re, sys
+          p = "scripts/ops/install.sh"
+          s = open(p).read()
+          s = re.sub(r"(# >>> release-signing.pub[^\n]*\n)ALLOWED_SIGNERS='[^']*'", lambda m: m.group(1) + "ALLOWED_SIGNERS='" + sys.argv[1] + "'", s)
+          open(p, "w").write(s)
+          PY
+
+      - name: Release
+        run: make release VERSION=0.0.0-ci RELEASE_KEY="$RUNNER_TEMP/key/k"
+
+      - name: Tampered release is refused
+        run: |
+          cp -r dist/buffalo-0.0.0-ci /tmp/tampered
+          printf '\x00' | dd of=/tmp/tampered/RELEASE-NOTES.md bs=1 seek=10 count=1 conv=notrunc 2>/dev/null
+          if sudo sh /tmp/tampered/install.sh --profile airgapped --release-dir /tmp/tampered --allow-test-signature --yes --dry-run; then
+            echo "install.sh accepted a tampered release"; exit 1
+          fi
+
+      - name: Install and egress test (${{ matrix.profile }})
+        run: sudo scripts/ci/release-install-test.sh dist/buffalo-0.0.0-ci --profile ${{ matrix.profile }} ${{ matrix.profile == 'connected' && '--overlays' || '' }} --work "$RUNNER_TEMP/e2e"

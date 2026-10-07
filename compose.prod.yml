@@ -146,6 +146,20 @@ services:
     image: ${BUFFALO_IMAGE_PREFIX:-buffalo}/postgres:${BUFFALO_VERSION:?set BUFFALO_VERSION}
     build: !reset null
     pull_policy: never
+    # Memory settings for the container's limit (BUFFALO_MEM_POSTGRES, 3g by
+    # default); docs/operations/sizing.md gives values for larger hosts.
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - shared_buffers=${BUFFALO_PG_SHARED_BUFFERS:-768MB}
+      - -c
+      - effective_cache_size=${BUFFALO_PG_EFFECTIVE_CACHE_SIZE:-2GB}
+      - -c
+      - work_mem=${BUFFALO_PG_WORK_MEM:-16MB}
+      - -c
+      - maintenance_work_mem=${BUFFALO_PG_MAINTENANCE_WORK_MEM:-256MB}
     environment: &prod-postgres-env
       POSTGRES_DB: ${DB_DATABASE:-buffalo}
       POSTGRES_USER: ${DB_ADMIN_USERNAME:-buffalo}

@@ -15,8 +15,9 @@
 #   --bridge NAME  The frontend bridge (default buffalo-front, the
 #                  BUFFALO_FRONTEND_BRIDGE setting)
 #
-# Docker keeps DOCKER-USER across its own restarts, but not across reboots:
-# install.sh installs a systemd unit that re-applies it after Docker starts.
+# The rule does not survive a reboot (or a Docker Desktop VM restart):
+# install.sh installs a systemd unit, buffalo-egress-firewall.service, that
+# re-applies it every time docker.service starts.
 set -eu
 
 action=${1:-}

@@ -37,10 +37,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 $SOURCE_SET || SOURCE_PROJECT=$PROJECT
-[[ ${#COMPOSE_FILES[@]} -gt 0 ]] || COMPOSE_FILES=(-f compose.yml)
+# Default: the installation's compose files (production: COMPOSE_FILE in the
+# settings file; development: compose.yml).
+[[ ${#COMPOSE_FILES[@]} -gt 0 || -n "$CONFIG_FILE" ]] || COMPOSE_FILES=(-f compose.yml)
 
 [[ -n "$MANIFEST" ]] || MANIFEST=$(latest_manifest) || true
 [[ -n "$MANIFEST" ]] || die "No backup manifest found in $(volume "$SOURCE_PROJECT" backup_repo)."
 
-docker compose -p "$PROJECT" "${COMPOSE_FILES[@]}" run --rm --no-deps -T app \
+docker compose -p "$PROJECT" "${ENV_ARGS[@]+"${ENV_ARGS[@]}"}" "${COMPOSE_FILES[@]+"${COMPOSE_FILES[@]}"}" run --rm --no-deps -T app \
     php artisan buffalo:restore:verify --manifest-json="$MANIFEST" "${EXTRA[@]+"${EXTRA[@]}"}"
