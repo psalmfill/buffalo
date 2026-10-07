@@ -1,0 +1,20 @@
+# The user acceptance testing environment (Phase 9B.5): the production
+# images and settings with the airgapped profile, APP_ENV=uat (synthetic
+# data only, the "UAT — TEST DATA ONLY" banner, the feedback button).
+# Started by `make uat-up` (scripts/uat/up.sh) as its own project.
+services:
+  app:
+    environment:
+      APP_ENV: uat
+  horizon:
+    environment:
+      APP_ENV: uat
+  scheduler:
+    environment:
+      APP_ENV: uat
+  reverb:
+    environment:
+      APP_ENV: uat
+  tools:
+    environment:
+      APP_ENV: uat

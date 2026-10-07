@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\Keys\KeyFingerprints;
+use App\Support\Uat\Uat;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -20,7 +21,8 @@ class VerifyKeyFingerprints
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! app()->isProduction()) {
+        // Production and UAT (Phase 9B.5).
+        if (! Uat::productionLike()) {
             return $next($request);
         }
 

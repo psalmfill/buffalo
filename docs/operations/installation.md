@@ -44,7 +44,8 @@ and the backup services never join `egress` in any profile.
 nginx publishes ports 80 and 443, and Docker can only publish ports from a
 network that has a gateway, so Docker alone cannot stop nginx from opening
 connections out. The frontend network therefore has a fixed bridge name
-(`buffalo-front`, setting `BUFFALO_FRONTEND_BRIDGE`), with masquerading
+(`buffalo-front`, setting `BUFFALO_FRONTEND_BRIDGE`, at most 15 characters
+(a Linux interface name)), with masquerading
 switched off, and `scripts/ops/egress-firewall.sh apply` adds a `DOCKER-USER`
 rule that drops new outbound connections from that bridge. Replies to inbound
 HTTPS connections are unaffected. The installer applies the rule and adds a

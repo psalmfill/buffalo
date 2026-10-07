@@ -15,6 +15,18 @@
 # (for example running buffalo:db:provision-roles before secrets exist).
 set -e
 
+# The UAT environment (Phase 9B.5) runs the same checks with APP_ENV=uat:
+# production settings, test data only.
+if [ "${APP_ENV:-}" = "uat" ] && [ "${BUFFALO_SKIP_STARTUP_CHECKS:-0}" != "1" ]; then
+    for check in "buffalo:production:check --uat" buffalo:secrets:check buffalo:keys:verify; do
+        # shellcheck disable=SC2086
+        php /var/www/html/artisan $check --no-interaction --no-ansi || {
+            echo "BUFFALO start-up check $check failed: refusing to start." >&2
+            exit 1
+        }
+    done
+fi
+
 if [ "${APP_ENV:-}" = "production" ] && [ "${BUFFALO_SKIP_STARTUP_CHECKS:-0}" != "1" ]; then
     for check in buffalo:production:check buffalo:secrets:check buffalo:keys:verify; do
         php /var/www/html/artisan "$check" --no-interaction --no-ansi || {

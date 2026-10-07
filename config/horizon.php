@@ -234,6 +234,15 @@ return [
             ],
         ],
 
+        // The UAT environment (Phase 9B.5) runs exactly as production.
+        'uat' => [
+            'supervisor-1' => [
+                'maxProcesses' => 10,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+        ],
+
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,

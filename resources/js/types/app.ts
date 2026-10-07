@@ -11,4 +11,6 @@ export type AppData = {
     /** Null when BUFFALO_BANNER_TEXT is empty. */
     banner: SystemBanner | null;
     sessionIdleMinutes: number;
+    /** The UAT environment (Phase 9B.5): shows the feedback button. */
+    uat: boolean;
 };

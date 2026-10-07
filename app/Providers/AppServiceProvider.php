@@ -6,6 +6,7 @@ use App\Console\Commands\DisabledCipherSweetGenerateKeyCommand;
 use App\Console\Commands\DisabledCleanActivitylogCommand;
 use App\Console\DemoCommands\GenerateDemoBoundaries;
 use App\Console\DemoCommands\SeedDemoIncidents;
+use App\Console\DemoCommands\SeedUatCommand;
 use App\Enums\Permission;
 use App\Models\RecordDissemination;
 use App\Models\ReportRun;
@@ -44,6 +45,7 @@ use App\Support\ReferenceData\ReferenceTable;
 use App\Support\ReferenceData\ReferenceUsageRegistry;
 use App\Support\Security\ReferenceUsageChecks as SecurityReferenceUsageChecks;
 use App\Support\Threats\ReferenceUsageChecks as ThreatsReferenceUsageChecks;
+use App\Support\Uat\Uat;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Events\ScheduledTaskFailed;
@@ -152,7 +154,7 @@ class AppServiceProvider extends ServiceProvider
         // Synthetic data generators exist only where they may run (Phase
         // 9B.1): never listed in a production deployment.
         if ($this->app->runningInConsole() && $this->app->environment(DemoData::REGISTERED_ENVIRONMENTS)) {
-            $this->commands([GenerateDemoBoundaries::class, SeedDemoIncidents::class]);
+            $this->commands([GenerateDemoBoundaries::class, SeedDemoIncidents::class, SeedUatCommand::class]);
         }
 
         $this->configureDefaults();
@@ -201,6 +203,8 @@ class AppServiceProvider extends ServiceProvider
         // System health (Phase 8C.4): system administration only.
         // Help (Phase 9B.4): every signed-in user with a role.
         Gate::define('viewHelp', fn (User $user): bool => $user->getRole() !== null);
+        // UAT feedback (Phase 9B.5): every tester with a role (UAT only, see routes/uat.php).
+        Gate::define('leaveUatFeedback', fn (User $user): bool => $user->getRole() !== null);
         Gate::define('viewSystemHealth', fn (User $user): bool => $user->checkPermissionTo(Permission::SystemSettings->value));
         // Exports review (Phase 8B.3): audit.exports and national reach.
         Gate::define('viewExportReview', fn (User $user): bool => AuditAccess::canViewExportReview($user));
@@ -233,9 +237,7 @@ class AppServiceProvider extends ServiceProvider
 
         Date::use(CarbonImmutable::class);
 
-        DB::prohibitDestructiveCommands(
-            app()->isProduction(),
-        );
+        DB::prohibitDestructiveCommands(Uat::productionLike());
 
         // Same policy in every environment (App\Support\Auth\PasswordRules).
         Password::defaults(fn (): Password => PasswordRules::password());

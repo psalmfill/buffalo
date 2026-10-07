@@ -53,3 +53,9 @@ require __DIR__.'/analytics.php';
 require __DIR__.'/reports.php';
 require __DIR__.'/step-up.php';
 require __DIR__.'/help.php';
+
+// UAT-only routes (Phase 9B.5): absent from production deployments
+// (registered locally for the route helpers; they answer 404 outside UAT).
+if (app()->environment(['uat', 'testing', 'local'])) {
+    require __DIR__.'/uat.php';
+}

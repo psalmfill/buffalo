@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Geo\BoundaryAttribution;
 use App\Support\SystemBanner;
+use App\Support\Uat\Uat;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -90,13 +91,15 @@ class HandleInertiaRequests extends Middleware
      * Application data every page needs, including pages rendered outside
      * this middleware (error pages).
      *
-     * @return array{name: string, banner: array{text: string, level: string}|null, sessionIdleMinutes: int}
+     * @return array{name: string, banner: array{text: string, level: string}|null, sessionIdleMinutes: int, uat: bool}
      */
     public static function appData(): array
     {
         return [
             'name' => (string) config('app.name'),
             'banner' => SystemBanner::current(),
+            // The UAT environment (Phase 9B.5): the feedback button.
+            'uat' => Uat::enabled(),
             // Idle timeout, for the frontend idle warning.
             'sessionIdleMinutes' => (int) config('session.lifetime'),
         ];

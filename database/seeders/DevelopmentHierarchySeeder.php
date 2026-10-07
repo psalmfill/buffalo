@@ -79,7 +79,7 @@ class DevelopmentHierarchySeeder extends Seeder
         $lgas = $districts * self::LGAS_PER_DISTRICT;
 
         $this->command->warn(str_repeat('!', 78));
-        $this->command->warn('SYNTHETIC HIERARCHY DATA IN USE (local development only).');
+        $this->command->warn('SYNTHETIC HIERARCHY DATA IN USE (local development and UAT only).');
         $this->command->warn("Created {$districts} demo senatorial districts and {$lgas} demo LGAs for Lagos and Kano.");
         $this->command->warn('These are NOT real places. Supply database/data/senatorial_districts.csv and');
         $this->command->warn('lgas.csv (see database/data/README.md) and run buffalo:import-hierarchy.');

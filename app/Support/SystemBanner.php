@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\BannerLevel;
+use App\Support\Uat\Uat;
 
 /**
  * The optional full-width banner shown at the top of every page, including
@@ -15,6 +16,11 @@ final class SystemBanner
      */
     public static function current(): ?array
     {
+        // The UAT environment always says so, whatever is configured (Phase 9B.5).
+        if (Uat::enabled()) {
+            return ['text' => Uat::BANNER, 'level' => BannerLevel::Secret->value];
+        }
+
         $text = trim((string) config('buffalo.banner.text'));
 
         if ($text === '') {

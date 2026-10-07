@@ -15,7 +15,7 @@ NODE    := $(COMPOSE) run --rm --no-deps vite
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell artisan test lint fix fresh logs tiles release images restore-drill security-scan clamav-import-signatures wayfinder ci
+.PHONY: help setup up down shell artisan test lint fix fresh logs tiles release uat-up uat-down uat-credentials images restore-drill security-scan clamav-import-signatures wayfinder ci
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -73,6 +73,15 @@ logs: ## Follow container logs
 
 tiles: ## Download the Nigeria map extract: make tiles url=<protomaps build URL>
 	./scripts/fetch-map-tiles.sh $(url)
+
+uat-up: ## UAT environment (production images, APP_ENV=uat, synthetic data): https://localhost:19443
+	./scripts/uat/up.sh
+
+uat-down: ## Remove the UAT environment and its data (UAT_PURGE=1 also removes .uat/)
+	./scripts/uat/down.sh
+
+uat-credentials: ## New passwords and TOTP secrets for the UAT accounts (printed once)
+	docker compose --env-file .uat/buffalo.env run --rm -T tools php artisan buffalo:uat:seed --reset-credentials
 
 release: ## Signed release: make release VERSION=x.y.z RELEASE_KEY=/path/outside/repo [SINCE=ref]
 	VERSION=$(VERSION) RELEASE_KEY=$(RELEASE_KEY) SINCE=$(SINCE) ./scripts/release.sh
