@@ -13,9 +13,11 @@ use App\Models\Concerns\LogsReads;
 use App\Support\Audit\AuditLog;
 use App\Support\Classification\Contracts\Classified;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
+use App\Support\Jurisdiction\JurisdictionScope;
 use App\Support\Persons\PhoneNumber;
 use Carbon\CarbonImmutable;
 use Database\Factories\PersonFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -75,6 +77,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $deleted_at
+ * @property int|null $merged_into_person_id Phase 10A: set on a merged (soft-deleted) source
+ * @property CarbonImmutable|null $merged_at
+ * @property int|null $merged_by
  * @property-read string $name
  * @property-read State $state
  * @property-read Lga $lga
@@ -124,7 +130,7 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
 
     protected $hidden = [
         'id', 'state_id', 'lga_id', 'community_id', 'created_by', 'updated_by', 'search_name',
-        'date_of_birth', 'nin', 'phone', 'address',
+        'date_of_birth', 'nin', 'phone', 'address', 'merged_into_person_id', 'merged_by',
     ];
 
     protected $attributes = [
@@ -141,6 +147,7 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
             'classification' => Classification::class,
             'approximate_age' => 'integer',
             'is_deceased' => 'boolean',
+            'merged_at' => 'immutable_datetime',
         ];
     }
 
@@ -263,7 +270,7 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
      */
     protected function auditExcept(): array
     {
-        return [...self::ENCRYPTED, 'search_name'];
+        return [...self::ENCRYPTED, 'search_name', 'merged_into_person_id', 'merged_by'];
     }
 
     /**
@@ -317,11 +324,41 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
             ->fit(Fit::Max, 800, 800);
     }
 
-    /** The current photo: the newest in the photos collection. */
+    /**
+     * The current photo: the newest in the photos collection, by
+     * order_column (a merge renumbers it so the chosen photo is current),
+     * then by id.
+     */
     public function currentPhoto(): ?Media
     {
         /** @var Media|null */
-        return $this->media()->where('collection_name', self::PHOTOS)->latest('id')->first();
+        return $this->media()->where('collection_name', self::PHOTOS)->orderByDesc('order_column')->orderByDesc('id')->first();
+    }
+
+    /**
+     * The person's photos, current first (see currentPhoto()).
+     *
+     * @param  \Illuminate\Support\Collection<int, BaseMedia>  $media
+     * @return \Illuminate\Support\Collection<int, BaseMedia>
+     */
+    public static function photosCurrentFirst(\Illuminate\Support\Collection $media): \Illuminate\Support\Collection
+    {
+        return $media->sortBy([fn (BaseMedia $a, BaseMedia $b): int => [(int) $b->order_column, $b->id] <=> [(int) $a->order_column, $a->id]])->values();
+    }
+
+    /**
+     * The user's OWN jurisdiction only, without grants (Phase 10A.3): the
+     * duplicate finder and merge pickers never reach records the user sees
+     * only under a cross-jurisdiction grant.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeOwnJurisdiction(Builder $query, User $user): Builder
+    {
+        app(JurisdictionScope::class)->applyOwn($query, $this, $user);
+
+        return $query;
     }
 
     /**

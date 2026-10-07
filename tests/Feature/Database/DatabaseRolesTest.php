@@ -71,7 +71,7 @@ test('privileges match the role design on every table', function () {
             SQL, array_fill(0, 8, $table));
 
         $expected = match (true) {
-            in_array($table, DatabaseRoles::APPEND_ONLY, true), in_array($table, DatabaseRoles::FOLLOW_PLACE, true) => [true, true, false, false],
+            in_array($table, DatabaseRoles::APPEND_ONLY, true), in_array($table, DatabaseRoles::FOLLOW_PLACE, true), array_key_exists($table, DatabaseRoles::UNDO_COLUMNS) => [true, true, false, false],
             in_array($table, DatabaseRoles::OWNER_ONLY, true) => [true, false, false, false],
             default => [true, true, true, true],
         };

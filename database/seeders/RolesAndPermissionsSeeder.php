@@ -146,6 +146,17 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permission::PersonsView->value => self::INTELLIGENCE_ROLES,
                 Permission::PersonsManage->value => self::INTELLIGENCE_ROLES,
                 Permission::PersonsDelete->value => self::DELETE_ROLES,
+                // Phase 10A — merging duplicates
+                Permission::PersonsDuplicatesView->value => self::INTELLIGENCE_ROLES,
+                Permission::PersonsMergeRequest->value => [
+                    Role::DeputyStateDirector,
+                    Role::LgaSecurityChief,
+                ],
+                Permission::PersonsMerge->value => [
+                    Role::DirectorGeneral,
+                    Role::DeputyDirectorGeneral,
+                    Role::StateDirector,
+                ],
             ],
 
             // ---------------------------------------------------------------

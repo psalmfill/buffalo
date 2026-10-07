@@ -37,8 +37,14 @@ class RotateAppKey extends Command
 
     protected $description = 'Rotate APP_KEY: prepare a new key, then re-encrypt stored values (see docs/security/key-management.md)';
 
-    /** Columns encrypted with Laravel's encrypter (Fortify two-factor authentication). */
-    private const ENCRYPTED_COLUMNS = ['users' => ['two_factor_secret', 'two_factor_recovery_codes']];
+    /**
+     * Columns encrypted with Laravel's encrypter: Fortify two-factor
+     * authentication, and a person merge's prior values (Phase 10A.2).
+     */
+    private const ENCRYPTED_COLUMNS = [
+        'users' => ['two_factor_secret', 'two_factor_recovery_codes'],
+        'person_merges' => ['survivor_prior_values'],
+    ];
 
     public function handle(): int
     {
@@ -97,6 +103,10 @@ class RotateAppKey extends Command
 
             $query->chunkById((int) $this->option('batch'), function ($rows) use ($table, $columns, &$total): void {
                 DB::transaction(function () use ($rows, $table, $columns, &$total): void {
+                    // person_merges allows replacing survivor_prior_values only
+                    // during a rotation (its trigger reads this setting).
+                    DB::statement("SELECT set_config('buffalo.key_rotation', 'on', true)");
+
                     foreach ($rows as $row) {
                         $values = [];
                         foreach ($columns as $column) {

@@ -24,6 +24,8 @@ use Illuminate\Database\Connection;
  * - FOLLOW_PLACE tables: SELECT, INSERT, and UPDATE of state_id/lga_id only
  *   (their place follows a moved incident or flashpoint; a trigger rejects
  *   any other change);
+ * - UNDO_COLUMNS tables: SELECT, INSERT, and UPDATE of the listed columns
+ *   only (a trigger allows only the documented changes to them);
  * - OWNER_ONLY tables: SELECT only.
  * No role but the owner (and the superuser) may ALTER, TRUNCATE, disable
  * triggers or create objects.
@@ -47,6 +49,16 @@ final class DatabaseRoles
         'flashpoint_assessments',
         'incident_status_histories',
         'incident_updates',
+    ];
+
+    /**
+     * Append-only except the listed columns (Phase 10A.2: a person merge is
+     * undone once, and its encrypted prior values are erased).
+     *
+     * @var array<string, list<string>>
+     */
+    public const UNDO_COLUMNS = [
+        'person_merges' => ['undone_by', 'undone_at', 'undo_reason', 'survivor_prior_values'],
     ];
 
     /** Bookkeeping the application reads but never writes. */
@@ -135,6 +147,7 @@ final class DatabaseRoles
             $privileges = match (true) {
                 in_array($table, self::APPEND_ONLY, true) => 'SELECT, INSERT',
                 in_array($table, self::FOLLOW_PLACE, true) => 'SELECT, INSERT, UPDATE (state_id, lga_id)',
+                array_key_exists($table, self::UNDO_COLUMNS) => 'SELECT, INSERT, UPDATE ('.implode(', ', self::UNDO_COLUMNS[$table]).')',
                 in_array($table, self::OWNER_ONLY, true) => 'SELECT',
                 default => 'SELECT, INSERT, UPDATE, DELETE',
             };

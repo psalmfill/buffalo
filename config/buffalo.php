@@ -476,4 +476,20 @@ return [
         'exceptions_file' => base_path('security/vulnerability-exceptions.yaml'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Merging duplicate persons (Phase 10A)
+    |--------------------------------------------------------------------------
+    | undo_days: how long a merge can be undone; survivor_prior_values (the
+    | encrypted copy of the survivor's fields before the merge) is erased
+    | after it. Candidate thresholds are pg_trgm similarities (0-1) between
+    | names or aliases; candidates_limit caps the pairs listed at once.
+    */
+    'merges' => [
+        'undo_days' => (int) env('BUFFALO_MERGE_UNDO_DAYS', 30),
+        'dob_name_similarity' => (float) env('BUFFALO_MERGE_DOB_NAME_SIMILARITY', 0.75),
+        'name_similarity' => (float) env('BUFFALO_MERGE_NAME_SIMILARITY', 0.85),
+        'candidates_limit' => (int) env('BUFFALO_MERGE_CANDIDATES_LIMIT', 200),
+    ],
+
 ];

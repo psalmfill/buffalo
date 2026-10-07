@@ -222,7 +222,7 @@ class PersonController extends Controller
 
         $person->load(['lga.state', 'state', 'community', 'roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)]);
         /** @var \Illuminate\Support\Collection<int, Media> $photos */
-        $photos = $person->media->sortByDesc('id')->values();
+        $photos = Person::photosCurrentFirst($person->media);
         $current = $photos->first();
 
         return Inertia::render('persons/show', [
@@ -280,7 +280,7 @@ class PersonController extends Controller
         Inertia::encryptHistory();
 
         $person->load(['roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)]);
-        $current = $person->media->sortByDesc('id')->first();
+        $current = Person::photosCurrentFirst($person->media)->first();
         $fields = [...self::GRANT_PROFILE_FIELDS, ...($full ? self::GRANT_FULL_EXTRA_FIELDS : [])];
         $extra = $full ? $grantedView->full($person, $actor, $grant) : null;
         $grant->loadMissing(['request.owningState']);

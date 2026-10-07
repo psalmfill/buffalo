@@ -32,6 +32,7 @@ final class AuditChain
         'incident_status_histories' => ['changed_at', ['state_id', 'lga_id']],
         'incident_updates' => ['created_at', ['state_id', 'lga_id']],
         'login_histories' => ['created_at', []],
+        'person_merges' => ['executed_at', ['survivor_prior_values', 'undone_by', 'undone_at', 'undo_reason']],
         'record_access_logs' => ['created_at', []],
         'record_match_events' => ['created_at', []],
         'search_logs' => ['created_at', []],

@@ -30,7 +30,7 @@ final class PersonPresenter
     public static function row(Person $person): array
     {
         $photo = $person->relationLoaded('media')
-            ? $person->media->where('collection_name', Person::PHOTOS)->sortByDesc('id')->first()
+            ? Person::photosCurrentFirst($person->media->where('collection_name', Person::PHOTOS))->first()
             : null;
 
         return [

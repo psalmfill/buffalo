@@ -55,6 +55,14 @@ enum Permission: string
     case PersonsManage = 'persons.manage';
     case PersonsDelete = 'persons.delete';
 
+    // Merging duplicate persons (Phase 10A): candidates for every
+    // intelligence role in its own jurisdiction; LGA chiefs and Deputy
+    // State Directors request; State Directors and national users execute,
+    // undo and dismiss (with step-up).
+    case PersonsDuplicatesView = 'persons.duplicates.view';
+    case PersonsMergeRequest = 'persons.merge_request';
+    case PersonsMerge = 'persons.merge';
+
     // Political information, persons of interest and criminal groups
     // (Phase 3B). Clearing a POI and deleting need State Director or above.
     case PoliticalView = 'political.view';
