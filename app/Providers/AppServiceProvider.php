@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Console\Commands\DisabledCipherSweetGenerateKeyCommand;
 use App\Console\Commands\DisabledCleanActivitylogCommand;
+use App\Console\DemoCommands\GenerateDemoBoundaries;
+use App\Console\DemoCommands\SeedDemoIncidents;
 use App\Enums\Permission;
 use App\Models\RecordDissemination;
 use App\Models\ReportRun;
@@ -21,6 +23,7 @@ use App\Support\Backups\BackupStatus;
 use App\Support\CommunityInformation\ReferenceUsageChecks;
 use App\Support\Database\MigrationConnection;
 use App\Support\Flashpoints\ReferenceUsageChecks as FlashpointsReferenceUsageChecks;
+use App\Support\GoLive\DemoData;
 use App\Support\Health\HealthStatus;
 use App\Support\Health\SchedulerCheck;
 use App\Support\Health\StackChecks;
@@ -143,6 +146,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ScheduledTaskFailed::class, fn (ScheduledTaskFailed $e) => HealthStatus::record(
             'schedule.'.self::scheduledCommand($e->task->command ?? $e->task->description ?? ''), false, mb_substr($e->exception->getMessage(), 0, 300),
         ));
+
+        // Synthetic data generators exist only where they may run (Phase
+        // 9B.1): never listed in a production deployment.
+        if ($this->app->runningInConsole() && $this->app->environment(DemoData::REGISTERED_ENVIRONMENTS)) {
+            $this->commands([GenerateDemoBoundaries::class, SeedDemoIncidents::class]);
+        }
 
         $this->configureDefaults();
         $this->configureAuthorization();

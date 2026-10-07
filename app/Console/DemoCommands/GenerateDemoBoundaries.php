@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\DemoCommands;
 
+use App\Console\Commands\ImportBoundaries;
 use App\Support\Geo\BoundaryImporter;
+use App\Support\GoLive\DemoData;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -32,8 +34,8 @@ class GenerateDemoBoundaries extends Command
 
     public function handle(BoundaryImporter $importer): int
     {
-        if (! app()->environment('local')) {
-            $this->components->error('buffalo:generate-demo-boundaries runs only in the local environment.');
+        if (! DemoData::allowed()) {
+            $this->components->error('buffalo:generate-demo-boundaries runs only in the local and UAT environments.');
 
             return self::FAILURE;
         }

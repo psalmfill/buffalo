@@ -14,7 +14,7 @@ test('it refuses to run outside the local environment', function () {
     expect(app()->environment())->toBe('testing');
 
     expect(fn () => $this->seed(DevelopmentHierarchySeeder::class))
-        ->toThrow(RuntimeException::class, 'only runs when APP_ENV=local');
+        ->toThrow(RuntimeException::class, 'only runs when APP_ENV is local or uat');
 
     expect(SenatorialDistrict::count())->toBe(0)
         ->and(Lga::count())->toBe(0);

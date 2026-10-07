@@ -106,9 +106,9 @@ Deny everything else.
    The pulled images are compared with the image IDs in the signed
    `images.lock` and refused if they differ.
 
-5. **Follow the printed next steps**: create the first super admin, import
-   the administrative hierarchy and boundaries, configure the second backup
-   repository, run the first restore drill.
+5. **Follow the printed next steps**: create the first super admin, load
+   the production data ([data-loading.md](data-loading.md)), configure the
+   second backup repository, run the first restore drill.
 
 ## Secrets per container
 

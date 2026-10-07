@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Actions\Hierarchy\ReadHierarchyFiles;
+use App\Support\GoLive\DemoData;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 use RuntimeException;
@@ -34,7 +35,7 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        if (app()->environment('local')) {
+        if (DemoData::allowed()) {
             $this->call(DevelopmentHierarchySeeder::class);
 
             return;

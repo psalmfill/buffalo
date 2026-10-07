@@ -9,7 +9,7 @@ BUFFALO never invents reference data (see `CLAUDE.md`). Every place name comes f
 | `lgas.csv` | **Supplied by the project owner.** Not yet provided. | `php artisan buffalo:import-hierarchy` |
 | `wards.csv` | **Optional; supplied by the project owner.** Not yet provided. | `php artisan buffalo:import-hierarchy` |
 
-Do not create the owner-supplied files with guessed contents. Until they exist, `make fresh` in a local environment seeds clearly synthetic districts and LGAs for Lagos and Kano (`DevelopmentHierarchySeeder`). In any other environment, seeding fails with a message asking for the files.
+Do not create the owner-supplied files with guessed contents. Until they exist, `make fresh` in a local environment (and the UAT environment) seeds clearly synthetic districts and LGAs for Lagos and Kano (`DevelopmentHierarchySeeder`). In any other environment, seeding fails with a message asking for the files. `php artisan buffalo:data:status` reports any synthetic data still present.
 
 ## General rules for all files
 

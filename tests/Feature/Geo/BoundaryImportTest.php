@@ -262,7 +262,7 @@ test('maps get the outline and the attribution after an import', function () {
 
 test('demo boundaries are generated only in the local environment and are labelled synthetic', function () {
     expect(Artisan::call('buffalo:generate-demo-boundaries'))->toBe(1)
-        ->and(Artisan::output())->toContain('runs only in the local environment')
+        ->and(Artisan::output())->toContain('runs only in the local and UAT environments')
         ->and(DB::table('boundary_sources')->count())->toBe(0);
 
     app()->detectEnvironment(fn () => 'local');

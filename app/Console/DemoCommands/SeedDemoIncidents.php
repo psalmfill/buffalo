@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\DemoCommands;
 
 use App\Models\Incident;
+use App\Support\GoLive\DemoData;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -38,8 +39,8 @@ class SeedDemoIncidents extends Command
 
     public function handle(): int
     {
-        if (! app()->environment('local')) {
-            $this->components->error('buffalo:seed-demo-incidents runs only in the local environment.');
+        if (! DemoData::allowed()) {
+            $this->components->error('buffalo:seed-demo-incidents runs only in the local and UAT environments.');
 
             return self::FAILURE;
         }

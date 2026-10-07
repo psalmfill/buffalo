@@ -54,6 +54,11 @@ leaves maintenance mode. Plan 15–30 minutes, mostly the backups. If it
 fails: [rollback.md](rollback.md). Keep the previous release directory under
 `/opt/buffalo/releases/` until the next upgrade.
 
+## Production data
+
+Loading the hierarchy, boundaries and reference data, and checking for demo
+data: [data-loading.md](data-loading.md) (`buffalo:data:status`).
+
 ## Backups and restores
 
 See [../security/backup-and-recovery.md](../security/backup-and-recovery.md).

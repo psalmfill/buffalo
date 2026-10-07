@@ -6,6 +6,7 @@ use App\Actions\Hierarchy\ReadHierarchyFiles;
 use App\Models\Lga;
 use App\Models\SenatorialDistrict;
 use App\Models\State;
+use App\Support\GoLive\DemoData;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -29,9 +30,9 @@ class DevelopmentHierarchySeeder extends Seeder
 
     public function run(): void
     {
-        if (! app()->environment('local')) {
+        if (! DemoData::allowed()) {
             throw new RuntimeException(sprintf(
-                'DevelopmentHierarchySeeder creates synthetic data and only runs when APP_ENV=local (current: %s).',
+                'DevelopmentHierarchySeeder creates synthetic data and only runs when APP_ENV is local or uat (current: %s).',
                 app()->environment(),
             ));
         }
