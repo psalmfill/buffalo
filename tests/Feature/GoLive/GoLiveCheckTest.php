@@ -249,7 +249,9 @@ test('decisions are recorded by super admins with step-up, audited, and never ch
         ->and(goLiveItems()['pentest']['detail'])->toContain('Deferred — decided by B. Officer, client CISO');
 
     expect(fn () => DB::table('golive_decisions')->where('id', $record->id)->update(['outcome' => 'completed']))
-        ->toThrow(QueryException::class, 'append-only');
+        // Refused by the application role's grants (SELECT, INSERT only) and,
+        // for the owner, by the append-only trigger: both SQLSTATE 42501.
+        ->toThrow(QueryException::class, 'SQLSTATE[42501]');
 });
 
 test('only super admins see the go-live page and may record decisions', function () {
