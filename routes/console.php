@@ -53,3 +53,8 @@ Schedule::command('buffalo:health:monitor')->everyMinute()->withoutOverlapping()
 // Go-live readiness (Phase 9B.6): stored for System health.
 // --record: before go-live the check fails daily by design; not a task failure.
 Schedule::command('buffalo:go-live:check --record')->dailyAt('06:30');
+
+// Merging duplicate persons (Phase 10A): candidate counts for the State
+// Director's dashboard, and erasing prior values past the undo window.
+Schedule::command('buffalo:persons:count-duplicates')->dailyAt('03:30')->withoutOverlapping();
+Schedule::command('buffalo:merges:erase-prior-values')->dailyAt('03:15');

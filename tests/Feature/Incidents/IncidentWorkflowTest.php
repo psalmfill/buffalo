@@ -292,6 +292,14 @@ test('closed and invalid incidents are locked: policies and database', function 
     expect(fn () => DB::transaction(fn () => DB::table('incidents')->where('id', $incident->id)->update(['title' => 'Changed'])))->toThrow(QueryException::class)
         ->and(fn () => DB::transaction(fn () => DB::table('incident_casualties')->insert(['ulid' => (string) Str::ulid(), 'incident_id' => $incident->id, 'state_id' => $incident->state_id, 'lga_id' => $incident->lga_id, 'outcome' => 'killed', 'group' => 'civilian', 'adult_male' => 1, 'created_at' => now(), 'updated_at' => now()])))->toThrow(QueryException::class)
         ->and(fn () => DB::transaction(fn () => DB::table('incident_updates')->insert(['ulid' => (string) Str::ulid(), 'incident_id' => $incident->id, 'state_id' => $incident->state_id, 'lga_id' => $incident->lga_id, 'type' => 'follow_up', 'body' => 'x', 'classification' => 'restricted', 'created_by' => $this->sd->id, 'created_at' => now()])))->toThrow(QueryException::class);
+
+    // A child row may not be moved OFF a locked incident either (found in Phase 10A).
+    $open = W::draft($this->lga, $this->chief);
+    $casualty = W::at(W::draft($this->lga, $this->chief), IncidentStatus::Submitted);
+    $id = DB::table('incident_casualties')->insertGetId(['ulid' => (string) Str::ulid(), 'incident_id' => $casualty->id, 'state_id' => $casualty->state_id, 'lga_id' => $casualty->lga_id, 'outcome' => 'killed', 'group' => 'civilian', 'adult_male' => 1, 'created_at' => now(), 'updated_at' => now()]);
+    DB::table('incidents')->where('id', $casualty->id)->update(['status' => $status->value, ...($status === IncidentStatus::Invalid ? ['invalid_reason' => 'false_report'] : [])]);
+
+    expect(fn () => DB::transaction(fn () => DB::table('incident_casualties')->where('id', $id)->update(['incident_id' => $open->id])))->toThrow(QueryException::class, 'locked');
 })->with([IncidentStatus::Closed, IncidentStatus::Invalid]);
 
 test('the status history is append-only', function () {

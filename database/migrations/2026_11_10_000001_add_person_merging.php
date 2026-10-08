@@ -196,8 +196,10 @@ return new class extends Migration
                 incident_status text;
                 merge_columns text[] := ARRAY['person_id', 'notes', 'deleted_at', 'updated_at'];
             BEGIN
-                SELECT status INTO incident_status FROM incidents WHERE id = COALESCE(NEW.incident_id, OLD.incident_id);
-                IF incident_status IN ('closed', 'invalid') THEN
+                -- The old and the new incident: a row may not leave a locked one either.
+                SELECT status INTO incident_status FROM incidents
+                 WHERE id IN (NEW.incident_id, OLD.incident_id) AND status IN ('closed', 'invalid') LIMIT 1;
+                IF incident_status IS NOT NULL THEN
                     IF TG_OP = 'UPDATE'
                        AND coalesce(current_setting('buffalo.person_merge', true), '') <> ''
                        AND (to_jsonb(NEW) - merge_columns) = (to_jsonb(OLD) - merge_columns) THEN

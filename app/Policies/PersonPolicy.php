@@ -76,6 +76,37 @@ final class PersonPolicy
         return $actor->checkPermissionTo(Permission::IncidentsCreate->value) && $this->view($actor, $person);
     }
 
+    /**
+     * Duplicate candidates and merge requests (Phase 10A): every
+     * intelligence role, within its own jurisdiction.
+     */
+    public function viewDuplicates(User $actor): bool
+    {
+        return $actor->checkPermissionTo(Permission::PersonsDuplicatesView->value);
+    }
+
+    /**
+     * Ask for the person to be merged with another (LGA chiefs and Deputy
+     * State Directors): own jurisdiction and clearance only.
+     */
+    public function requestMerge(User $actor, Person $person): bool
+    {
+        return $actor->checkPermissionTo(Permission::PersonsMergeRequest->value)
+            && ! $person->trashed()
+            && $this->reachableOwn($actor, $person);
+    }
+
+    /**
+     * Execute, undo or dismiss a merge involving the person (State
+     * Directors and national users): own jurisdiction and clearance; never
+     * through a grant. Both persons of a pair must pass.
+     */
+    public function merge(User $actor, Person $person): bool
+    {
+        return $actor->checkPermissionTo(Permission::PersonsMerge->value)
+            && $this->reachableOwn($actor, $person);
+    }
+
     private function reachable(User $actor, Person $person): bool
     {
         return $this->jurisdiction->canAccess($actor, $person) && $this->classification->canSee($actor, $person);

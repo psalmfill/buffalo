@@ -490,6 +490,8 @@ return [
         'dob_name_similarity' => (float) env('BUFFALO_MERGE_DOB_NAME_SIMILARITY', 0.75),
         'name_similarity' => (float) env('BUFFALO_MERGE_NAME_SIMILARITY', 0.85),
         'candidates_limit' => (int) env('BUFFALO_MERGE_CANDIDATES_LIMIT', 200),
+        // How long a merge waits for another merge or edit of the same records.
+        'lock_timeout' => env('BUFFALO_MERGE_LOCK_TIMEOUT', '10s'),
     ],
 
 ];
