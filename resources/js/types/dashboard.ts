@@ -105,6 +105,17 @@ export type NationalDashboardProps = {
 };
 
 export type StateDashboardProps = {
+    /** Phase 10A: State Directors only; counts only. */
+    duplicates: {
+        nightly: {
+            certain: number;
+            strong: number;
+            possible: number;
+            total: number;
+            at: string;
+        } | null;
+        pendingRequests: number;
+    } | null;
     period: DashboardPeriod;
     kpis: KpiTile[];
     incidents: StateIncidentFigures | null;

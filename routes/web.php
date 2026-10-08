@@ -35,6 +35,7 @@ require __DIR__.'/system.php';
 require __DIR__.'/reference-data.php';
 require __DIR__.'/local-government.php';
 require __DIR__.'/community-information.php';
+require __DIR__.'/person-merges.php';
 require __DIR__.'/persons.php';
 require __DIR__.'/political.php';
 require __DIR__.'/persons-of-interest.php';

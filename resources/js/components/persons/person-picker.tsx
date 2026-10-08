@@ -19,6 +19,7 @@ export default function PersonPicker({
     onChange,
     role,
     except,
+    own = false,
     placeholder = 'Search by name, NIN or phone',
 }: {
     id?: string;
@@ -26,6 +27,8 @@ export default function PersonPicker({
     onChange: (person: NamedRef | null) => void;
     role?: string;
     except?: string;
+    /** Only the user's own records, never those seen under a grant. */
+    own?: boolean;
     placeholder?: string;
 }) {
     const listId = useId();
@@ -50,6 +53,7 @@ export default function PersonPicker({
                 q: term,
                 role: role ?? null,
                 except: except ?? null,
+                own,
             })
                 .then((data) => {
                     if (request === latest.current) {
@@ -70,7 +74,7 @@ export default function PersonPicker({
         }, 300);
 
         return () => window.clearTimeout(timer);
-    }, [query, role, except]);
+    }, [query, role, except, own]);
 
     if (value !== null) {
         return (

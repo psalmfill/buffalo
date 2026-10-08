@@ -598,6 +598,14 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
   - `python3 scripts/uat/run.py --credentials <file>` runs them all and records results in `docs/uat/results/`.
 - **Go-live check:** `php artisan buffalo:go-live:check` (also on **Go-live** and System health) checks 15 technical items and 8 client decisions recorded on the Go-live page. It exits 1 until everything is ready and writes a report.
 
+## Merging duplicate persons (Phase 10A)
+
+- **Candidates:** **Intelligence → Duplicate persons** lists pairs of the user's own records (never records seen under a grant) that may be the same person: same NIN (certain), same phone or the same date of birth with a similar name (strong), a nearly identical name or alias in the same LGA (possible). **Not a duplicate** (State Directors and above, with a reason) hides a pair for good. A nightly job (`buffalo:persons:count-duplicates`) counts pairs per state for the State Director's dashboard.
+- **Requests:** LGA chiefs and Deputy State Directors request a merge (from the list or a person's page); State Directors, the DG and DDGs review, execute or decline them under **Merge requests**.
+- **Review and merge** (`/persons/merge?a=…&b=…`) compares both records field by field, blocks two different NINs, needs confirmation for different dates of birth or one deceased record, warns which LGA loses sight of the person, and asks for an authenticator code. Merges happen only within one state.
+- **What a merge does:** see `docs/architecture/person-references.md`. Everything moves to the survivor in one transaction (closed incidents included, through one documented exception in the incident lock trigger); the higher classification wins; grants and open access requests on the merged record are revoked or cancelled, never transferred; the merged record is soft-deleted and its URL redirects to the survivor for viewers who can see it.
+- **Undo:** for `BUFFALO_MERGE_UNDO_DAYS` (30) days from the survivor's **Merged records**, with a reason and an authenticator code. A manifest in `person_merges` (append-only, hash-chained) records every row that moved; the survivor's prior values are kept encrypted and erased daily once the window has passed (`buffalo:merges:erase-prior-values`).
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.

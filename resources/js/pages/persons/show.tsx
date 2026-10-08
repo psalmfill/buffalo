@@ -1,7 +1,7 @@
 import type { IncidentListRow } from '@/types/incidents';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { KeyRound, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import { GitMerge, KeyRound, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useCallback, useState } from 'react';
 import GrantEndedWatcher from '@/components/access-requests/grant-ended-watcher';
@@ -15,10 +15,14 @@ import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
 import Pagination from '@/components/pagination';
 import GroupMembershipsPanel from '@/components/persons/group-memberships-panel';
+import MergedRecords, {
+    MergeWithDialog,
+} from '@/components/persons/merged-records';
 import PersonAvatar from '@/components/persons/person-avatar';
 import PersonPicker from '@/components/persons/person-picker';
 import PoiPanel from '@/components/persons/poi-panel';
 import PoliticalOfficesPanel from '@/components/persons/political-offices-panel';
+import RequestMergeDialog from '@/components/persons/request-merge-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +35,7 @@ import type { GrantBanner } from '@/types/access-requests';
 import type { NamedRef, Option } from '@/types/local-government';
 import type { Paginated } from '@/types/pagination';
 import type {
+    MergedRecord,
     PersonAlias,
     PersonAssociationRow,
     PersonDetail,
@@ -93,7 +98,11 @@ type Props = {
               since: string | null;
           }[]
         | null;
+    /** Records merged into this one (Phase 10A). */
+    merges: MergedRecord[];
     can: {
+        requestMerge: boolean;
+        merge: boolean;
         update: boolean;
         delete: boolean;
         viewPolitical: boolean;
@@ -530,9 +539,11 @@ export default function PersonShow({
     grant,
     grantAssociations,
     grantMemberships,
+    merges,
     can,
 }: Props) {
     const [deleting, setDeleting] = useState(false);
+    const [merging, setMerging] = useState(false);
     const activeRoles = person.all_roles.filter((role) => role.is_active);
     // A profile-only grant withholds NIN, phone and address: hide them
     // rather than show them as not recorded.
@@ -628,7 +639,23 @@ export default function PersonShow({
                             )}
                         </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                        {can.requestMerge && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setMerging(true)}
+                            >
+                                <GitMerge /> Request merge
+                            </Button>
+                        )}
+                        {can.merge && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setMerging(true)}
+                            >
+                                <GitMerge /> Merge with…
+                            </Button>
+                        )}
                         {can.update && (
                             <Button variant="outline" asChild>
                                 <Link href={PersonController.edit(person.ulid)}>
@@ -791,6 +818,8 @@ export default function PersonShow({
                     </div>
                 )}
 
+                {tab === 'profile' && <MergedRecords merges={merges} />}
+
                 {tab === 'aliases' && aliases && (
                     <AliasesPanel
                         person={person}
@@ -895,6 +924,20 @@ export default function PersonShow({
                     </div>
                 )}
             </div>
+
+            {merging && can.requestMerge && (
+                <RequestMergeDialog
+                    open
+                    onOpenChange={setMerging}
+                    person={{ ulid: person.ulid, name: person.name }}
+                />
+            )}
+            {merging && can.merge && (
+                <MergeWithDialog
+                    person={{ ulid: person.ulid, name: person.name }}
+                    onClose={() => setMerging(false)}
+                />
+            )}
 
             {deleting && (
                 <ConfirmActionDialog

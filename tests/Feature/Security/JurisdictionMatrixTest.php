@@ -53,6 +53,9 @@ const EXCLUDED = [
     'system/rollout/{state}' => 'Pilot rollout switch (states are national reference data; super admins only): GoLive/PilotRolloutTest',
     'reports/runs/{run}/download' => 'Requester-only report file: Reports/ReportsTest',
     'reports/schedules/{schedule}' => 'Owner-only schedule: Reports/ReportsTest',
+    'persons/merges/{merge}/undo' => 'Person merge (needs an executed merge): Persons/Merge/MergeHttpTest',
+    'persons/merges/{merge}/history' => 'Person merge: Persons/Merge/MergeHttpTest',
+    'persons/merge-requests/{mergeRequest}/decline' => 'Person merge request: Persons/Merge/MergeHttpTest',
 ];
 
 /**

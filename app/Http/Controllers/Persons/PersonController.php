@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Presenters\AccessRequestPresenter;
 use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\CriminalGroupPresenter;
+use App\Http\Presenters\MergePresenter;
 use App\Http\Presenters\PersonPresenter;
 use App\Http\Presenters\PoiPresenter;
 use App\Http\Presenters\PoliticalPresenter;
@@ -26,6 +27,8 @@ use App\Models\Media;
 use App\Models\Person;
 use App\Models\PersonAlias;
 use App\Models\PersonAssociation;
+use App\Models\PersonMerge;
+use App\Models\PersonMergeRequest;
 use App\Models\PersonOfInterest;
 use App\Models\PersonRole;
 use App\Models\PoliticalOffice;
@@ -253,7 +256,17 @@ class PersonController extends Controller
                 : null,
             'poiOptions' => $tab === 'poi' ? PoiPresenter::options() : null,
             'grant' => null,
+            // Records merged into this one (Phase 10A), newest first.
+            'merges' => PersonMerge::query()->with(['source'])
+                ->where('survivor_person_id', $person->id)
+                ->latest('id')
+                ->get()
+                ->filter(fn (PersonMerge $merge) => $actor->can('view', $merge))
+                ->map(fn (PersonMerge $merge) => MergePresenter::merged($merge, $actor, $person))
+                ->values(),
             'can' => [
+                'requestMerge' => $actor->can('create', PersonMergeRequest::class) && $actor->can('requestMerge', $person),
+                'merge' => $actor->can('merge', $person),
                 'update' => $actor->can('update', $person),
                 'delete' => $actor->can('delete', $person),
                 'viewPolitical' => $actor->can('viewAny', PoliticalOffice::class),
@@ -307,6 +320,7 @@ class PersonController extends Controller
             'groupMemberships' => null,
             'grantMemberships' => $tab === 'group_memberships' ? $extra['groupMemberships'] ?? [] : null,
             'poiOptions' => null,
+            'merges' => [],
             'grant' => [
                 'ulid' => $grant->ulid,
                 'scope' => ['value' => $grant->scope->value, 'label' => $grant->scope->label()],
@@ -315,6 +329,8 @@ class PersonController extends Controller
                 'expiresAt' => $grant->expires_at->toIso8601String(),
             ],
             'can' => [
+                'requestMerge' => false,
+                'merge' => false,
                 'update' => false,
                 'delete' => false,
                 'viewPolitical' => $full,
@@ -521,6 +537,16 @@ class PersonController extends Controller
      * @return LengthAwarePaginator<int, array<string, mixed>>
      */
     private function history(Person $person): LengthAwarePaginator
+    {
+        return self::historyOf($person);
+    }
+
+    /**
+     * A person's audit history (also a merged record's, Phase 10A).
+     *
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    public static function historyOf(Person $person): LengthAwarePaginator
     {
         return Activity::query()
             ->with(['causer', 'subject'])

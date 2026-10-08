@@ -2,6 +2,8 @@
 
 namespace App\Actions\Dashboard;
 
+use App\Enums\MergeRequestStatus;
+use App\Enums\Permission;
 use App\Enums\Role;
 use App\Enums\SecurityNoteStatus;
 use App\Enums\VulnerableCategory;
@@ -10,6 +12,7 @@ use App\Models\CriminalGroup;
 use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\OfficerPosting;
+use App\Models\PersonMergeRequest;
 use App\Models\PersonOfInterest;
 use App\Models\State;
 use App\Models\ThreatReport;
@@ -28,6 +31,7 @@ use App\Support\Dashboard\ThreatFigures;
 use App\Support\Dashboard\ThreatReportFigures;
 use App\Support\Jurisdiction\JurisdictionLabel;
 use App\Support\LocalGovernment\ProfileCompleteness;
+use App\Support\Persons\Merge\DuplicateCounts;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -104,6 +108,13 @@ final class BuildStateDashboard
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forState($state) : null,
             // Dissemination (Phase 7A).
             'sharedWithUs' => app(DisseminationFigures::class)->unacknowledged($user),
+            // Phase 10A: last night's duplicate candidate count (counts only;
+            // State Directors only, as it includes records above a deputy's
+            // clearance), and pending merge requests.
+            'duplicates' => $user->checkPermissionTo(Permission::PersonsMerge->value) ? [
+                'nightly' => DuplicateCounts::forState($state->id),
+                'pendingRequests' => PersonMergeRequest::query()->where('status', MergeRequestStatus::Pending->value)->count(),
+            ] : null,
             'placeholders' => PlaceholderCards::for($label, $user),
         ];
     }

@@ -5,6 +5,8 @@ use App\Http\Controllers\Persons\PersonAssociationController;
 use App\Http\Controllers\Persons\PersonController;
 use App\Http\Controllers\Persons\PersonPhotoController;
 use App\Http\Controllers\Persons\PersonPickerController;
+use App\Support\Jurisdiction\MergedPersonRedirect;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Persons (Phase 3A). {person} is bound through the jurisdiction and
@@ -22,7 +24,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('persons', [PersonController::class, 'store'])->name('persons.store');
 
     Route::whereUlid('person')->group(function () {
-        Route::get('persons/{person}', [PersonController::class, 'show'])->name('persons.show');
+        // A merged record redirects to its survivor, for viewers who can see it (Phase 10A).
+        Route::get('persons/{person}', [PersonController::class, 'show'])->name('persons.show')
+            ->missing(fn (Request $request) => MergedPersonRedirect::respond($request));
         Route::get('persons/{person}/edit', [PersonController::class, 'edit'])->name('persons.edit');
         Route::put('persons/{person}', [PersonController::class, 'update'])->name('persons.update');
         Route::delete('persons/{person}', [PersonController::class, 'destroy'])->name('persons.destroy');

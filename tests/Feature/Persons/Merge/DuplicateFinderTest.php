@@ -6,6 +6,7 @@ use App\Models\Person;
 use App\Models\PersonAlias;
 use App\Models\User;
 use App\Support\Jurisdiction\JurisdictionContext;
+use App\Support\Persons\Merge\DuplicateCounts;
 use App\Support\Persons\Merge\PersonDuplicateFinder;
 use App\Support\Search\Trigram;
 use Illuminate\Support\Facades\DB;
@@ -172,4 +173,22 @@ test('the finder stays fast at volume and uses the blind index', function () {
 test('candidate strengths are ordered', function () {
     expect(DuplicateStrength::Certain->rank())->toBeGreaterThan(DuplicateStrength::Strong->rank())
         ->and(DuplicateStrength::Strong->rank())->toBeGreaterThan(DuplicateStrength::Possible->rank());
+});
+
+test('the nightly job counts candidates per state for the State Director\'s dashboard (counts only)', function () {
+    Person::factory()->in($this->world->lgas['A1a'])->named('Nin', 'One')->create(['nin' => '77777777777']);
+    Person::factory()->in($this->world->lgas['A1b'])->classified(Classification::Secret)->named('Nin', 'Two')->create(['nin' => '77777777777']);
+    Person::factory()->in($this->world->lgas['A2'])->named('Zone', 'One')->create(['phone' => '08030001111']);
+    Person::factory()->in($this->world->lgas['A2'])->named('Zone', 'Two')->create(['phone' => '08030001111']);
+
+    $this->artisan('buffalo:persons:count-duplicates')->assertSuccessful();
+
+    expect(DuplicateCounts::forState($this->world->states['A1']->id))->toMatchArray(['certain' => 1, 'strong' => 0, 'possible' => 0, 'total' => 1])
+        ->and(DuplicateCounts::forState($this->world->states['A2']->id))->toMatchArray(['strong' => 1, 'total' => 1]);
+
+    $sd = CrossFixtures::signIn($this->world->users['state_director'])->get('/dashboard');
+    $sd->assertInertia(fn ($page) => $page->where('duplicates.nightly.total', 1)->where('duplicates.pendingRequests', 0));
+    // A deputy's view excludes secret records, so the state count is not shown to them.
+    CrossFixtures::signIn($this->world->users['deputy_state_director'])->get('/dashboard')
+        ->assertInertia(fn ($page) => $page->where('duplicates', null));
 });

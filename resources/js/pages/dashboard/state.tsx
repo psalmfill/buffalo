@@ -1,6 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import { StateThreats } from '@/components/dashboard/threat-report-figures';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
+import PersonDuplicateController from '@/actions/App/Http/Controllers/Persons/PersonDuplicateController';
+import PersonMergeRequestController from '@/actions/App/Http/Controllers/Persons/PersonMergeRequestController';
 import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOfInterest/PersonOfInterestController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
@@ -39,6 +41,7 @@ export default function StateDashboard({
     access,
     coverage,
     organizations,
+    duplicates,
 }: StateDashboardProps) {
     const { can } = useAuth();
     const vacant = lgas.filter((lga) => lga.chief === null).length;
@@ -99,6 +102,31 @@ export default function StateDashboard({
                                 />
                             )}
                         </div>
+                    </div>
+                )}
+
+                {duplicates && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <StatCard
+                            label="Possible duplicate persons"
+                            value={duplicates.nightly?.total ?? 0}
+                            tone={
+                                (duplicates.nightly?.certain ?? 0) > 0
+                                    ? 'warning'
+                                    : 'default'
+                            }
+                            href={PersonDuplicateController.index()}
+                        />
+                        <StatCard
+                            label="Merge requests waiting"
+                            value={duplicates.pendingRequests}
+                            tone={
+                                duplicates.pendingRequests > 0
+                                    ? 'warning'
+                                    : 'default'
+                            }
+                            href={PersonMergeRequestController.index()}
+                        />
                     </div>
                 )}
 

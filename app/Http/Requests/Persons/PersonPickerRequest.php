@@ -26,6 +26,8 @@ class PersonPickerRequest extends FormRequest
             'q' => ['required', 'string', 'min:2', 'max:100'],
             'role' => ['nullable', Rule::enum(PersonRoleType::class)],
             'except' => ['nullable', 'string', 'size:26'],
+            // Own jurisdiction only, never records seen under a grant (Phase 10A merge requests).
+            'own' => ['nullable', 'boolean'],
         ];
     }
 }
