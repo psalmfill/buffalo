@@ -29,6 +29,9 @@ class InvalidateIncidentRequest extends FormRequest
         return [
             'reason' => ['required', Rule::enum(InvalidReason::class)],
             'note' => ['nullable', 'string', 'max:5000', 'required_if:reason,other'],
+            // Phase 10B: consolidate the duplicate's content into the original.
+            'consolidate' => ['boolean'],
+            'amendment_reason' => ['nullable', 'string', 'max:2000'],
             'duplicate_of' => ['nullable', 'string', 'required_if:reason,duplicate', 'prohibited_unless:reason,duplicate', function (string $attribute, mixed $value, Closure $fail): void {
                 $original = $this->duplicateOf();
                 /** @var Incident $incident */

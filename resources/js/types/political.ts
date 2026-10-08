@@ -26,7 +26,7 @@ export type PoliticalOffice = {
     ended_on: string | null;
     current: boolean;
     person: NamedRef | null;
-    can?: { update: boolean; delete: boolean };
+    can?: { update: boolean; delete: boolean; reassign?: boolean };
 };
 
 export type TimelineEntry = {

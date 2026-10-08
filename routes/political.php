@@ -32,5 +32,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('political-offices/{office}/edit', [PoliticalOfficeController::class, 'edit'])->name('political-offices.edit');
         Route::put('political-offices/{office}', [PoliticalOfficeController::class, 'update'])->name('political-offices.update');
         Route::delete('political-offices/{office}', [PoliticalOfficeController::class, 'destroy'])->name('political-offices.destroy');
+        Route::post('political-offices/{office}/reassign', [PoliticalOfficeController::class, 'reassign'])->name('political-offices.reassign');
     });
 });

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\OfficerNames;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -43,6 +44,9 @@ final class EvidencePresenter
         return [
             'ulid' => $evidence->ulid,
             'title' => $evidence->title,
+            // Moved from a duplicate (Phase 10B): "From BUF/…".
+            'consolidatedFrom' => $evidence->consolidated_from_incident_id === null ? null
+                : DB::table('incidents')->where('id', $evidence->consolidated_from_incident_id)->value('reference_no'),
             'description' => $evidence->description,
             'type' => ['value' => $evidence->evidence_type->value, 'label' => $evidence->evidence_type->label()],
             'mime_type' => $evidence->mime_type,
@@ -180,6 +184,7 @@ final class EvidencePresenter
             'location_changed' => ['metadata', 'Capture location changed', null],
             'integrity_verified' => ['integrity', 'Integrity verified', 'The stored file matches its recorded hash.'],
             'integrity_failure' => ['integrity_failure', 'Integrity check failed', 'The stored file does not match its recorded hash ('.($properties['context'] ?? 'check').').'],
+            'consolidated' => ['consolidated', 'Consolidated', 'Moved from '.($properties['from'] ?? '?').' to '.($properties['to'] ?? '?').' (file, hash and history unchanged).'],
             'evidence_deleted' => ['deleted', 'Removed from the incident', is_string($properties['reason'] ?? null) ? 'Reason: '.$properties['reason'] : null],
             default => null,
         };

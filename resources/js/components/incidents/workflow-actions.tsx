@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import IncidentWorkflowController from '@/actions/App/Http/Controllers/Incidents/IncidentWorkflowController';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
+import ConsolidationPreview from '@/components/incidents/consolidation-preview';
 import { Field } from '@/components/incidents/editor-parts';
 import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
@@ -18,9 +19,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { getJson } from '@/lib/http';
 import { formatDateTime } from '@/lib/time';
+import type { ConsolidationPreview as ConsolidationPreviewData } from '@/types/incidents';
 import type {
     DuplicateRow,
     IncidentRecord,
@@ -476,7 +479,40 @@ export function InvalidateDialog({
     const form = useForm({
         reason: preset ? 'duplicate' : 'false_report',
         note: '',
+        // Phase 10B: consolidate the duplicate's content into the original.
+        consolidate: true,
+        amendment_reason: '',
     });
+    const [preview, setPreview] = useState<ConsolidationPreviewData | null>(
+        null,
+    );
+    const originalUlid = original?.value ?? null;
+    const wantsPreview = form.data.reason === 'duplicate' && originalUlid;
+
+    useEffect(() => {
+        if (!wantsPreview || !originalUlid) {
+            return;
+        }
+
+        let active = true;
+        getJson<ConsolidationPreviewData>(
+            IncidentWorkflowController.consolidation(incidentUlid, {
+                query: { original: originalUlid },
+            }).url,
+        )
+            .then((data) => active && setPreview(data))
+            .catch(() => active && setPreview(null));
+
+        return () => {
+            active = false;
+        };
+    }, [wantsPreview, originalUlid, incidentUlid]);
+
+    const consolidating =
+        form.data.reason === 'duplicate' &&
+        form.data.consolidate &&
+        preview !== null &&
+        preview.allowed;
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
@@ -484,7 +520,13 @@ export function InvalidateDialog({
             reason: data.reason,
             note: data.note || null,
             ...(data.reason === 'duplicate'
-                ? { duplicate_of: original?.value ?? null }
+                ? {
+                      duplicate_of: original?.value ?? null,
+                      consolidate: consolidating,
+                      ...(consolidating && preview?.requiresAmendmentReason
+                          ? { amendment_reason: data.amendment_reason }
+                          : {}),
+                  }
                 : {}),
         }));
         form.post(IncidentWorkflowController.invalidate(incidentUlid).url, {
@@ -551,9 +593,55 @@ export function InvalidateDialog({
                                     params={{ except: incidentUlid }}
                                     placeholder="Reference number or title"
                                     value={original}
-                                    onChange={setOriginal}
+                                    onChange={(value) => {
+                                        setPreview(null);
+                                        setOriginal(value);
+                                    }}
                                 />
                             </Field>
+                            {original && (
+                                <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox
+                                        checked={form.data.consolidate}
+                                        onCheckedChange={(checked) =>
+                                            form.setData(
+                                                'consolidate',
+                                                checked === true,
+                                            )
+                                        }
+                                    />
+                                    Consolidate into the original
+                                </label>
+                            )}
+                            {original &&
+                                form.data.consolidate &&
+                                (preview === null ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        Preparing the consolidation preview…
+                                    </p>
+                                ) : (
+                                    <ConsolidationPreview preview={preview} />
+                                ))}
+                            {consolidating &&
+                                preview?.requiresAmendmentReason && (
+                                    <Field
+                                        id="consolidate-amendment"
+                                        label="Amendment reason (the original is verified)"
+                                        error={errors.amendment_reason}
+                                    >
+                                        <Textarea
+                                            id="consolidate-amendment"
+                                            rows={2}
+                                            value={form.data.amendment_reason}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'amendment_reason',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </Field>
+                                )}
                         </div>
                     )}
                     <Field
@@ -583,7 +671,9 @@ export function InvalidateDialog({
                             variant="destructive"
                             disabled={form.processing}
                         >
-                            Mark invalid
+                            {consolidating
+                                ? 'Consolidate and mark invalid'
+                                : 'Mark invalid'}
                         </Button>
                     </DialogFooter>
                 </form>

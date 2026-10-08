@@ -93,6 +93,54 @@ export type TimelineEntry = {
     body: string | null;
     who: string | null;
     classification: { value: ClassificationLevel; label: string } | null;
+    /** A follow-up copied from a duplicate (Phase 10B): its original author and time. */
+    origin: string | null;
+};
+
+/** Phase 10B: what consolidating a duplicate into the original would do. */
+export type ConsolidationItem = {
+    kind:
+        | 'evidence'
+        | 'update'
+        | 'person'
+        | 'group'
+        | 'agency'
+        | 'property'
+        | 'flashpoint'
+        | 'threat'
+        | 'access_request';
+    outcome:
+        | 'move'
+        | 'copy'
+        | 'add'
+        | 'skip'
+        | 'not_consolidated'
+        | 'left'
+        | 'repoint';
+    label: string | null;
+    detail: string | null;
+};
+
+export type CasualtyComparisonRow = {
+    ulid: string;
+    outcome: { value: string; label: string };
+    group: { value: string; label: string };
+    agency: { name: string } | null;
+    total: number;
+};
+
+export type ConsolidationPreview = {
+    allowed: boolean;
+    refusal: string | null;
+    requiresAmendmentReason: boolean;
+    original: { ulid: string; reference_no: string | null; title: string };
+    duplicate: { ulid: string; reference_no: string | null; title: string };
+    items: ConsolidationItem[];
+    casualties: {
+        duplicate: CasualtyComparisonRow[];
+        original: CasualtyComparisonRow[];
+    };
+    amendUrl: string | null;
 };
 
 export type WorkflowCan = {

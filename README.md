@@ -606,6 +606,11 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **What a merge does:** see `docs/architecture/person-references.md`. Everything moves to the survivor in one transaction (closed incidents included, through one documented exception in the incident lock trigger); the higher classification wins; grants and open access requests on the merged record are revoked or cancelled, never transferred; the merged record is soft-deleted and its URL redirects to the survivor for viewers who can see it.
 - **Undo:** for `BUFFALO_MERGE_UNDO_DAYS` (30) days from the survivor's **Merged records**, with a reason and an authenticator code. A manifest in `person_merges` (append-only, hash-chained) records every row that moved; the survivor's prior values are kept encrypted and erased daily once the window has passed (`buffalo:merges:erase-prior-values`).
 
+## Consolidating duplicate incidents and correcting office holders (Phase 10B)
+
+- **Consolidation:** invalidating an incident as a **Duplicate** offers **Consolidate into the original** (on by default). In one transaction it moves evidence (file, hash, custody and ULID unchanged), copies follow-ups with their original author and time, adds persons, groups, agencies, property and flashpoint or threat links the original lacks (appending notes otherwise), repoints access requests citing the duplicate, then invalidates and locks the duplicate. Casualty figures are never summed. Items above the user's clearance are listed and left in place. Each consolidation is recorded in `incident_consolidations` (append-only, hash-chained) and cannot be undone.
+- **Office holders:** **Reassign holder** on a political office (State Directors, DG, DDG; reason required) corrects an office recorded against the wrong person; both persons' histories show it. An office that changed hands is still ended and recorded anew.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.

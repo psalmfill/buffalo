@@ -29,6 +29,7 @@ final class AuditChain
         'analytics_exports' => ['created_at', []],
         'flashpoint_assessments' => ['assessed_at', ['state_id', 'lga_id']],
         'golive_decisions' => ['created_at', []],
+        'incident_consolidations' => ['consolidated_at', ['state_id', 'lga_id']],
         'incident_status_histories' => ['changed_at', ['state_id', 'lga_id']],
         'incident_updates' => ['created_at', ['state_id', 'lga_id']],
         'login_histories' => ['created_at', []],

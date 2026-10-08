@@ -28,6 +28,8 @@ Route::middleware(['auth'])->group(function () {
 
         // Workflow (Phase 5C).
         Route::get('incidents/{incident}/duplicates', [IncidentWorkflowController::class, 'duplicates'])->name('incidents.duplicates');
+        // Phase 10B: what consolidating this duplicate into ?original= would do.
+        Route::get('incidents/{incident}/consolidation', [IncidentWorkflowController::class, 'consolidation'])->name('incidents.consolidation');
         foreach (['submit', 'return', 'verify', 'resolve', 'reopen', 'close', 'invalidate', 'escalate', 'acknowledge'] as $step) {
             Route::post("incidents/{incident}/{$step}", [IncidentWorkflowController::class, $step])->name("incidents.{$step}");
         }

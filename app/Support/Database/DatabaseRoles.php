@@ -47,6 +47,7 @@ final class DatabaseRoles
     /** Append-only except the place columns, which follow their parent. */
     public const FOLLOW_PLACE = [
         'flashpoint_assessments',
+        'incident_consolidations',
         'incident_status_histories',
         'incident_updates',
     ];

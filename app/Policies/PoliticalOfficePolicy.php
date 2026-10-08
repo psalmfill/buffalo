@@ -44,6 +44,17 @@ final class PoliticalOfficePolicy
         return $actor->checkPermissionTo(Permission::PoliticalDelete->value) && $this->reachable($actor, $office);
     }
 
+    /**
+     * Correct the holder of an office recorded against the wrong person
+     * (Phase 10B.3): State Directors and national users, on an office they
+     * can edit. The new holder is checked by the action (`link`: own
+     * jurisdiction).
+     */
+    public function reassign(User $actor, PoliticalOffice $office): bool
+    {
+        return $actor->checkPermissionTo(Permission::PoliticalReassign->value) && $this->update($actor, $office);
+    }
+
     private function reachable(User $actor, PoliticalOffice $office): bool
     {
         $person = Person::query()->find($office->person_id);

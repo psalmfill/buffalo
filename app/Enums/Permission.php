@@ -68,6 +68,8 @@ enum Permission: string
     case PoliticalView = 'political.view';
     case PoliticalManage = 'political.manage';
     case PoliticalDelete = 'political.delete';
+    // Phase 10B: correct an office recorded against the wrong person.
+    case PoliticalReassign = 'political.reassign';
     case PoiView = 'poi.view';
     case PoiManage = 'poi.manage';
     case PoiClear = 'poi.clear';

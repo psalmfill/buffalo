@@ -39,6 +39,7 @@ export const PERMISSIONS = [
     'political.view',
     'political.manage',
     'political.delete',
+    'political.reassign',
     'poi.view',
     'poi.manage',
     'poi.clear',

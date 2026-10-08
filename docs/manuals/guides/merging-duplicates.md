@@ -96,3 +96,16 @@ with a reason and an authenticator code:
 - A merge cannot be undone once the survivor has been merged into another
   record, or after another record was merged into it later (undo that one
   first), or if a link has since been moved elsewhere.
+
+## Correcting a political office's holder
+
+If a political office was recorded against the wrong person, a State
+Director, the DG or a DDG can open the person's **Political offices** tab and
+choose **Reassign holder** on that office. Pick the correct person (from your
+own jurisdiction) and give the reason (at least 20 characters). The correct
+person becomes a political leader; the other person loses that role unless
+they hold another current office. Both persons' histories record the change.
+
+This is only for mistakes. When an office **changes hands**, edit the office
+to set its end date and record the office for the new holder.
+

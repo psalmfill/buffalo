@@ -4,10 +4,13 @@ namespace App\Http\Presenters;
 
 use App\Enums\AccessAction;
 use App\Models\Incident;
+use App\Models\IncidentConsolidation;
 use App\Models\IncidentEvidence;
 use App\Models\IncidentStatusHistory;
 use App\Models\IncidentUpdate;
+use App\Support\Incidents\Consolidation;
 use App\Support\Jurisdiction\OfficerNames;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The incident Timeline tab (Phase 5C): status changes, follow-ups,
@@ -19,7 +22,7 @@ use App\Support\Jurisdiction\OfficerNames;
 final class IncidentTimeline
 {
     /**
-     * @return list<array{at: string, kind: string, label: string, body: string|null, who: string|null, classification: array{value: string, label: string}|null}>
+     * @return list<array{at: string, kind: string, label: string, body: string|null, who: string|null, classification: array{value: string, label: string}|null, origin: string|null}>
      */
     public static function for(Incident $incident): array
     {
@@ -61,6 +64,8 @@ final class IncidentTimeline
                 'label' => $update->type->label(),
                 'body' => $update->body,
                 'who' => $names->get($update->created_by),
+                // A follow-up copied from a duplicate (Phase 10B): its original author and time.
+                'origin' => Consolidation::attribution($update),
                 'classification' => ['value' => $update->classificationLevel()->value, 'label' => $update->classificationLevel()->label()],
             ];
         }
@@ -98,6 +103,21 @@ final class IncidentTimeline
             ];
         }
 
+        // Consolidations into this incident (Phase 10B).
+        $consolidations = IncidentConsolidation::query()->where('original_incident_id', $incident->id)->orderBy('consolidated_at')->get();
+        $consolidators = OfficerNames::for($consolidations->map(fn (IncidentConsolidation $c) => $c->consolidated_by));
+        foreach ($consolidations as $consolidation) {
+            $entries[] = [
+                'at' => $consolidation->consolidated_at->toIso8601String(),
+                'kind' => 'consolidated',
+                'label' => 'Content consolidated from '.DB::table('incidents')->where('id', $consolidation->duplicate_incident_id)->value('reference_no'),
+                'body' => null,
+                'who' => $consolidators->get($consolidation->consolidated_by),
+                'classification' => null,
+            ];
+        }
+
+        $entries = array_map(fn (array $entry) => ['origin' => null, ...$entry], $entries);
         usort($entries, fn (array $a, array $b) => strcmp($a['at'], $b['at']));
 
         return $entries;

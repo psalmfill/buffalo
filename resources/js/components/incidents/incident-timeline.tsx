@@ -64,6 +64,11 @@ export default function IncidentTimeline({
                                 {formatDateTime(entry.at)}
                             </span>
                         </div>
+                        {entry.origin && (
+                            <p className="mt-1 text-xs text-muted-foreground italic">
+                                {entry.origin}
+                            </p>
+                        )}
                         {entry.body && (
                             <p className="mt-2 whitespace-pre-line">
                                 {entry.body}

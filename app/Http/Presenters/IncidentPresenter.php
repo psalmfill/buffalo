@@ -159,6 +159,17 @@ final class IncidentPresenter
     }
 
     /**
+     * An incident's casualty rows (Phase 10B consolidation comparison).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function casualtyRows(Incident $incident): array
+    {
+        return array_values(IncidentCasualty::query()->with('agency')->where('incident_id', $incident->id)->orderBy('id')->get()
+            ->map(fn (IncidentCasualty $row) => self::casualty($row))->all());
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function casualty(IncidentCasualty $row): array

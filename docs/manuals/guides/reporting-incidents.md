@@ -85,6 +85,35 @@ the deadline the national level is told.
 a duplicate or entered in error. A reason is required (and the original for a
 duplicate). Invalid incidents are locked and never counted in figures.
 
+### Consolidating a duplicate
+
+When the reason is **Duplicate** and you have chosen the original,
+**Consolidate into the original** (on by default) first carries anything
+useful on the duplicate over to the original. The dialog lists every item and
+what will happen to it:
+
+- **Evidence** is moved: the file, its SHA-256 hash and its custody history
+  are unchanged, and the custody record shows the move. The original's
+  Evidence tab marks it "From BUF/…". Evidence below the original's
+  classification is raised to match.
+- **Follow-ups** are copied to the original's Timeline, marked "Originally
+  recorded on BUF/… by [name] at [time]". The originals stay on the
+  duplicate.
+- **Persons, criminal groups, agencies and property** are added when the
+  original does not already list them; otherwise their notes are added,
+  labelled with the duplicate's reference.
+- **Casualties** are never moved or added up. The dialog shows both tables;
+  if the duplicate's figures are better, amend the original's figures.
+- **Flashpoint and threat links** are added where you may manage them;
+  **access requests** that cited the duplicate now cite the original.
+- Anything above your clearance, or not visible to you, is listed as
+  **not consolidated** and left on the duplicate.
+
+You need the right to edit the original (an amendment reason if it is
+verified); a closed or invalid original cannot receive content.
+Consolidation **cannot be undone**: the duplicate is invalid and locked
+afterwards, with its own reference and history.
+
 ## Escalation to national level
 
 Escalation is a flag, separate from the status. The State Director or Deputy

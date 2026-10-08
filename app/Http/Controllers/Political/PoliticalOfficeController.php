@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Political;
 
 use App\Actions\CommunityInformation\DeleteWithReason;
+use App\Actions\Political\ReassignPoliticalOffice;
 use App\Actions\Political\SavePoliticalOffice;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\PoliticalPresenter;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Political\PoliticalOfficeRequest;
+use App\Http\Requests\Political\ReassignPoliticalOfficeRequest;
 use App\Models\Lga;
 use App\Models\Person;
 use App\Models\PoliticalOffice;
@@ -59,6 +61,23 @@ class PoliticalOfficeController extends Controller
         $result = $save->update($office, $request->values(), $this->actor($request));
 
         return $this->saved(Person::query()->findOrFail($office->person_id), $result['warnings'], 'Office saved.');
+    }
+
+    /**
+     * Correct the holder (Phase 10B.3): the new holder must be a person in
+     * the user's own jurisdiction.
+     */
+    public function reassign(ReassignPoliticalOfficeRequest $request, PoliticalOffice $office, ReassignPoliticalOffice $reassign): RedirectResponse
+    {
+        $this->authorize('reassign', $office);
+        $actor = $this->actor($request);
+        $newHolder = Person::query()->ownJurisdiction($actor)->where('ulid', strtolower((string) $request->validated('person')))->firstOrFail();
+        $this->authorize('link', $newHolder);
+
+        $reassign($office, $newHolder, $actor, (string) $request->validated('reason'));
+
+        return redirect()->route('persons.show', ['person' => $newHolder, 'tab' => 'political_offices'])
+            ->with('toast', ['type' => 'success', 'message' => 'Office holder corrected.']);
     }
 
     public function destroy(DeleteRecordRequest $request, PoliticalOffice $office, DeleteWithReason $delete): RedirectResponse

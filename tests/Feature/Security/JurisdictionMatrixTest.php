@@ -96,6 +96,7 @@ const ROUTE_PERMISSIONS = [
     'incidents.edit' => ['incidents.update'],
     'incidents.print' => ['incidents.view'],
     'incidents.duplicates' => ['incidents.view'],
+    'incidents.consolidation' => ['incidents.view', 'incidents.invalidate'],
     'evidence.show' => ['incidents.view'],
     'evidence.custody' => ['incidents.view'],
     'evidence.thumb' => ['incidents.view'],
@@ -119,6 +120,7 @@ const INSIDE_EXCEPTIONS = [
     'coverage-reports.edit' => [['lga_chief'], 'Chiefs edit only coverage reports they created (CoverageReportPolicy::update)'],
     'incidents.edit' => [['lga_chief'], 'After submission, edits are amendments and need incidents.amend (IncidentPolicy::update)'],
     'threats.edit' => [['lga_chief'], 'Chiefs edit only threat reports they created (ThreatReportPolicy::update)'],
+    'incidents.consolidation' => [['director_general', 'ddg_zone_a', 'state_director'], 'The preview needs ?original= (the original incident; 404 without it): Incidents/ConsolidationTest'],
 ];
 
 beforeEach(function () {

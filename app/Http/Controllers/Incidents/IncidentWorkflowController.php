@@ -23,10 +23,12 @@ use App\Http\Requests\Incidents\IncidentUpdateRequest;
 use App\Http\Requests\Incidents\InvalidateIncidentRequest;
 use App\Models\Incident;
 use App\Models\User;
+use App\Support\Incidents\Consolidation;
 use App\Support\Incidents\PossibleDuplicates;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The incident workflow (Phase 5C): submission, review transitions,
@@ -101,9 +103,52 @@ class IncidentWorkflowController extends Controller
         $this->authorize('invalidate', $incident);
         $reason = InvalidReason::from((string) $request->validated('reason'));
 
-        $invalid = $invalidate($incident, $this->actor($request), $reason, $request->note(), $reason === InvalidReason::Duplicate ? $request->duplicateOf() : null);
+        $original = $reason === InvalidReason::Duplicate ? $request->duplicateOf() : null;
+        $consolidate = $original !== null && $request->boolean('consolidate');
 
-        return $this->done($invalid, 'Incident marked invalid. It is now locked.');
+        if ($consolidate) {
+            if ($original->isLocked()) {
+                throw ValidationException::withMessages(['duplicate_of' => 'The original incident is closed or invalid: it cannot receive content.']);
+            }
+
+            $this->authorize('update', $original);
+        }
+
+        $invalid = $invalidate($incident, $this->actor($request), $reason, $request->note(), $original, $consolidate, $request->validated('amendment_reason'));
+
+        return $this->done($invalid, $consolidate
+            ? "Content consolidated into {$original->reference_no}. This incident is now invalid and locked."
+            : 'Incident marked invalid. It is now locked.');
+    }
+
+    /**
+     * The consolidation preview (Phase 10B.4): every item on the duplicate
+     * with its outcome, and both incidents' casualties side by side. JSON;
+     * the original is found through the user's scopes.
+     */
+    public function consolidation(Request $request, Incident $incident, Consolidation $consolidation): JsonResponse
+    {
+        $this->authorize('invalidate', $incident);
+        $original = Incident::query()->where('ulid', (string) $request->query('original'))->firstOrFail();
+        abort_if($original->id === $incident->id, 404);
+        $actor = $this->actor($request);
+
+        $allowed = $actor->can('update', $original) && ! $original->isLocked();
+        $plan = $allowed ? $consolidation->plan($incident, $original, $actor) : [];
+
+        return response()->json([
+            'allowed' => $allowed,
+            'refusal' => $allowed ? null : ($original->isLocked() ? 'The original incident is closed or invalid: it cannot receive content.' : 'You may not edit the original incident, so its content cannot be consolidated.'),
+            'requiresAmendmentReason' => $original->requiresAmendmentReason(),
+            'original' => ['ulid' => $original->ulid, 'reference_no' => $original->reference_no, 'title' => $original->title],
+            'duplicate' => ['ulid' => $incident->ulid, 'reference_no' => $incident->reference_no, 'title' => $incident->title],
+            'items' => array_map(fn (array $item) => array_diff_key($item, ['id' => true, 'target' => true]), $plan),
+            'casualties' => [
+                'duplicate' => IncidentPresenter::casualtyRows($incident),
+                'original' => IncidentPresenter::casualtyRows($original),
+            ],
+            'amendUrl' => $allowed ? route('incidents.edit', $original) : null,
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     public function escalate(IncidentTransitionRequest $request, Incident $incident, EscalateIncident $escalate): RedirectResponse

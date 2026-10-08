@@ -26,6 +26,7 @@ final class IncidentNotification extends BuffaloNotification
         'escalated_update' => 'New update on an escalated incident',
         'verification_overdue' => 'Incident awaiting verification',
         'verification_overdue_national' => 'Incident still unverified',
+        'consolidated' => 'Information added to your incident',
     ];
 
     public function __construct(
@@ -55,6 +56,7 @@ final class IncidentNotification extends BuffaloNotification
             'verification_overdue' => "{$what} is past its verification deadline.",
             'verification_overdue_national' => "{$what} is still unverified at twice its verification deadline.",
             'acknowledged' => "National level acknowledged the escalation of {$what}.",
+            'consolidated' => "Information from another report was added to your incident {$what}.",
             default => $what,
         };
     }

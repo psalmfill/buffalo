@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $body
  * @property Classification $classification
  * @property int $created_by
+ * @property int|null $copied_from_update_id Phase 10B: copied from a duplicate's follow-up
  * @property CarbonImmutable $created_at
  * @property-read Incident $incident
  * @property-read User $author

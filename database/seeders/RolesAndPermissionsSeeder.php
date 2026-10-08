@@ -167,6 +167,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permission::PoliticalView->value => self::INTELLIGENCE_ROLES,
                 Permission::PoliticalManage->value => self::INTELLIGENCE_ROLES,
                 Permission::PoliticalDelete->value => self::DELETE_ROLES,
+                // Phase 10B — reassigning an office recorded against the wrong person
+                Permission::PoliticalReassign->value => self::DELETE_ROLES,
             ],
             'persons_of_interest' => [
                 Permission::PoiView->value => self::INTELLIGENCE_ROLES,

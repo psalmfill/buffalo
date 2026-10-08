@@ -9,6 +9,8 @@ export type EvidenceKind = 'image' | 'document' | 'video' | 'audio';
 export type EvidenceItem = {
     ulid: string;
     title: string;
+    /** Moved from a duplicate incident (Phase 10B): its reference. */
+    consolidatedFrom: string | null;
     description: string | null;
     type: { value: EvidenceKind; label: string };
     mime_type: string;

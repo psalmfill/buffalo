@@ -50,6 +50,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
  * @property CarbonImmutable|null $deleted_at
  * @property float|null $latitude
  * @property float|null $longitude
+ * @property int|null $consolidated_from_incident_id Phase 10B: moved from a duplicate
  * @property-read User $uploader
  */
 class IncidentEvidence extends IncidentChild implements Classified, HasMedia

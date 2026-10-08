@@ -577,7 +577,7 @@ class PersonController extends Controller
         $user = request()->user();
         $present = fn (PoliticalOffice $o) => [
             ...PoliticalPresenter::office($o, withPerson: false),
-            'can' => ['update' => $user?->can('update', $o) ?? false, 'delete' => $user?->can('delete', $o) ?? false],
+            'can' => ['update' => $user?->can('update', $o) ?? false, 'delete' => $user?->can('delete', $o) ?? false, 'reassign' => $user?->can('reassign', $o) ?? false],
         ];
 
         return [

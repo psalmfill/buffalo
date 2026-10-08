@@ -423,6 +423,12 @@ export default function EvidenceSection({
                                         <span className="flex items-center justify-between gap-1 p-2 text-xs">
                                             <span className="truncate font-medium">
                                                 {item.title}
+                                                {item.consolidatedFrom && (
+                                                    <span className="block font-normal text-muted-foreground">
+                                                        From{' '}
+                                                        {item.consolidatedFrom}
+                                                    </span>
+                                                )}
                                             </span>
                                             <ClassificationBadge
                                                 level={
@@ -460,6 +466,8 @@ export default function EvidenceSection({
                                                 {item.title}
                                             </span>
                                             <span className="block text-xs text-muted-foreground">
+                                                {item.consolidatedFrom &&
+                                                    `From ${item.consolidatedFrom} · `}
                                                 {item.type.label} ·{' '}
                                                 {formatBytes(item.size_bytes)}
                                                 {item.processing &&
