@@ -208,7 +208,7 @@ test('activating and deactivating are audited', function () {
     $this->post("/reference-data/threat-types/{$type->ulid}/activate")->assertRedirect();
     expect($type->fresh()->is_active)->toBeTrue();
 
-    $changes = Activity::query()->where('subject_type', ThreatType::class)->where('subject_id', $type->id)->where('event', 'updated')->get();
+    $changes = Activity::query()->where('subject_type', ThreatType::class)->where('subject_id', $type->id)->where('event', 'updated')->orderBy('id')->get();
     expect($changes)->toHaveCount(2)
         ->and($changes[0]->causer_id)->toBe($admin->id)
         ->and($changes[0]->attribute_changes['attributes']['is_active'])->toBeFalse();
