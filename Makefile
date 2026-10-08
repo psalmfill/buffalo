@@ -74,11 +74,11 @@ logs: ## Follow container logs
 tiles: ## Download the Nigeria map extract: make tiles url=<protomaps build URL>
 	./scripts/fetch-map-tiles.sh $(url)
 
-uat-up: ## UAT environment (production images, APP_ENV=uat, synthetic data): https://localhost:19443
-	./scripts/uat/up.sh
+uat-up: ## UAT (production images, APP_ENV=uat, synthetic data): https://localhost:19443; demo: DEMO_HOST=host [DEMO_PORT=8090]
+	DEMO_HOST="$(DEMO_HOST)" DEMO_PORT="$(DEMO_PORT)" ./scripts/uat/up.sh
 
-uat-down: ## Remove the UAT environment and its data (UAT_PURGE=1 also removes .uat/)
-	./scripts/uat/down.sh
+uat-down: ## Stop the UAT environment or demo (PURGE=1 also deletes its volumes; UAT_PURGE=1 also removes .uat/)
+	PURGE="$(PURGE)" UAT_PURGE="$(UAT_PURGE)" ./scripts/uat/down.sh
 
 uat-credentials: ## New passwords and TOTP secrets for the UAT accounts (printed once)
 	docker compose --env-file .uat/buffalo.env run --rm -T tools php artisan buffalo:uat:seed --reset-credentials

@@ -73,6 +73,13 @@ test('the UAT seed creates synthetic data, the accounts with 2FA, and prints the
     expect(Hash::check($m[1], $sd->password))->toBeTrue()
         ->and(decrypt($sd->two_factor_secret))->toBe($m[2]);
 
+    // Each account's TOTP setup URI, for the same secret.
+    preg_match('#^\s*sd\.lagos@'.preg_quote(Uat::DOMAIN).'\s+(otpauth://totp/\S+)$#m', $output, $uri);
+    parse_str((string) parse_url($uri[1], PHP_URL_QUERY), $query);
+    expect($uri[1])->toContain(rawurlencode('sd.lagos@'.Uat::DOMAIN))
+        ->and($query['secret'] ?? null)->toBe($m[2])
+        ->and(substr_count($output, 'otpauth://totp/'))->toBe(count(SeedUatCommand::ACCOUNTS));
+
     // A second run does not print anything new.
     expect(Artisan::call('buffalo:uat:seed', ['--if-empty' => true]))->toBe(0)
         ->and(Artisan::output())->not->toContain('TOTP secret')

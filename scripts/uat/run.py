@@ -57,6 +57,13 @@ class Run:
         if who not in self.clients:
             client = Client(self.base, *self.accounts[who])
             res = client.login()
+            if res.page.get('component') == 'auth/two-factor-challenge':
+                # The code's 30-second window was already used (replay
+                # protection, e.g. by another tool just before): try once more
+                # in the next window.
+                time.sleep(31)
+                client = Client(self.base, *self.accounts[who])
+                res = client.login()
             check(res.status == 200 and res.page['component'].startswith('dashboard/'), f'{who} could not sign in ({res.status} {res.page.get("component")})')
             self.clients[who] = client
         return self.clients[who]
@@ -101,7 +108,7 @@ def script_1(r: Run):
         p = chief().get('/help').props
         check(p['roles'][0]['own'] and p['roles'][0]['slug'] == 'lga-security-chief', 'own manual not first')
         check('super-admin' not in [m['slug'] for m in p['roles']], 'super admin manual visible')
-        check(len(p['guides']) == 8 and any(c.get('own') for c in p['cards']), 'guides or own card missing')
+        check(len(p['guides']) == 9 and any(c.get('own') for c in p['cards']), 'guides or own card missing')
         return f'{len(p["roles"])} role manuals (own first), {len(p["guides"])} guides, {len(p["cards"])} cards'
     r.step(s, 'A2', 'Help: own manual first, no super admin manual', a2)
 

@@ -596,6 +596,7 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **UAT:** `make uat-up` runs the production images with `APP_ENV=uat` on https://localhost:19443. It has synthetic data, an account per role (credentials printed once), a UAT banner and a feedback button.
   - Scripts per role are in `docs/uat/`.
   - `python3 scripts/uat/run.py --credentials <file>` runs them all and records results in `docs/uat/results/`.
+  - `make uat-up DEMO_HOST=demo.example.org [DEMO_PORT=8090]` runs it as a demo behind an existing host nginx that terminates TLS: plain HTTP on `127.0.0.1:$DEMO_PORT` only, forwarded headers trusted only from the Docker gateway. `make uat-down` stops it (`PURGE=1` also deletes its data). See `docs/operations/demo-hosting.md`.
 - **Go-live check:** `php artisan buffalo:go-live:check` (also on **Go-live** and System health) checks 15 technical items and 8 client decisions recorded on the Go-live page. It exits 1 until everything is ready and writes a report.
 
 ## Merging duplicate persons (Phase 10A)

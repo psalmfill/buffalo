@@ -141,7 +141,7 @@ class SeedUatCommand extends Command
      * New password and TOTP secret for each account; returns what to print.
      *
      * @param  Collection<int, User>  $users
-     * @return list<array{0: string, 1: string, 2: string, 3: string}>
+     * @return list<array{0: string, 1: string, 2: string, 3: string, 4: string}>
      */
     private function issueCredentials(Collection $users): array
     {
@@ -160,7 +160,10 @@ class SeedUatCommand extends Command
                 'two_factor_confirmed_at' => now(),
             ])->save();
 
-            $rows[] = [$user->email, $user->getRole()?->label() ?? '', $password, $secret];
+            // otpauth:// URI: scanned as a QR code, or opened on the phone,
+            // it adds the account to an authenticator app.
+            $uri = $google2fa->getQRCodeUrl(config('app.name').' UAT', $user->email, $secret);
+            $rows[] = [$user->email, $user->getRole()?->label() ?? '', $password, $secret, $uri];
         }
 
         return $rows;
@@ -184,11 +187,19 @@ class SeedUatCommand extends Command
     }
 
     /**
-     * @param  list<array{0: string, 1: string, 2: string, 3: string}>  $rows
+     * Printed once (nothing keeps the passwords): the table (also read by
+     * scripts/uat/run.py), then each account's TOTP setup URI.
+     *
+     * @param  list<array{0: string, 1: string, 2: string, 3: string, 4: string}>  $rows
      */
     private function printCredentials(array $rows): void
     {
         $this->newLine();
-        $this->table(['Email', 'Role', 'Password', 'TOTP secret (add to an authenticator app)'], $rows);
+        $this->table(['Email', 'Role', 'Password', 'TOTP secret (add to an authenticator app)'], array_map(fn (array $row) => array_slice($row, 0, 4), $rows));
+        $this->newLine();
+        $this->line('TOTP setup URIs (open on the phone, or turn into a QR code, to add the account to an authenticator app):');
+        foreach ($rows as $row) {
+            $this->line("  {$row[0]}  {$row[4]}");
+        }
     }
 }

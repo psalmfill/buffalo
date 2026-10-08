@@ -9,8 +9,17 @@
 #   UAT_HTTPS_PORT=19443, UAT_HTTP_PORT=19080 (bound to 127.0.0.1)
 #   UAT_INCIDENTS=3000
 #
+# Hosted demo (docs/operations/demo-hosting.md), behind a host-level nginx
+# that terminates TLS:
+#   DEMO_HOST=demo.example.org   APP_URL=https://$DEMO_HOST, Reverb's allowed
+#                                origins; adds compose.uat-demo.yml
+#   DEMO_PORT=8090               nginx publishes plain HTTP on
+#                                127.0.0.1:$DEMO_PORT only (nothing else)
+# Both are remembered in .uat/buffalo.env for later runs.
+#
 # Settings and secrets live in .uat/ (git-ignored). Refuses if they say
-# APP_ENV=production. `make uat-down` removes the environment and its data.
+# APP_ENV=production. `make uat-down` stops the environment (PURGE=1 also
+# deletes its data).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -55,6 +64,38 @@ if [[ ! -f "$dir/buffalo.env" ]]; then
     printf '\n# UAT: its own frontend bridge, so it can run beside a production install.\nBUFFALO_FRONTEND_BRIDGE=bflo-uat-front\n' >> "$dir/buffalo.env"
 fi
 
+# Sets KEY=VALUE in .uat/buffalo.env (replaced, or appended).
+setting() {
+    local key=$1 value=$2 file="$dir/buffalo.env"
+    if grep -q "^$key=" "$file"; then
+        sed -i.bak "s#^$key=.*#$key=$value#" "$file" && rm -f "$file.bak"
+    else
+        printf '%s=%s\n' "$key" "$value" >> "$file"
+    fi
+}
+
+demo_host=${DEMO_HOST:-}
+if [[ -n "$demo_host" ]]; then
+    if [[ ! "$demo_host" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
+        echo "DEMO_HOST must be a host name (e.g. demo.example.org), without scheme or port." >&2
+        exit 1
+    fi
+    demo_port=${DEMO_PORT:-8090}
+    [[ "$demo_port" =~ ^[0-9]+$ ]] || { echo "DEMO_PORT must be a port number." >&2; exit 1; }
+    say "Demo mode: https://$demo_host (TLS at the host's nginx -> http://127.0.0.1:$demo_port)"
+    setting COMPOSE_FILE compose.yml:compose.prod.yml:compose.profile-airgapped.yml:compose.uat.yml:compose.uat-demo.yml
+    setting APP_URL "https://$demo_host"
+    setting BUFFALO_SERVER_NAME "$demo_host"
+    setting REVERB_ALLOWED_ORIGINS "$demo_host"
+    setting DEMO_HOST "$demo_host"
+    setting DEMO_PORT "$demo_port"
+elif [[ -n "${DEMO_PORT:-}" ]]; then
+    echo "DEMO_PORT needs DEMO_HOST." >&2
+    exit 1
+fi
+demo_host=$(sed -n 's/^DEMO_HOST=//p' "$dir/buffalo.env")
+demo_port=$(sed -n 's/^DEMO_PORT=//p' "$dir/buffalo.env")
+
 dc() { docker compose --env-file "$dir/buffalo.env" "$@"; }
 
 say "Starting PostgreSQL and Valkey"
@@ -63,7 +104,7 @@ say "Database roles and migrations"
 dc run --rm -T tools php artisan buffalo:db:provision-roles --database=buffalo --no-interaction >/dev/null
 dc run --rm -T tools php artisan migrate --force --no-interaction >/dev/null
 
-say "Seeding synthetic data and the UAT accounts (credentials printed ONCE, on the first run)"
+say "Seeding synthetic data and the UAT accounts (email, password and TOTP setup URI printed ONCE, on the first run)"
 dc run --rm -T tools php artisan buffalo:uat:seed --if-empty --incidents="${UAT_INCIDENTS:-3000}" --no-interaction
 
 say "Starting every service"
@@ -72,4 +113,8 @@ dc up -d --wait
 # reports "not ready" by design (demo data, test accounts).
 dc run --rm -T tools php artisan buffalo:go-live:check --record --no-interaction >/dev/null
 echo
-say "UAT ready: https://localhost:$https_port (self-signed certificate). Banner: UAT — TEST DATA ONLY."
+if [[ -n "$demo_host" ]]; then
+    say "Demo ready: https://$demo_host (proxied to http://127.0.0.1:$demo_port). Banner: UAT — TEST DATA ONLY."
+else
+    say "UAT ready: https://localhost:$https_port (self-signed certificate). Banner: UAT — TEST DATA ONLY."
+fi

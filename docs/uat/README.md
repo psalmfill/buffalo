@@ -9,7 +9,11 @@ only, a red **"UAT — TEST DATA ONLY"** banner on every page and a
 
     make uat-up            # https://localhost:19443 (self-signed certificate)
     make uat-credentials   # new passwords and TOTP secrets (printed once)
-    make uat-down          # removes the environment and its data
+    make uat-down          # stops it; its data is kept
+    make uat-down PURGE=1  # stops it and deletes its data
+
+To host the UAT environment as a demo behind an existing nginx, see
+[`docs/operations/demo-hosting.md`](../operations/demo-hosting.md).
 
 `make uat-up` builds the images from the current source, creates
 `.uat/` (settings, secrets, certificate; never committed), migrates, and seeds
@@ -62,7 +66,7 @@ own endpoints and checks the expected result:
     python3 scripts/uat/run.py --credentials <file with the printed credentials table>
 
 It writes `results/<date>-<script>.md`. Run it on a freshly created
-environment (`make uat-down && make uat-up`): the scripts build on each
+environment (`make uat-down PURGE=1 && make uat-up`): the scripts build on each
 other's records. Testers still run the scripts by hand in the browser; the
 runner proves the environment and the workflows before they start.
 
