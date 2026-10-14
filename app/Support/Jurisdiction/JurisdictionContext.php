@@ -19,6 +19,9 @@ final class JurisdictionContext
 {
     private ?User $user = null;
 
+    /** @var list<int>|null states a dashboard is focused on (Phase 11A.2) */
+    private ?array $focus = null;
+
     public function __construct(private ContextMode $mode) {}
 
     public function user(User $user): void
@@ -83,6 +86,39 @@ final class JurisdictionContext
         } finally {
             [$this->mode, $this->user] = [$mode, $previousUser];
         }
+    }
+
+    /**
+     * Narrows every jurisdiction-scoped query to these states while the
+     * callback runs (Phase 11A.2: a national user's view of one state's or
+     * one zone's dashboard). It only ever NARROWS: the user's own scope
+     * still applies in full, so records outside their reach stay invisible.
+     * Nested focuses intersect.
+     *
+     * @template TReturn
+     *
+     * @param  list<int>  $stateIds
+     * @param  Closure(): TReturn  $callback
+     * @return TReturn
+     */
+    public function focus(array $stateIds, Closure $callback): mixed
+    {
+        $previous = $this->focus;
+        $this->focus = $previous === null ? $stateIds : array_values(array_intersect($previous, $stateIds));
+
+        try {
+            return $callback();
+        } finally {
+            $this->focus = $previous;
+        }
+    }
+
+    /**
+     * @return list<int>|null
+     */
+    public function focusedStates(): ?array
+    {
+        return $this->focus;
     }
 
     /**

@@ -24,7 +24,20 @@ final readonly class SearchQuery
         public ?string $reference,
         public ?string $nin,
         public ?string $phone,
+        /** @var list<int> states ranked first (the state lens, Phase 11A.2) */
+        public array $preferredStates = [],
     ) {}
+
+    /**
+     * The same query ranking these states' results first (still returning
+     * the others): the state lens (Phase 11A.2).
+     *
+     * @param  list<int>  $stateIds
+     */
+    public function preferring(array $stateIds): self
+    {
+        return new self($this->raw, $this->type, $this->reference, $this->nin, $this->phone, $stateIds);
+    }
 
     public static function parse(string $input): self
     {

@@ -1,5 +1,6 @@
 import type { AppData } from '@/types/app';
 import type { Auth } from '@/types/auth';
+import type { Lens } from '@/types/lens';
 
 declare module 'react' {
     // Augmentation must repeat React's type parameter even though it is unused.
@@ -16,6 +17,8 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             boundaryAttribution: string | null;
+            /** Null for users without a lens control (Phase 11A.2). */
+            lens: Lens | null;
             notifications: { unreadCount: number };
             badges: {
                 coverageReview: number;

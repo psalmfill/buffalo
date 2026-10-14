@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Route;
 // Incidents (Phase 5A: drafts). {incident} is bound through its scopes
 // (jurisdiction and classification): anything else is 404.
 Route::middleware(['auth'])->group(function () {
-    Route::get('incidents', [IncidentListController::class, 'index'])->name('incidents.index');
-    Route::get('incidents/map', [IncidentListController::class, 'map'])->name('incidents.map');
+    Route::get('incidents', [IncidentListController::class, 'index'])->name('incidents.index')->middleware('lens');
+    Route::get('incidents/map', [IncidentListController::class, 'map'])->name('incidents.map')->middleware('lens');
     Route::get('incidents/map/data', [IncidentListController::class, 'mapData'])->name('incidents.map.data');
     Route::post('incidents/saved-filters', [IncidentSavedFilterController::class, 'store'])->name('incidents.saved-filters.store');
     Route::delete('incidents/saved-filters/{savedFilter}', [IncidentSavedFilterController::class, 'destroy'])->whereUlid('savedFilter')->name('incidents.saved-filters.destroy');

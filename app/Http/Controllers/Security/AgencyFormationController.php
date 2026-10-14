@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Lens\PlaceFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,10 +51,12 @@ class AgencyFormationController extends Controller
             'type' => ['nullable', Rule::enum(FormationType::class)],
             'status' => ['nullable', Rule::enum(FormationStatus::class)],
             'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
+            'zone' => PlaceFilter::zoneRule($user),
             'lga' => ['nullable', 'string', 'size:26'],
             'temporary' => ['nullable', Rule::in(['yes', 'no'])],
         ]);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
+        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
         $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
         $agency = isset($filters['agency']) ? SecurityAgency::query()->where('ulid', $filters['agency'])->first() : null;
@@ -63,6 +66,7 @@ class AgencyFormationController extends Controller
             ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('agency_formations.formation_type', $type))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('agency_formations.status', $status))
             ->when($state, fn (Builder $q) => $q->where('agency_formations.state_id', $state?->id))
+            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'agency_formations.state_id', $zone))
             ->when($lga, fn (Builder $q) => $q->where('agency_formations.lga_id', $lga?->id))
             ->when($filters['temporary'] ?? null, fn (Builder $q, string $temporary) => $q->where('agency_formations.is_temporary', $temporary === 'yes'))
             ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->search($term));
@@ -90,12 +94,14 @@ class AgencyFormationController extends Controller
                 'type' => $filters['type'] ?? '',
                 'status' => $filters['status'] ?? '',
                 'state' => $filters['state'] ?? '',
+                'zone' => $filters['zone'] ?? '',
                 'lga' => $filters['lga'] ?? '',
                 'temporary' => $filters['temporary'] ?? '',
             ],
             'options' => AgencyFormationPresenter::options(),
             'agencies' => AgencyFormationPresenter::agencyOptions(),
             'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
+            'zones' => PlaceFilter::options($user),
             'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name])->values() : [],
             'can' => ['create' => $user->can('create', AgencyFormation::class)],
         ]);

@@ -22,6 +22,7 @@ use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Lens\PlaceFilter;
 use App\Support\Security\CoverageAnalysis;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,6 +49,7 @@ class CoverageReportController extends Controller
 
         $filters = $request->validate([
             'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
+            'zone' => PlaceFilter::zoneRule($user),
             'lga' => ['nullable', 'string', 'size:26'],
             'period_type' => ['nullable', Rule::enum(CoveragePeriodType::class)],
             'period' => ['nullable', 'date_format:Y-m-d'],
@@ -55,12 +57,14 @@ class CoverageReportController extends Controller
             'rating' => ['nullable', Rule::enum(CoverageRating::class)],
         ]);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
+        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
         $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
 
         $reports = CoverageReport::query()
             ->with(['lga', 'state'])
             ->when($state, fn (Builder $q) => $q->where('coverage_reports.state_id', $state?->id))
+            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'coverage_reports.state_id', $zone))
             ->when($lga, fn (Builder $q) => $q->where('coverage_reports.lga_id', $lga?->id))
             ->when($filters['period_type'] ?? null, fn (Builder $q, string $type) => $q->where('coverage_reports.period_type', $type))
             // A date within the period.
@@ -79,6 +83,7 @@ class CoverageReportController extends Controller
             ]),
             'filters' => [
                 'state' => $filters['state'] ?? '',
+                'zone' => $filters['zone'] ?? '',
                 'lga' => $filters['lga'] ?? '',
                 'period_type' => $filters['period_type'] ?? '',
                 'period' => $filters['period'] ?? '',
@@ -87,6 +92,7 @@ class CoverageReportController extends Controller
             ],
             'options' => CoverageReportPresenter::options(),
             'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
+            'zones' => PlaceFilter::options($user),
             'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name])->values() : [],
             'can' => ['create' => $user->can('create', CoverageReport::class)],
         ]);

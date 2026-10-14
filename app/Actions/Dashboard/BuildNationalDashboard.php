@@ -7,6 +7,7 @@ use App\Enums\SecurityNoteCategory;
 use App\Enums\SecurityNoteStatus;
 use App\Models\CommunitySecurityNote;
 use App\Models\CriminalGroup;
+use App\Models\GeopoliticalZone;
 use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\PersonOfInterest;
@@ -21,6 +22,7 @@ use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
+use App\Support\Dashboard\StateGrid;
 use App\Support\Dashboard\ThreatFigures;
 use App\Support\Dashboard\ThreatReportFigures;
 use App\Support\Jurisdiction\JurisdictionRules;
@@ -43,15 +45,18 @@ final class BuildNationalDashboard
     /**
      * @return array<string, mixed>
      */
-    public function __invoke(User $user, int $days = 30): array
+    public function __invoke(User $user, int $days = 30, ?GeopoliticalZone $zone = null): array
     {
         $restriction = $this->rules->restrictionFor($user, visibleToSuperAdmin: false);
 
+        // A zone's dashboard (Phase 11A.2) runs inside
+        // JurisdictionContext::focus() on the zone's states and lists only them.
         /** @var Builder<State> $states */
         $states = State::query()->active()
-            ->when($restriction->type !== RestrictionType::Everything, fn (Builder $query) => $query->whereIn('id', $restriction->stateIds));
+            ->when($restriction->type !== RestrictionType::Everything, fn (Builder $query) => $query->whereIn('id', $restriction->stateIds))
+            ->when($zone !== null, fn (Builder $query) => $query->where('geopolitical_zone_id', $zone?->id));
 
-        $label = $user->jurisdictionLabel();
+        $label = $zone === null ? $user->jurisdictionLabel() : "{$zone->name} zone";
 
         return [
             'scope' => [
@@ -68,6 +73,8 @@ final class BuildNationalDashboard
                 'poisByState' => $user->can('viewAny', PersonOfInterest::class) ? $this->figures->poisByPlace('states') : [],
                 'groupsByType' => $user->can('viewAny', CriminalGroup::class) ? $this->figures->activeGroupsByType() : [],
             ],
+            // State grid, most urgent first (Phase 11A.2).
+            'stateGrid' => app(StateGrid::class)->for($user, (clone $states)->orderBy('name')->get()),
             'completenessByState' => $this->completenessByState((clone $states)->orderBy('name')->get()),
             'access' => app(AccessFigures::class)->for($user),
             'organizations' => app(OrganizationFigures::class)->national($user, (clone $states)->orderBy('name')->get()),

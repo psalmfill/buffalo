@@ -37,11 +37,12 @@ final class GlobalSearch
      * The header view: up to `quick_limit` results per type, plus the
      * overall best results (exact first, then score, then recency).
      *
+     * @param  list<int>  $preferredStates  ranked first (the state lens)
      * @return array{query: string, type: string|null, sections: list<array<string, mixed>>, top: list<array<string, mixed>>}
      */
-    public function quick(User $user, string $input): array
+    public function quick(User $user, string $input, array $preferredStates = []): array
     {
-        $query = SearchQuery::parse($input);
+        $query = SearchQuery::parse($input)->preferring($preferredStates);
 
         if (! $query->isSearchable() || ! self::canSearch($user)) {
             return ['query' => $query->raw, 'type' => null, 'sections' => [], 'top' => []];
@@ -86,11 +87,12 @@ final class GlobalSearch
      * The results page: the viewer's own scoped count per type, and one
      * page of the chosen type (default: the first type with results).
      *
+     * @param  list<int>  $preferredStates  ranked first (the state lens)
      * @return array{query: string, type: string|null, tabs: list<array<string, mixed>>, active: string|null, hits: list<array<string, mixed>>, page: int, pages: int, limit: int, timedOut: bool}
      */
-    public function full(User $user, string $input, ?string $type, int $page): array
+    public function full(User $user, string $input, ?string $type, int $page, array $preferredStates = []): array
     {
-        $query = SearchQuery::parse($input);
+        $query = SearchQuery::parse($input)->preferring($preferredStates);
         $empty = ['query' => $query->raw, 'type' => null, 'tabs' => [], 'active' => null, 'hits' => [], 'page' => 1, 'pages' => 0, 'limit' => (int) config('buffalo.search.max_results'), 'timedOut' => false];
 
         if (! $query->isSearchable() || ! self::canSearch($user)) {

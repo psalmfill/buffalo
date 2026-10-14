@@ -13,6 +13,7 @@ export const PERMISSIONS = [
     'audit.exports',
     'system.horizon',
     'system.settings',
+    'theme.manage',
     'reference_data.view',
     'reference_data.manage',
     'lgas.view',

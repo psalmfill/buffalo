@@ -7,6 +7,7 @@ use App\Enums\Permission;
 use App\Enums\ThreatStatus;
 use App\Enums\ThreatUrgency;
 use App\Models\Incident;
+use App\Models\State;
 use App\Models\ThreatReport;
 use App\Models\User;
 use App\Services\Analytics\AnalyticsFilters;
@@ -31,9 +32,13 @@ final class DashboardKpis
     /**
      * @return list<array{key: string, label: string, value: float|int|null, previous: float|int|null, change_pct: float|null, unit: string|null, href: string}>
      */
-    public function for(User $user, int $days): array
+    public function for(User $user, int $days, ?State $state = null): array
     {
-        return $this->forFilters($user, AnalyticsFilters::from(['period' => "{$days}d", 'compare' => 'previous'], $user));
+        // A state's dashboard (also a national user's view of it, Phase
+        // 11A.2) counts that state, and its links open analytics on it.
+        $place = $state !== null && $user->state_id !== $state->id ? ['state' => $state->ulid] : [];
+
+        return $this->forFilters($user, AnalyticsFilters::from(['period' => "{$days}d", 'compare' => 'previous', ...$place], $user));
     }
 
     /**

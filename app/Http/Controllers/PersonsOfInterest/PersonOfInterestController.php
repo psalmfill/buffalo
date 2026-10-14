@@ -17,9 +17,11 @@ use App\Http\Requests\PersonsOfInterest\PoiStatusRequest;
 use App\Models\Lga;
 use App\Models\Person;
 use App\Models\PersonOfInterest;
+use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Lens\PlaceFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,17 +43,23 @@ class PersonOfInterestController extends Controller
     {
         $this->authorize('viewAny', PersonOfInterest::class);
         $user = $this->actor($request);
-        $lgas = $options->lgas($user);
+        $states = $options->states($user);
         $filterOptions = PoiPresenter::options();
 
         $filters = $request->validate([
             'risk' => ['nullable', 'string', Rule::in(array_column($filterOptions['riskLevels'], 'value'))],
             'status' => ['nullable', 'string', Rule::in(array_column($filterOptions['statuses'], 'value'))],
             'offence' => ['nullable', 'string', 'max:50'],
-            'lga' => ['nullable', 'string', Rule::in($lgas->pluck('ulid'))],
+            // State and zone (Phase 11A.2, the state lens).
+            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
+            'zone' => PlaceFilter::zoneRule($user),
+            'lga' => ['nullable', 'string', 'size:26'],
             'overdue' => ['nullable', 'in:1'],
         ]);
 
+        $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
+        $zone = PlaceFilter::zone($filters['zone'] ?? null);
+        $lgas = $options->lgas($user, $state);
         $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
 
         $results = PersonOfInterest::query()
@@ -59,6 +67,8 @@ class PersonOfInterestController extends Controller
             ->when($filters['risk'] ?? null, fn (Builder $q, string $risk) => $q->where('persons_of_interest.risk_level', $risk))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('persons_of_interest.status', $status))
             ->when($filters['offence'] ?? null, fn (Builder $q, string $code) => $q->whereJsonContains('persons_of_interest.offence_categories', $code))
+            ->when($state, fn (Builder $q) => $q->where('persons_of_interest.state_id', $state?->id))
+            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'persons_of_interest.state_id', $zone))
             ->when($lga, fn (Builder $q) => $q->where('persons_of_interest.lga_id', $lga?->id))
             ->when(isset($filters['overdue']), fn (Builder $q) => $q->reviewOverdue())
             ->byPriority()
@@ -71,10 +81,14 @@ class PersonOfInterestController extends Controller
                 'risk' => $filters['risk'] ?? '',
                 'status' => $filters['status'] ?? '',
                 'offence' => $filters['offence'] ?? '',
+                'state' => $filters['state'] ?? '',
+                'zone' => $filters['zone'] ?? '',
                 'lga' => $filters['lga'] ?? '',
                 'overdue' => $filters['overdue'] ?? '',
             ],
             'options' => $filterOptions,
+            'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
+            'zones' => PlaceFilter::options($user),
             'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name])->values() : [],
         ]);
     }

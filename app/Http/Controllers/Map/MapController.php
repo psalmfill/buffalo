@@ -20,6 +20,7 @@ use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Lens\StateLens;
 use App\Support\Map\MapFilters;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ use Inertia\Response;
  */
 class MapController extends Controller
 {
-    public function show(Request $request, JurisdictionOptions $options): Response
+    public function show(Request $request, JurisdictionOptions $options, StateLens $lens): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -45,9 +46,12 @@ class MapController extends Controller
         $incidents = $user->can('viewAny', Incident::class);
         $lgaIds = array_values(array_map('intval', $options->lgaQuery($user)->pluck('lgas.id')->all()));
         $tz = (string) config('app.timezone');
+        $lensFilter = $lens->filter($request);
 
         return Inertia::render('map/index', [
-            'view' => MapView::for($user->lga ?? $user->state),
+            // Opens on the state lens, if set (Phase 11A.2); the URL's own
+            // view parameters still win in the browser.
+            'view' => MapView::forFilter($lensFilter['state'] ?? null, $lensFilter['zone'] ?? null) ?? MapView::for($user->lga ?? $user->state),
             'national' => $national,
             'layers' => array_keys(array_filter([
                 'density' => $incidents,

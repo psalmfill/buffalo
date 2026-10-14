@@ -1,11 +1,21 @@
 import { Link, router } from '@inertiajs/react';
 import { ArrowDownRight, ArrowUpRight, ChartLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { dashboard } from '@/routes';
-import type { DashboardPeriod, KpiTile } from '@/types/dashboard';
+import type {
+    DashboardPeriod,
+    DashboardPlace,
+    KpiTile,
+} from '@/types/dashboard';
 
 /** Dashboard period selector (Phase 7C): 7, 30 or 90 days, for every widget. */
-export function PeriodSelector({ period }: { period: DashboardPeriod }) {
+export function PeriodSelector({
+    period,
+    analyticsPlace,
+}: {
+    period: DashboardPeriod;
+    /** A state or zone view (Phase 11A.2): analytics open on it. */
+    analyticsPlace?: DashboardPlace;
+}) {
     return (
         <div
             className="flex flex-wrap items-center gap-2 text-sm"
@@ -19,9 +29,16 @@ export function PeriodSelector({ period }: { period: DashboardPeriod }) {
                     type="button"
                     aria-pressed={period.days === days}
                     onClick={() =>
+                        // The current dashboard (also a state or zone view,
+                        // Phase 11A.2), keeping its other parameters.
                         router.get(
-                            dashboard().url,
-                            days === 30 ? {} : { days },
+                            window.location.pathname,
+                            {
+                                ...Object.fromEntries(
+                                    new URLSearchParams(window.location.search),
+                                ),
+                                days: days === 30 ? undefined : days,
+                            },
                             { preserveScroll: true },
                         )
                     }
@@ -36,7 +53,7 @@ export function PeriodSelector({ period }: { period: DashboardPeriod }) {
                 </button>
             ))}
             <Link
-                href={`/analytics?period=${period.days}d`}
+                href={`/analytics?period=${period.days}d${analyticsPlace ? `&${analyticsPlace.type}=${analyticsPlace.ulid}` : ''}`}
                 className="ml-auto inline-flex items-center gap-1 text-xs underline"
             >
                 <ChartLine className="size-3.5" /> Open analytics
@@ -44,6 +61,20 @@ export function PeriodSelector({ period }: { period: DashboardPeriod }) {
         </div>
     );
 }
+
+/**
+ * Tile colours by type (Phase 11A.3, configurable on the Theme page):
+ * a left border and the figure. Full class names so Tailwind finds them.
+ */
+const TILE_COLOURS: Record<string, string> = {
+    incidents: 'border-l-kpi-incidents [&_.kpi-value]:text-kpi-incidents',
+    killed: 'border-l-kpi-casualties [&_.kpi-value]:text-kpi-casualties',
+    abducted: 'border-l-kpi-casualties [&_.kpi-value]:text-kpi-casualties',
+    verification:
+        'border-l-kpi-verification [&_.kpi-value]:text-kpi-verification',
+    immediate_threats: 'border-l-kpi-threats [&_.kpi-value]:text-kpi-threats',
+    coverage: 'border-l-kpi-coverage [&_.kpi-value]:text-kpi-coverage',
+};
 
 /**
  * KPI tiles (Phase 7C) with the change versus the previous period. A rise
@@ -64,10 +95,14 @@ export function KpiTiles({ tiles }: { tiles: KpiTile[] }) {
                 <Link
                     key={t.key}
                     href={t.href}
-                    className="rounded-xl border bg-card p-3 hover:bg-accent/50"
+                    className={cn(
+                        'rounded-xl border border-l-4 bg-card p-3 hover:bg-accent/50',
+                        TILE_COLOURS[t.key],
+                    )}
+                    data-kpi={t.key}
                 >
                     <p className="text-xs text-muted-foreground">{t.label}</p>
-                    <p className="text-2xl font-semibold tabular-nums">
+                    <p className="kpi-value text-2xl font-semibold tabular-nums">
                         {t.value === null
                             ? '—'
                             : t.value.toLocaleString('en-NG')}

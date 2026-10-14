@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 // {site} and {contact} are bound through their scopes (jurisdiction and
 // classification): anything else is 404.
 Route::middleware(['auth'])->group(function () {
-    Route::get('organizations', [OrganizationController::class, 'index'])->name('organizations.index');
+    Route::get('organizations', [OrganizationController::class, 'index'])->name('organizations.index')->middleware('lens');
     Route::get('organizations/create', [OrganizationController::class, 'create'])->name('organizations.create');
     Route::post('organizations/similar', [OrganizationController::class, 'similar'])->name('organizations.similar');
     Route::post('organizations', [OrganizationController::class, 'store'])->name('organizations.store');

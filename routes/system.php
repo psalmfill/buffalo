@@ -3,6 +3,7 @@
 use App\Http\Controllers\System\GoLiveController;
 use App\Http\Controllers\System\RolloutController;
 use App\Http\Controllers\System\SystemHealthController;
+use App\Http\Controllers\System\ThemeController;
 use Illuminate\Support\Facades\Route;
 
 // System administration (Phase 8C.4).
@@ -16,4 +17,9 @@ Route::middleware(['auth'])->group(function () {
     // Go-live check and client decisions (Phase 9B.6).
     Route::get('system/go-live', [GoLiveController::class, 'index'])->name('system.go-live');
     Route::post('system/go-live/decisions', [GoLiveController::class, 'store'])->name('system.go-live.decisions.store');
+
+    // Theme colours (Phase 11A.3): theme.manage.
+    Route::get('system/theme', [ThemeController::class, 'edit'])->name('system.theme.edit');
+    Route::put('system/theme', [ThemeController::class, 'update'])->name('system.theme.update');
+    Route::delete('system/theme', [ThemeController::class, 'destroy'])->name('system.theme.destroy');
 });

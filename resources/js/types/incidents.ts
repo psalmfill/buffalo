@@ -275,6 +275,8 @@ export type IncidentFilterValues = {
     from?: string;
     to?: string;
     state?: string;
+    /** Phase 11A.2: a geopolitical zone (national users). */
+    zone?: string;
     lga?: string;
     community?: string;
     has_casualties?: '1';
@@ -298,6 +300,7 @@ export type IncidentFilterOptions = {
     statuses: Option[];
     outcomes: Option[];
     states: Option[];
+    zones: Option[];
     lgas: { value: string; label: string; state: string | null }[];
 };
 

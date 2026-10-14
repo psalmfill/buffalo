@@ -9,6 +9,7 @@ import UserController from '@/actions/App/Http/Controllers/Users/UserController'
 import AccessFigures from '@/components/dashboard/access-figures';
 import { StateOrganizations } from '@/components/dashboard/organization-figures';
 import { StateCoverage } from '@/components/dashboard/coverage-figures';
+import { BackToNational } from '@/components/dashboard/back-to-national';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import { KpiTiles, PeriodSelector } from '@/components/dashboard/kpi-tiles';
 import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
@@ -26,6 +27,7 @@ import type { StateDashboardProps } from '@/types/dashboard';
 
 /** State Director and Deputy State Director. */
 export default function StateDashboard({
+    place,
     period,
     kpis,
     incidents,
@@ -59,8 +61,11 @@ export default function StateDashboard({
                     ]
                         .filter(Boolean)
                         .join(' · ')}
-                />
-                <PeriodSelector period={period} />
+                >
+                    {/* A national user's view of this state (Phase 11A.2). */}
+                    {place && <BackToNational />}
+                </DashboardHeader>
+                <PeriodSelector period={period} analyticsPlace={place} />
                 <KpiTiles tiles={kpis} />
 
                 {sharedWithUs && <SharedWithUs data={sharedWithUs} />}

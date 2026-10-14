@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 // Flashpoints and blackspots (Phase 6A). {flashpoint} and {link} are bound
 // through their scopes (jurisdiction and classification): anything else is 404.
 Route::middleware(['auth'])->group(function () {
-    Route::get('flashpoints', [FlashpointController::class, 'index'])->name('flashpoints.index');
+    Route::get('flashpoints', [FlashpointController::class, 'index'])->name('flashpoints.index')->middleware('lens');
     Route::get('flashpoints/create', [FlashpointController::class, 'create'])->name('flashpoints.create');
     Route::post('flashpoints', [FlashpointController::class, 'store'])->name('flashpoints.store');
 

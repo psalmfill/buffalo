@@ -23,6 +23,7 @@ import {
     MapPin,
     MapPinned,
     Network,
+    Palette,
     Rocket,
     ScrollText,
     Share2,
@@ -48,6 +49,7 @@ import OrganizationController from '@/actions/App/Http/Controllers/Organizations
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogController';
 import ExportReviewController from '@/actions/App/Http/Controllers/Audit/ExportReviewController';
+import ThemeController from '@/actions/App/Http/Controllers/System/ThemeController';
 import GoLiveController from '@/actions/App/Http/Controllers/System/GoLiveController';
 import HelpController from '@/actions/App/Http/Controllers/HelpController';
 import RolloutController from '@/actions/App/Http/Controllers/System/RolloutController';
@@ -159,6 +161,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'System health', icon: HeartPulse, href: SystemHealthController.index(), permission: 'system.settings' },
             { title: 'Rollout', icon: Rocket, href: RolloutController.index(), permission: 'system.settings' },
             { title: 'Go-live', icon: ClipboardCheck, href: GoLiveController.index(), permission: 'system.settings' },
+            { title: 'Theme', icon: Palette, href: ThemeController.edit(), permission: 'theme.manage' },
             { title: 'Queue monitor', icon: Gauge, href: horizon.index(), permission: 'system.horizon', external: true },
         ],
     },

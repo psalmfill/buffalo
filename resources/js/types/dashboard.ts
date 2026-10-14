@@ -76,7 +76,37 @@ export type SystemDashboardProps = {
     totalStates: number;
 };
 
+/** A card of the national state grid (Phase 11A.2); null: not permitted. */
+export type StateGridCard = {
+    state: { ulid: string; name: string; code: string };
+    zone: { ulid: string; name: string } | null;
+    incidents7: number | null;
+    incidents7Change: number | null;
+    incidents30: number | null;
+    incidents30Change: number | null;
+    criticalOpen: number | null;
+    escalationsUnacknowledged: number | null;
+    immediateThreats: number | null;
+    overdueVerifications: number | null;
+    killed30: number | null;
+    abducted30: number | null;
+    coverageCompliance: number | null;
+    attention: {
+        score: number;
+        level: 'critical' | 'high' | 'elevated' | 'none';
+    };
+};
+
+/** A national user's view of one state or zone (Phase 11A.2). */
+export type DashboardPlace = {
+    type: 'state' | 'zone';
+    ulid: string;
+    name: string;
+};
+
 export type NationalDashboardProps = {
+    stateGrid: StateGridCard[];
+    place?: DashboardPlace;
     period: DashboardPeriod;
     kpis: KpiTile[];
     incidents: NationalIncidentFigures | null;
@@ -105,6 +135,7 @@ export type NationalDashboardProps = {
 };
 
 export type StateDashboardProps = {
+    place?: DashboardPlace;
     /** Phase 10A: State Directors only; counts only. */
     duplicates: {
         nightly: {

@@ -42,6 +42,7 @@ final class PlaceProvider extends BaseProvider
             ->select('lgas.*')
             ->selectRaw('CASE WHEN upper(lgas.code) = upper(?) THEN 1.0 ELSE word_similarity(buffalo_search_text(?), lgas.search_name) END AS search_score', [$query->raw, $query->raw])
             ->with('state')
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'lgas.state_id'))
             ->orderByDesc('search_score')->orderBy('lgas.name')
             ->limit($take)->get()
             ->map(fn (Lga $l) => new SearchHit(
@@ -57,6 +58,7 @@ final class PlaceProvider extends BaseProvider
             ->select('senatorial_districts.*')
             ->selectRaw('CASE WHEN upper(senatorial_districts.code) = upper(?) THEN 1.0 ELSE word_similarity(buffalo_search_text(?), senatorial_districts.search_name) END AS search_score', [$query->raw, $query->raw])
             ->with('state')
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'senatorial_districts.state_id'))
             ->orderByDesc('search_score')->orderBy('senatorial_districts.name')
             ->limit($take)->get()
             ->map(fn (SenatorialDistrict $d) => new SearchHit(

@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import type { ChartDataset } from 'chart.js';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { useChartPalette } from '@/hooks/use-chart-palette';
 import type { AnalyticsChartData } from '@/types/analytics';
 
 // Only what the analytics charts need (Chart.js is tree-shakeable; MIT).
@@ -27,17 +28,7 @@ Chart.register(
     Legend,
 );
 
-/** Our own palette (never user input). The comparison series is grey and dashed. */
-const PALETTE = [
-    '#2563eb',
-    '#dc2626',
-    '#16a34a',
-    '#d97706',
-    '#7c3aed',
-    '#0891b2',
-    '#db2777',
-    '#4b5563',
-];
+/** The comparison series is grey and dashed (not part of the palette). */
 const COMPARISON = '#94a3b8';
 
 export type ChartHandle = { canvas: () => HTMLCanvasElement | null };
@@ -49,9 +40,17 @@ export type ChartHandle = { canvas: () => HTMLCanvasElement | null };
  */
 const AnalyticsChart = forwardRef<
     ChartHandle,
-    { chart: AnalyticsChartData; height?: number }
->(function AnalyticsChart({ chart, height = 260 }, ref) {
+    {
+        chart: AnalyticsChartData;
+        height?: number;
+        /** A palette to preview instead of the configured one (Theme page). */
+        palette?: string[];
+    }
+>(function AnalyticsChart({ chart, height = 260, palette: preview }, ref) {
     const canvas = useRef<HTMLCanvasElement>(null);
+    // The configured palette (Phase 11A.3), from the theme's CSS variables.
+    const configured = useChartPalette();
+    const palette = preview ?? configured;
     useImperativeHandle(ref, () => ({ canvas: () => canvas.current }));
 
     useEffect(() => {
@@ -70,7 +69,7 @@ const AnalyticsChart = forwardRef<
             (s): ChartDataset<'bar' | 'line', (number | null)[]> => {
                 const c = s.comparison
                     ? COMPARISON
-                    : PALETTE[colour++ % PALETTE.length];
+                    : palette[colour++ % palette.length];
 
                 return line
                     ? {
@@ -123,7 +122,7 @@ const AnalyticsChart = forwardRef<
         });
 
         return () => instance.destroy();
-    }, [chart]);
+    }, [chart, palette]);
 
     return (
         <div style={{ height }}>

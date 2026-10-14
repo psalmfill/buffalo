@@ -71,6 +71,7 @@ final class OrganizationProvider extends BaseProvider
             ->select('organization_sites.*')
             ->selectRaw('word_similarity(buffalo_search_text(?), organization_sites.search_name) AS search_score', [$query->raw])
             ->with(['organization', 'lga'])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'organization_sites.state_id'))
             ->orderByDesc('search_score')->orderBy('organization_sites.name')
             ->limit($take)->get()
             ->map(fn (OrganizationSite $s) => new SearchHit(

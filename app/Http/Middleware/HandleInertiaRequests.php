@@ -11,6 +11,7 @@ use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Geo\BoundaryAttribution;
+use App\Support\Lens\StateLens;
 use App\Support\SystemBanner;
 use App\Support\Uat\Uat;
 use Illuminate\Http\Request;
@@ -83,6 +84,8 @@ class HandleInertiaRequests extends Middleware
             ],
             // Attribution of the imported boundaries, shown on every map (Phase 6A).
             'boundaryAttribution' => fn (): ?string => $user instanceof User ? BoundaryAttribution::current() : null,
+            // The state lens control (Phase 11A.2): national users only.
+            'lens' => fn (): ?array => app(StateLens::class)->share($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

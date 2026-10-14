@@ -18,7 +18,8 @@
     <script>
         // Draw every chart (animation off), then tell Gotenberg the page is ready.
         (function () {
-            var palette = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#4b5563'];
+            // The configured chart palette (Phase 11A.3; printed reports use the light mode).
+            var palette = {!! json_encode(\App\Support\Theme\Theme::chartPalette('light')) !!};
             document.querySelectorAll('canvas[data-chart]').forEach(function (canvas) {
                 var spec = JSON.parse(canvas.getAttribute('data-chart'));
                 var line = spec.kind === 'line', stacked = spec.kind === 'stacked', c = 0;

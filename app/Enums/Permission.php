@@ -22,6 +22,8 @@ enum Permission: string
     // System administration (Phase 1)
     case SystemHorizon = 'system.horizon';
     case SystemSettings = 'system.settings';
+    // Brand, chart and KPI colours (Phase 11A.3).
+    case ThemeManage = 'theme.manage';
 
     // Reference data (Phase 2A): configuration, not intelligence
     case ReferenceDataView = 'reference_data.view';

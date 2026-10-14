@@ -46,6 +46,7 @@ final class PersonProvider extends BaseProvider
         $exact = $query->isNumber();
         $rows = $this->query(Person::query(), $query, scored: true)
             ->with(['lga', 'state'])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'persons.state_id'))
             ->offset($offset)->limit($limit)->get();
 
         return array_values($rows->map(fn (Person $p) => new SearchHit(

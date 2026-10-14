@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 // check and the picker are POSTed so names, NINs and phone numbers never
 // appear in URLs.
 Route::middleware(['auth'])->group(function () {
-    Route::get('persons', [PersonController::class, 'index'])->name('persons.index');
+    Route::get('persons', [PersonController::class, 'index'])->name('persons.index')->middleware('lens');
     Route::post('persons/search', [PersonController::class, 'search'])->name('persons.search');
     // A reload of the search results page: start again.
     Route::get('persons/search', fn () => redirect()->route('persons.index'));

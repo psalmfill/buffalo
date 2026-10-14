@@ -55,6 +55,14 @@
     --color-chart-4: var(--chart-4);
     --color-chart-5: var(--chart-5);
 
+    /* Configurable colours (Phase 11A.3), set by the theme's <style> tag. */
+    --color-brand-accent: var(--brand-accent);
+    --color-kpi-incidents: var(--kpi-incidents);
+    --color-kpi-casualties: var(--kpi-casualties);
+    --color-kpi-threats: var(--kpi-threats);
+    --color-kpi-verification: var(--kpi-verification);
+    --color-kpi-coverage: var(--kpi-coverage);
+
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
@@ -66,6 +74,22 @@
 }
 
 :root {
+    /* Theme defaults (Phase 11A.3; App\Support\Theme\Theme::defaults(),
+       kept in step by ThemeTest). The theme's <style> tag overrides them. */
+    --brand-accent: #2563eb;
+    --chart-palette-1: #2563eb;
+    --chart-palette-2: #dc2626;
+    --chart-palette-3: #16a34a;
+    --chart-palette-4: #d97706;
+    --chart-palette-5: #7c3aed;
+    --chart-palette-6: #0891b2;
+    --chart-palette-7: #db2777;
+    --chart-palette-8: #4b5563;
+    --kpi-incidents: #1d4ed8;
+    --kpi-casualties: #b91c1c;
+    --kpi-threats: #c2410c;
+    --kpi-verification: #15803d;
+    --kpi-coverage: #6d28d9;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -102,6 +126,20 @@
 }
 
 .dark {
+    --brand-accent: #60a5fa;
+    --chart-palette-1: #60a5fa;
+    --chart-palette-2: #f87171;
+    --chart-palette-3: #4ade80;
+    --chart-palette-4: #fbbf24;
+    --chart-palette-5: #a78bfa;
+    --chart-palette-6: #22d3ee;
+    --chart-palette-7: #f472b6;
+    --chart-palette-8: #9ca3af;
+    --kpi-incidents: #93c5fd;
+    --kpi-casualties: #fca5a5;
+    --kpi-threats: #fdba74;
+    --kpi-verification: #86efac;
+    --kpi-coverage: #c4b5fd;
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.145 0 0);
@@ -134,6 +172,19 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.269 0 0);
     --sidebar-ring: oklch(0.439 0 0);
+}
+
+/* The Theme page's light-mode preview (Phase 11A.3) keeps light tokens
+   even when the page itself is dark. */
+.theme-preview-light {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+    --primary-foreground: #ffffff;
+    color-scheme: light;
 }
 
 @layer base {

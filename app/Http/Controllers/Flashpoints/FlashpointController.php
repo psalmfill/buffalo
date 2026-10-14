@@ -31,6 +31,7 @@ use App\Support\Jurisdiction\DisseminatedLinks;
 use App\Support\Jurisdiction\DisseminationResolver;
 use App\Support\Jurisdiction\JurisdictionGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Lens\PlaceFilter;
 use App\Support\Threats\ThreatLinks;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -67,12 +68,14 @@ class FlashpointController extends Controller
             'status' => ['nullable', Rule::enum(FlashpointStatus::class)],
             'threat_type' => ['nullable', 'string', 'size:26'],
             'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
+            'zone' => PlaceFilter::zoneRule($user),
             'lga' => ['nullable', 'string', 'size:26'],
             'overdue' => ['nullable', Rule::in(['1'])],
             // Records shared with the user by another jurisdiction (Phase 7A).
             'shared' => ['nullable', Rule::in(['1'])],
         ]);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
+        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
         $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
         $threat = isset($filters['threat_type']) ? ThreatType::query()->where('ulid', $filters['threat_type'])->first() : null;
@@ -83,6 +86,7 @@ class FlashpointController extends Controller
             ->when($filters['status'] ?? null, fn (Builder $q, string $v) => $q->where('flashpoints.status', $v))
             ->when($threat, fn (Builder $q) => $q->where('flashpoints.threat_type_id', $threat?->id))
             ->when($state, fn (Builder $q) => $q->where('flashpoints.state_id', $state?->id))
+            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'flashpoints.state_id', $zone))
             ->when($lga, fn (Builder $q) => $q->where('flashpoints.lga_id', $lga?->id))
             ->when(isset($filters['overdue']), fn (Builder $q) => $q
                 ->where('flashpoints.status', '!=', FlashpointStatus::Resolved->value)
@@ -117,12 +121,14 @@ class FlashpointController extends Controller
                 'status' => $filters['status'] ?? '',
                 'threat_type' => $filters['threat_type'] ?? '',
                 'state' => $filters['state'] ?? '',
+                'zone' => $filters['zone'] ?? '',
                 'lga' => $filters['lga'] ?? '',
                 'overdue' => $filters['overdue'] ?? '',
                 'shared' => $filters['shared'] ?? '',
             ],
             'options' => FlashpointPresenter::options(),
             'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
+            'zones' => PlaceFilter::options($user),
             'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name])->values() : [],
             'map' => MapView::for($lga ?? $state ?? $user->lga ?? $user->state),
             'can' => ['create' => $user->can('create', Flashpoint::class)],

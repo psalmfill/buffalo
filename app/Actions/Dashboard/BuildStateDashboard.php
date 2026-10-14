@@ -47,10 +47,13 @@ final class BuildStateDashboard
     /**
      * @return array<string, mixed>
      */
-    public function __invoke(User $user, int $days = 30): array
+    public function __invoke(User $user, int $days = 30, ?State $state = null): array
     {
-        /** @var State $state */
-        $state = $user->state;
+        // A national user's view of one state (Phase 11A.2) passes the state
+        // and runs inside JurisdictionContext::focus(); otherwise the user's own.
+        /** @var State $own */
+        $own = $user->state;
+        $state ??= $own;
         $label = JurisdictionLabel::state($state);
 
         $lgas = Lga::query()->active()->where('state_id', $state->id)->orderBy('name')->get();
@@ -102,7 +105,7 @@ final class BuildStateDashboard
             'map' => MapView::for($state),
             // Dashboard period and KPI tiles (Phase 7C).
             'period' => ['days' => $days, 'options' => DashboardKpis::PERIODS],
-            'kpis' => app(DashboardKpis::class)->for($user, $days),
+            'kpis' => app(DashboardKpis::class)->for($user, $days, $state),
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forState($user, $state, $days) : null,
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forState($state) : null,

@@ -2,6 +2,7 @@
 
 namespace App\Support\Dashboard;
 
+use App\Models\GeopoliticalZone;
 use App\Models\Lga;
 use App\Models\State;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +43,44 @@ final class MapView
             'zoom' => $place instanceof Lga ? 10 : 8,
             'outline' => self::outline($place),
         ];
+    }
+
+    /**
+     * A geopolitical zone (Phase 11A.2): centred on the mean of its states'
+     * centroids, without an outline; national view without centroids.
+     *
+     * @return array{center: array{0: float, 1: float}|null, zoom: int, outline: array<string, mixed>|null}
+     */
+    public static function zone(GeopoliticalZone $zone): array
+    {
+        $point = DB::table('states')
+            ->where('geopolitical_zone_id', $zone->id)
+            ->whereNotNull('centroid')
+            ->selectRaw('avg(ST_Y(centroid::geometry)) AS lat, avg(ST_X(centroid::geometry)) AS lng')
+            ->first();
+
+        return $point === null || $point->lat === null
+            ? ['center' => null, 'zoom' => 6, 'outline' => null]
+            : ['center' => [(float) $point->lat, (float) $point->lng], 'zoom' => 7, 'outline' => null];
+    }
+
+    /**
+     * The view for a state or zone filter (ULIDs), or null when neither is
+     * set or known.
+     *
+     * @return array{center: array{0: float, 1: float}|null, zoom: int, outline: array<string, mixed>|null}|null
+     */
+    public static function forFilter(mixed $state, mixed $zone): ?array
+    {
+        if (is_string($state) && ($model = State::query()->where('ulid', $state)->first()) !== null) {
+            return self::for($model);
+        }
+
+        if (is_string($zone) && ($model = GeopoliticalZone::query()->where('ulid', $zone)->first()) !== null) {
+            return self::zone($model);
+        }
+
+        return null;
     }
 
     /**

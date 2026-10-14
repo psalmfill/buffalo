@@ -9,6 +9,8 @@ use App\Actions\Dashboard\BuildSystemDashboard;
 use App\Enums\Role;
 use App\Models\User;
 use App\Support\Dashboard\DashboardKpis;
+use App\Support\Lens\StateLens;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,12 +20,20 @@ use Inertia\Response;
  */
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, StateLens $lens): Response|RedirectResponse
     {
         $this->authorize('viewDashboard');
 
         /** @var User $user */
         $user = $request->user();
+
+        // National users open on their state lens (Phase 11A.2), unless
+        // they asked for the national view (lens=off).
+        $current = $request->query('lens') === 'off' ? null : $lens->current($request);
+        if ($current !== null) {
+            return redirect()->route($current['type'] === 'state' ? 'dashboard.states.show' : 'dashboard.zones.show', $current['ulid']);
+        }
+
         // Dashboard period (Phase 7C): 7, 30 (default) or 90 days.
         $days = in_array((int) $request->query('days'), DashboardKpis::PERIODS, true) ? (int) $request->query('days') : 30;
 

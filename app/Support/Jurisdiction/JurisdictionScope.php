@@ -42,6 +42,12 @@ final class JurisdictionScope implements Scope
 
         $context = app(JurisdictionContext::class);
 
+        // A dashboard focus (Phase 11A.2) narrows, in every mode.
+        $focus = $context->focusedStates();
+        if ($focus !== null) {
+            $builder->whereIn($model->qualifyColumn($model->jurisdictionStateColumn()), $focus === [] ? [0] : $focus);
+        }
+
         if ($context->isSystem()) {
             return;
         }

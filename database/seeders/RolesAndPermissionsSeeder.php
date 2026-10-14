@@ -342,6 +342,11 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permission::SystemSettings->value => [
                     Role::SuperAdmin,
                 ],
+                // Phase 11A.3: brand, chart and KPI colours.
+                Permission::ThemeManage->value => [
+                    Role::SuperAdmin,
+                    Role::DirectorGeneral,
+                ],
             ],
         ];
     }

@@ -48,6 +48,7 @@ final class IncidentProvider extends BaseProvider
     {
         return array_values($this->query($query)
             ->with(['type', 'lga'])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'incidents.state_id'))
             ->orderByDesc('search_score')
             ->orderByDesc('incidents.occurred_at')
             ->offset($offset)->limit($limit)->get()

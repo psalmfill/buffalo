@@ -40,6 +40,8 @@
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+        {{-- Theme colours (Phase 11A.3): validated #rrggbb values only, as CSS custom properties. --}}
+        <style nonce="{{ Vite::cspNonce() }}" data-theme="buffalo">{!! \App\Support\Theme\Theme::css() !!}</style>
         <x-inertia::head>
             <title>{{ config('app.name', 'BUFFALO') }}</title>
         </x-inertia::head>

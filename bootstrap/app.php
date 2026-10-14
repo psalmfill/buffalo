@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HealthDetailedController;
+use App\Http\Middleware\ApplyStateLens;
 use App\Http\Middleware\EnforceSessionPolicy;
 use App\Http\Middleware\EnsureStateIsLive;
 use App\Http\Middleware\EnsureTwoFactorEnrolled;
@@ -41,7 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Browser security headers on every response (Phase 8B.1).
         $middleware->append(SecurityHeaders::class);
         $middleware->validateCsrfTokens(except: ['csp-report']);
-        $middleware->alias(['step-up' => RequireRecentTwoFactor::class]);
+        $middleware->alias(['step-up' => RequireRecentTwoFactor::class, 'lens' => ApplyStateLens::class]);
 
         // Production only: never serve with keys that do not match the
         // database's active fingerprints (Phase 8A).

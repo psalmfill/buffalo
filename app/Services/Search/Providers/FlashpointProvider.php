@@ -37,6 +37,7 @@ final class FlashpointProvider extends BaseProvider
             ->select('flashpoints.*')
             ->selectRaw("GREATEST(word_similarity(buffalo_search_text(?), flashpoints.search_name), ts_rank_cd(flashpoints.search_vector, websearch_to_tsquery('english', ?), 32)) AS search_score", [$query->raw, $query->raw])
             ->with(['threatType', 'lga'])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'flashpoints.state_id'))
             ->orderByDesc('search_score')
             ->orderByDesc('flashpoints.last_assessed_at')
             ->offset($offset)->limit($limit)->get()

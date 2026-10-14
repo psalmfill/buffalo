@@ -37,6 +37,7 @@ use App\Support\Jurisdiction\Contracts\AccessGrantResolver;
 use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Jurisdiction\JurisdictionRules;
 use App\Support\Jurisdiction\RestrictionType;
+use App\Support\Lens\StateLens;
 use App\Support\Malware\ClamdScanner;
 use App\Support\Malware\MalwareScanner;
 use App\Support\Persons\ReferenceUsageChecks as PersonsReferenceUsageChecks;
@@ -194,6 +195,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Global search (Phase 7B): intelligence roles only.
         Gate::define('globalSearch', fn (User $user): bool => GlobalSearch::canSearch($user));
+        // The state lens (Phase 11A.2): national users only.
+        Gate::define('useLens', fn (User $user): bool => app(StateLens::class)->available($user));
 
         // Analytics (Phase 7C): each area also needs its module's permission.
         Gate::define('viewAnalytics', fn (User $user): bool => $user->checkPermissionTo(Permission::AnalyticsView->value));

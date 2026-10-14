@@ -7,6 +7,7 @@ import {
     Tooltip,
 } from 'chart.js';
 import { useEffect, useRef } from 'react';
+import { useChartPalette } from '@/hooks/use-chart-palette';
 
 // Only what bar charts need (Chart.js is tree-shakeable; MIT licence).
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
@@ -21,15 +22,23 @@ export default function BarChart({
     label,
     horizontal = false,
     height = 220,
-    colour = '#2563eb',
+    paletteIndex = 0,
+    palette: preview,
 }: {
     rows: { label: string; count: number }[];
     label: string;
     horizontal?: boolean;
     height?: number;
-    colour?: string;
+    /** Which colour of the configured palette (Phase 11A.3); default the first. */
+    paletteIndex?: number;
+    /** A palette to preview instead of the configured one (Theme page). */
+    palette?: string[];
 }) {
     const canvas = useRef<HTMLCanvasElement>(null);
+    const configured = useChartPalette();
+    const palette = preview ?? configured;
+    const fill =
+        palette[paletteIndex % Math.max(palette.length, 1)] ?? '#2563eb';
 
     useEffect(() => {
         if (!canvas.current) {
@@ -48,7 +57,7 @@ export default function BarChart({
                     {
                         label,
                         data: rows.map((r) => r.count),
-                        backgroundColor: colour,
+                        backgroundColor: fill,
                         borderRadius: 3,
                         maxBarThickness: 32,
                     },
@@ -73,7 +82,7 @@ export default function BarChart({
         });
 
         return () => chart.destroy();
-    }, [rows, label, horizontal, colour]);
+    }, [rows, label, horizontal, fill]);
 
     if (rows.length === 0) {
         return (

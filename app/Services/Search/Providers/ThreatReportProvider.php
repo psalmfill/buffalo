@@ -40,6 +40,7 @@ final class ThreatReportProvider extends BaseProvider
     {
         return array_values($this->query($query)
             ->with(['threatType', 'lga'])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'threat_reports.state_id'))
             ->orderByDesc('search_score')
             ->orderByDesc('threat_reports.created_at')
             ->offset($offset)->limit($limit)->get()

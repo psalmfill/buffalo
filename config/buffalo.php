@@ -494,4 +494,30 @@ return [
         'lock_timeout' => env('BUFFALO_MERGE_LOCK_TIMEOUT', '10s'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | National dashboard state grid (Phase 11A.2)
+    |--------------------------------------------------------------------------
+    | Attention score = sum of figure x weight; the card's level is the first
+    | threshold the score reaches (highest first). Escalations awaiting
+    | acknowledgement, open critical incidents and immediate threats weigh
+    | most.
+    */
+    'dashboard' => [
+        'attention_weights' => [
+            'escalationsUnacknowledged' => (float) env('BUFFALO_ATTENTION_ESCALATIONS', 5),
+            'criticalOpen' => (float) env('BUFFALO_ATTENTION_CRITICAL', 4),
+            'immediateThreats' => (float) env('BUFFALO_ATTENTION_THREATS', 4),
+            'overdueVerifications' => (float) env('BUFFALO_ATTENTION_OVERDUE', 2),
+            'killed30' => (float) env('BUFFALO_ATTENTION_KILLED', 0.5),
+            'abducted30' => (float) env('BUFFALO_ATTENTION_ABDUCTED', 0.5),
+            'incidents7' => (float) env('BUFFALO_ATTENTION_INCIDENTS_7D', 0.2),
+        ],
+        'attention_levels' => [
+            'critical' => (float) env('BUFFALO_ATTENTION_LEVEL_CRITICAL', 20),
+            'high' => (float) env('BUFFALO_ATTENTION_LEVEL_HIGH', 8),
+            'elevated' => (float) env('BUFFALO_ATTENTION_LEVEL_ELEVATED', 1),
+        ],
+    ],
+
 ];

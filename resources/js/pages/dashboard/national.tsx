@@ -11,6 +11,8 @@ import { KpiTiles, PeriodSelector } from '@/components/dashboard/kpi-tiles';
 import { CrossBorderGaps } from '@/components/dashboard/dissemination-figures';
 import { NationalIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
+import { BackToNational } from '@/components/dashboard/back-to-national';
+import StateGrid from '@/components/dashboard/state-grid';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
 import {
     GroupsByType,
@@ -24,6 +26,8 @@ import type { NationalDashboardProps } from '@/types/dashboard';
 
 /** Director General and Deputy Director General. */
 export default function NationalDashboard({
+    stateGrid,
+    place,
     period,
     kpis,
     incidents,
@@ -40,16 +44,22 @@ export default function NationalDashboard({
     organizations,
 }: NationalDashboardProps) {
     const zoned = scope.zones.length > 0;
+    const title = place
+        ? `${place.name} zone`
+        : zoned
+          ? 'Zonal overview'
+          : 'National overview';
 
     return (
         <>
             <Head title="Dashboard" />
             <div className="flex flex-col gap-6 p-4">
                 <DashboardHeader
-                    title={zoned ? 'Zonal overview' : 'National overview'}
+                    title={title}
                     subtitle={`${scope.states} states · ${scope.lgas} LGAs`}
                 >
-                    {zoned && (
+                    {place && <BackToNational />}
+                    {zoned && !place && (
                         <div
                             className="flex flex-wrap items-center gap-2 pt-1 text-sm"
                             data-test="assigned-zones"
@@ -65,8 +75,9 @@ export default function NationalDashboard({
                         </div>
                     )}
                 </DashboardHeader>
-                <PeriodSelector period={period} />
+                <PeriodSelector period={period} analyticsPlace={place} />
                 <KpiTiles tiles={kpis} />
+                <StateGrid cards={stateGrid} />
 
                 {threatReports && (
                     <NationalImmediateThreats data={threatReports} />

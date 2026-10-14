@@ -27,6 +27,7 @@ use App\Support\Dashboard\MapView;
 use App\Support\Jurisdiction\DisseminationResolver;
 use App\Support\Jurisdiction\JurisdictionGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Lens\PlaceFilter;
 use App\Support\Threats\ThreatLinks;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -58,6 +59,7 @@ class ThreatReportController extends Controller
             'credibility' => ['nullable', Rule::enum(ThreatCredibility::class)],
             'urgency' => ['nullable', Rule::enum(ThreatUrgency::class)],
             'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
+            'zone' => PlaceFilter::zoneRule($user),
             'lga' => ['nullable', 'string', 'size:26'],
             'expiring' => ['nullable', Rule::in(['1'])],
             // Records shared with the user by another jurisdiction (Phase 7A).
@@ -65,6 +67,7 @@ class ThreatReportController extends Controller
         ]);
         $status = $filters['status'] ?? ThreatStatus::Active->value;
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
+        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
         $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
         $threat = isset($filters['threat_type']) ? ThreatType::query()->where('ulid', $filters['threat_type'])->first() : null;
@@ -75,6 +78,7 @@ class ThreatReportController extends Controller
             ->when($filters['credibility'] ?? null, fn (Builder $q, string $v) => $q->where('threat_reports.credibility', $v))
             ->when($filters['urgency'] ?? null, fn (Builder $q, string $v) => $q->where('threat_reports.urgency', $v))
             ->when($state, fn (Builder $q) => $q->where('threat_reports.state_id', $state?->id))
+            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'threat_reports.state_id', $zone))
             ->when($lga, fn (Builder $q) => $q->where('threat_reports.lga_id', $lga?->id))
             ->when(isset($filters['expiring']), fn (Builder $q) => $q->active()
                 ->where('threat_reports.expires_at', '<=', CarbonImmutable::now()->addHours((int) config('buffalo.threats.expiring_soon_hours'))))
@@ -96,12 +100,14 @@ class ThreatReportController extends Controller
                 'credibility' => $filters['credibility'] ?? '',
                 'urgency' => $filters['urgency'] ?? '',
                 'state' => $filters['state'] ?? '',
+                'zone' => $filters['zone'] ?? '',
                 'lga' => $filters['lga'] ?? '',
                 'expiring' => $filters['expiring'] ?? '',
                 'shared' => $filters['shared'] ?? '',
             ],
             'options' => ThreatReportPresenter::options(),
             'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
+            'zones' => PlaceFilter::options($user),
             'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name])->values() : [],
             'map' => MapView::for($lga ?? $state ?? $user->lga ?? $user->state),
             'can' => ['create' => $user->can('create', ThreatReport::class)],

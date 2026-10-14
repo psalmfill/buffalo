@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 // {group} are bound through their scopes (jurisdiction, and the person's
 // or group's classification): anything else is 404.
 Route::middleware(['auth'])->group(function () {
-    Route::get('persons-of-interest', [PersonOfInterestController::class, 'index'])->name('persons-of-interest.index');
+    Route::get('persons-of-interest', [PersonOfInterestController::class, 'index'])->name('persons-of-interest.index')->middleware('lens');
 
     Route::whereUlid('person')->group(function () {
         Route::get('persons/{person}/person-of-interest/create', [PersonOfInterestController::class, 'create'])->name('persons.person-of-interest.create');

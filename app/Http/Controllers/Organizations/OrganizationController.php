@@ -15,7 +15,10 @@ use App\Models\Organization;
 use App\Models\OrganizationContact;
 use App\Models\OrganizationSector;
 use App\Models\OrganizationSite;
+use App\Models\State;
 use App\Models\User;
+use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Lens\PlaceFilter;
 use App\Support\Persons\PersonSearch;
 use App\Support\Persons\PhoneNumber;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,10 +38,11 @@ use Spatie\Activitylog\Models\Activity;
  */
 class OrganizationController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, JurisdictionOptions $options): Response
     {
         $this->authorize('viewAny', Organization::class);
         $user = $this->actor($request);
+        $states = $options->states($user);
 
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
@@ -46,7 +50,13 @@ class OrganizationController extends Controller
             'sector' => ['nullable', 'string', 'size:26'],
             'status' => ['nullable', Rule::enum(OrganizationStatus::class)],
             'in_my_area' => ['nullable', Rule::in(['1'])],
+            // Organizations with a site (visible to the user) in a state or
+            // zone (Phase 11A.2, the state lens).
+            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
+            'zone' => PlaceFilter::zoneRule($user),
         ]);
+        $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
+        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $term = trim((string) ($filters['q'] ?? ''));
         $lookup = self::lookupKind($term);
         $sector = isset($filters['sector']) ? OrganizationSector::query()->where('ulid', $filters['sector'])->first() : null;
@@ -57,7 +67,9 @@ class OrganizationController extends Controller
             ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('organizations.type', $type))
             ->when($sector, fn (Builder $q) => $q->where('organizations.organization_sector_id', $sector?->id))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('organizations.status', $status))
-            ->when(isset($filters['in_my_area']), fn (Builder $q) => $q->whereHas('sites'));
+            ->when(isset($filters['in_my_area']), fn (Builder $q) => $q->whereHas('sites'))
+            ->when($state, fn (Builder $q) => $q->whereHas('sites', fn (Builder $s) => $s->where('organization_sites.state_id', $state?->id)))
+            ->when($zone, fn (Builder $q) => $q->whereHas('sites', fn (Builder $s) => PlaceFilter::apply($s, 'organization_sites.state_id', $zone)));
 
         $organizations = $term !== '' && $lookup === null
             ? PersonSearch::withThresholds(PersonSearch::SIMILARITY, PersonSearch::WORD_SIMILARITY, fn () => $query->search($term)->paginate(25)->withQueryString())
@@ -73,7 +85,11 @@ class OrganizationController extends Controller
                 'sector' => $filters['sector'] ?? '',
                 'status' => $filters['status'] ?? '',
                 'in_my_area' => isset($filters['in_my_area']) ? '1' : '',
+                'state' => $filters['state'] ?? '',
+                'zone' => $filters['zone'] ?? '',
             ],
+            'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
+            'zones' => PlaceFilter::options($user),
             'options' => OrganizationPresenter::options(),
             'sectors' => OrganizationPresenter::sectorOptions(),
             'can' => ['create' => $user->can('create', Organization::class)],

@@ -36,6 +36,7 @@ final class FormationProvider extends BaseProvider
             ->select('agency_formations.*')
             ->selectRaw('word_similarity(buffalo_search_text(?), agency_formations.search_name) AS search_score', [$query->raw])
             ->with(['agency', 'lga'])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'agency_formations.state_id'))
             ->orderByDesc('search_score')
             ->orderBy('agency_formations.name')
             ->offset($offset)->limit($limit)->get()

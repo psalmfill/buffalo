@@ -28,6 +28,7 @@ class PersonSearchRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:100'],
             'role' => ['nullable', Rule::exists('person_role_types', 'code')],
             'state' => ['nullable', 'string', 'size:26'],
+            'zone' => ['nullable', 'string', 'size:26'],
             'lga' => ['nullable', 'string', 'size:26'],
             'gender' => ['nullable', Rule::enum(Gender::class)],
             'classification' => ['nullable', Rule::enum(Classification::class)],
@@ -37,7 +38,7 @@ class PersonSearchRequest extends FormRequest
     }
 
     /**
-     * @return array{q: string, role: string, state: string, lga: string, gender: string, classification: string, dob: string}
+     * @return array{q: string, role: string, state: string, zone: string, lga: string, gender: string, classification: string, dob: string}
      */
     public function filters(): array
     {
@@ -47,6 +48,7 @@ class PersonSearchRequest extends FormRequest
             'q' => trim((string) ($data['q'] ?? '')),
             'role' => (string) ($data['role'] ?? ''),
             'state' => (string) ($data['state'] ?? ''),
+            'zone' => (string) ($data['zone'] ?? ''),
             'lga' => (string) ($data['lga'] ?? ''),
             'gender' => (string) ($data['gender'] ?? ''),
             'classification' => (string) ($data['classification'] ?? ''),

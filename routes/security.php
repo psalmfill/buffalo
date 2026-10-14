@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 // {formation} and {report} are bound through their scopes (jurisdiction and
 // classification): anything else is 404.
 Route::middleware(['auth'])->group(function () {
-    Route::get('formations', [AgencyFormationController::class, 'index'])->name('formations.index');
+    Route::get('formations', [AgencyFormationController::class, 'index'])->name('formations.index')->middleware('lens');
     Route::get('formations/create', [AgencyFormationController::class, 'create'])->name('formations.create');
     Route::post('formations', [AgencyFormationController::class, 'store'])->name('formations.store');
 
@@ -19,7 +19,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('formations/{formation}', [AgencyFormationController::class, 'destroy'])->name('formations.destroy');
     });
 
-    Route::get('coverage-reports', [CoverageReportController::class, 'index'])->name('coverage-reports.index');
+    Route::get('coverage-reports', [CoverageReportController::class, 'index'])->name('coverage-reports.index')->middleware('lens');
     Route::get('coverage-reports/create', [CoverageReportController::class, 'create'])->name('coverage-reports.create');
     Route::post('coverage-reports', [CoverageReportController::class, 'store'])->name('coverage-reports.store');
 

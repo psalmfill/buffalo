@@ -32,7 +32,7 @@ final class IncidentFilters
     public const SORTS = ['occurred_at', 'reference', 'severity', 'status', 'type'];
 
     /** Keys that may appear in a filter URL or a saved filter. */
-    public const KEYS = ['q', 'types', 'category', 'severities', 'statuses', 'escalated', 'from', 'to', 'state', 'lga', 'community', 'has_casualties', 'outcome', 'overdue', 'officer', 'group', 'mine', 'no_location', 'bbox', 'hex', 'sort', 'dir'];
+    public const KEYS = ['q', 'types', 'category', 'severities', 'statuses', 'escalated', 'from', 'to', 'state', 'zone', 'lga', 'community', 'has_casualties', 'outcome', 'overdue', 'officer', 'group', 'mine', 'no_location', 'bbox', 'hex', 'sort', 'dir'];
 
     /**
      * @param  array<string, mixed>  $values  validated
@@ -69,6 +69,7 @@ final class IncidentFilters
             'from' => ['date_format:Y-m-d'],
             'to' => ['date_format:Y-m-d'],
             'state' => ['string', 'max:30'],
+            'zone' => ['string', 'max:30'],
             'lga' => ['string', 'max:30'],
             'community' => ['string', 'max:30'],
             'has_casualties' => [Rule::in(['1'])],
@@ -162,6 +163,10 @@ final class IncidentFilters
         }
         if (isset($v['state'])) {
             $query->whereIn('incidents.state_id', DB::table('states')->where('ulid', $v['state'])->select('id'));
+        }
+        if (isset($v['zone'])) {
+            // A geopolitical zone (Phase 11A.2, the state lens): narrows only.
+            $query->whereIn('incidents.state_id', DB::table('states')->whereIn('geopolitical_zone_id', DB::table('geopolitical_zones')->where('ulid', $v['zone'])->select('id'))->select('id'));
         }
         if (isset($v['lga'])) {
             $query->whereIn('incidents.lga_id', DB::table('lgas')->where('ulid', $v['lga'])->select('id'));

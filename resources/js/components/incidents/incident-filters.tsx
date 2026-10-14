@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
+import { useLens } from '@/hooks/use-lens';
 import type {
     IncidentFilterValues,
     IncidentListShared,
@@ -53,6 +54,7 @@ export default function IncidentFilters({
     showSort?: boolean;
 }) {
     const { can } = useAuth();
+    const lensActive = useLens()?.current != null;
     const { filterOptions: options } = shared;
     const [values, setValues] = useState<IncidentFilterValues>({
         ...shared.filters,
@@ -113,10 +115,21 @@ export default function IncidentFilters({
         });
 
     const apply = (next?: IncidentFilterValues) => {
-        router.get(url, next ?? current(), {
-            preserveState: false,
-            preserveScroll: true,
-        });
+        const query = next ?? current();
+        // With a state lens and no place filter left, say so, so the
+        // server does not put the lens back (Phase 11A.2).
+        const offLens =
+            lensActive && !query.state && !query.zone && !query.lga
+                ? { lens: 'off' }
+                : {};
+        router.get(
+            url,
+            { ...query, ...offLens },
+            {
+                preserveState: false,
+                preserveScroll: true,
+            },
+        );
     };
 
     const submit = (event: FormEvent) => {
@@ -235,6 +248,14 @@ export default function IncidentFilters({
                         />
                     </Field>
                 </div>
+                {options.zones.length > 0 && (
+                    <Select
+                        label="Zone"
+                        value={values.zone}
+                        onChange={(v) => set('zone', v)}
+                        options={options.zones}
+                    />
+                )}
                 {options.states.length > 0 && (
                     <Select
                         label="State"

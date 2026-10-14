@@ -45,6 +45,7 @@ use App\Support\Jurisdiction\GrantAccessResolver;
 use App\Support\Jurisdiction\GrantedPersonView;
 use App\Support\Jurisdiction\JurisdictionGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Lens\PlaceFilter;
 use App\Support\Persons\PersonSearch;
 use App\Support\Persons\PhoneNumber;
 use App\Support\Persons\SearchTerm;
@@ -87,7 +88,11 @@ class PersonController extends Controller
     {
         $this->authorize('viewAny', Person::class);
 
-        return $this->searchPage($this->actor($request), $options, $matches, ['q' => '', 'role' => '', 'state' => '', 'lga' => '', 'gender' => '', 'classification' => '', 'dob' => '']);
+        // Only the place filters come from the URL (the state lens, Phase
+        // 11A.2); everything else is POSTed by the search form.
+        $place = $request->validate(['state' => ['nullable', 'string', 'size:26'], 'zone' => ['nullable', 'string', 'size:26']]);
+
+        return $this->searchPage($this->actor($request), $options, $matches, ['q' => '', 'role' => '', 'state' => (string) ($place['state'] ?? ''), 'zone' => (string) ($place['zone'] ?? ''), 'lga' => '', 'gender' => '', 'classification' => '', 'dob' => '']);
     }
 
     public function search(PersonSearchRequest $request, JurisdictionOptions $options, PersonMatchService $matches): Response
@@ -371,7 +376,7 @@ class PersonController extends Controller
     }
 
     /**
-     * @param  array{q: string, role: string, state: string, lga: string, gender: string, classification: string, dob: string}  $filters
+     * @param  array{q: string, role: string, state: string, zone: string, lga: string, gender: string, classification: string, dob: string}  $filters
      */
     private function searchPage(User $actor, JurisdictionOptions $options, PersonMatchService $matches, array $filters): Response
     {
@@ -379,12 +384,14 @@ class PersonController extends Controller
         $state = $filters['state'] !== '' ? $states->firstWhere('ulid', $filters['state']) : null;
         $lgas = $options->lgas($actor, $state);
         $lga = $filters['lga'] !== '' ? $lgas->firstWhere('ulid', $filters['lga']) : null;
+        $zone = PlaceFilter::options($actor) !== [] ? PlaceFilter::zone($filters['zone']) : null;
         $term = SearchTerm::parse($filters['q']);
-        $filtered = $state !== null || $lga !== null || $filters['role'] !== '' || $filters['gender'] !== '' || $filters['classification'] !== '';
+        $filtered = $state !== null || $zone !== null || $lga !== null || $filters['role'] !== '' || $filters['gender'] !== '' || $filters['classification'] !== '';
 
         $query = Person::query()
             ->with(['lga', 'state', 'roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)])
             ->when($state, fn (Builder $q) => $q->where('persons.state_id', $state?->id))
+            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'persons.state_id', $zone))
             ->when($lga, fn (Builder $q) => $q->where('persons.lga_id', $lga?->id))
             ->when($filters['role'], fn (Builder $q, string $role) => $q->whereHas('roles', fn (Builder $r) => $r->where('is_active', true)->whereHas('type', fn (Builder $t) => $t->where('code', $role))))
             ->when($filters['gender'], fn (Builder $q, string $gender) => $q->where('persons.gender', $gender))
@@ -420,6 +427,7 @@ class PersonController extends Controller
             'options' => PersonPresenter::options(),
             'states' => $states->count() > 1 ? $states->map(fn ($s) => ['ulid' => $s->ulid, 'name' => $s->name])->values() : [],
             'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $l) => ['ulid' => $l->ulid, 'name' => $l->name])->values() : [],
+            'zones' => PlaceFilter::options($actor),
             // Records elsewhere (Phase 3C): null when the user never gets hits
             // (national users, and anyone who may not request access).
             'crossJurisdiction' => $cross === null ? null : [

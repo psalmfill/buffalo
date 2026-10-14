@@ -6,6 +6,7 @@ import PersonController from '@/actions/App/Http/Controllers/Persons/PersonContr
 import HitsPanel from '@/components/access-requests/hits-panel';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import EmptyState from '@/components/empty-state';
+import { useLens } from '@/hooks/use-lens';
 import Heading from '@/components/heading';
 import NativeSelect from '@/components/native-select';
 import PersonAvatar from '@/components/persons/person-avatar';
@@ -31,6 +32,7 @@ type Props = {
     filters: PersonSearchFilters;
     options: PersonOptions;
     states: NamedRef[];
+    zones: { value: string; label: string }[];
     lgas: NamedRef[];
     /** null: this user never gets cross-jurisdiction hits. */
     crossJurisdiction:
@@ -60,10 +62,12 @@ export default function PersonsIndex({
     filters,
     options,
     states,
+    zones,
     lgas,
     crossJurisdiction,
     can,
 }: Props) {
+    const lensActive = useLens()?.current != null;
     const [values, setValues] = useState<PersonSearchFilters>(filters);
     const [processing, setProcessing] = useState(false);
 
@@ -83,7 +87,12 @@ export default function PersonsIndex({
         run();
     };
 
-    const reset = () => router.get(PersonController.index().url);
+    // With a state lens, a reset shows all places (Phase 11A.2).
+    const reset = () =>
+        router.get(
+            PersonController.index().url,
+            lensActive ? { lens: 'off' } : {},
+        );
 
     const select = (
         field: keyof PersonSearchFilters,
@@ -167,6 +176,8 @@ export default function PersonsIndex({
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                         {select('role', 'Role', options.allRoles, 'All roles')}
+                        {zones.length > 0 &&
+                            select('zone', 'Zone', zones, 'All zones')}
                         {states.length > 0 &&
                             select(
                                 'state',

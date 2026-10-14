@@ -36,6 +36,7 @@ final class CommunityProvider extends BaseProvider
             ->select('communities.*')
             ->selectRaw('word_similarity(lower(buffalo_unaccent(?)), communities.search_names) AS search_score', [$query->raw])
             ->with(['lga', 'state'])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'communities.state_id'))
             ->orderByDesc('search_score')
             ->orderBy('communities.name')
             ->offset($offset)->limit($limit)->get()

@@ -23,6 +23,7 @@ use App\Support\Dashboard\MapView;
 use App\Support\Incidents\IncidentFilters;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Jurisdiction\OfficerNames;
+use App\Support\Lens\PlaceFilter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -60,8 +61,9 @@ class IncidentListController extends Controller
         $user = $this->actor($request);
 
         return Inertia::render('incidents/map', [
-            ...$this->shared($user, IncidentFilters::from($request->query())->withDefaultRange(30), $options),
-            'map' => MapView::for($user->lga ?? $user->state),
+            ...$this->shared($user, $filters = IncidentFilters::from($request->query())->withDefaultRange(30), $options),
+            // Opens on the filtered state or zone (the state lens, Phase 11A.2).
+            'map' => MapView::forFilter($filters->values['state'] ?? null, $filters->values['zone'] ?? null) ?? MapView::for($user->lga ?? $user->state),
         ]);
     }
 
@@ -140,6 +142,7 @@ class IncidentListController extends Controller
                 'statuses' => array_map(fn (IncidentStatus $s) => IncidentPresenter::option($s), IncidentStatus::cases()),
                 'outcomes' => array_map(fn (CasualtyOutcome $o) => IncidentPresenter::option($o), CasualtyOutcome::cases()),
                 'states' => $states->count() > 1 ? $states->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
+                'zones' => PlaceFilter::options($user),
                 'lgas' => $options->lgas($user)->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name, 'state' => $states->firstWhere('id', $l->state_id)?->ulid])->values(),
             ],
             'savedFilters' => IncidentSavedFilter::query()->where('user_id', $user->id)->orderBy('name')->get()

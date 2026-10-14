@@ -36,6 +36,7 @@ final class CriminalGroupProvider extends BaseProvider
             ->select('criminal_groups.*')
             ->selectRaw('GREATEST(similarity(criminal_groups.search_name, buffalo_search_text(?)), word_similarity(buffalo_search_text(?), criminal_groups.search_name)) AS search_score', [$query->raw, $query->raw])
             ->with(['lga', 'state'])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'criminal_groups.state_id'))
             ->orderByDesc('search_score')
             ->orderBy('criminal_groups.name')
             ->offset($offset)->limit($limit)->get()

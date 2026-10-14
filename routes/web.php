@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Dashboard\LensController;
+use App\Http\Controllers\Dashboard\PlaceDashboardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Security\CspReportController;
@@ -17,6 +19,11 @@ Route::post('csp-report', CspReportController::class)->middleware('throttle:60,1
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    // National users: one state's or zone's dashboard, and the state lens (Phase 11A.2).
+    Route::get('dashboard/states/{state}', [PlaceDashboardController::class, 'state'])->name('dashboard.states.show');
+    Route::get('dashboard/zones/{zone}', [PlaceDashboardController::class, 'zone'])->name('dashboard.zones.show');
+    Route::put('lens', [LensController::class, 'update'])->name('lens.update');
+    Route::delete('lens', [LensController::class, 'destroy'])->name('lens.destroy');
 
     // The signed-in user's own notifications.
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

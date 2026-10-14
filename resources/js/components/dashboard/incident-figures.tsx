@@ -282,7 +282,7 @@ export function StateIncidents({ data }: { data: StateIncidentFigures }) {
                     <BarChart
                         rows={data.casualtiesByOutcome}
                         label={`People affected by outcome, last ${data.days} days`}
-                        colour="#b91c1c"
+                        paletteIndex={1}
                     />
                 </Panel>
             </div>
@@ -363,7 +363,7 @@ export function NationalIncidents({ data }: { data: NationalIncidentFigures }) {
                     <BarChart
                         rows={data.casualtiesByOutcome}
                         label={`People affected by outcome, last ${data.days} days`}
-                        colour="#b91c1c"
+                        paletteIndex={1}
                     />
                 </Panel>
                 <Panel
@@ -373,7 +373,7 @@ export function NationalIncidents({ data }: { data: NationalIncidentFigures }) {
                     <BarChart
                         rows={data.casualtiesByGroup}
                         label={`People affected by group, last ${data.days} days`}
-                        colour="#7c3aed"
+                        paletteIndex={4}
                     />
                 </Panel>
                 <Panel
@@ -383,7 +383,7 @@ export function NationalIncidents({ data }: { data: NationalIncidentFigures }) {
                     <BarChart
                         rows={data.securityCasualtiesByAgency}
                         label={`Security personnel casualties by agency, last ${data.days} days`}
-                        colour="#0f766e"
+                        paletteIndex={5}
                     />
                 </Panel>
             </div>

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 // Threat reports (Phase 6B). {threat} is bound through its scopes
 // (jurisdiction and classification): anything else is 404.
 Route::middleware(['auth'])->group(function () {
-    Route::get('threats', [ThreatReportController::class, 'index'])->name('threats.index');
+    Route::get('threats', [ThreatReportController::class, 'index'])->name('threats.index')->middleware('lens');
     Route::get('threats/create', [ThreatReportController::class, 'create'])->name('threats.create');
     Route::post('threats', [ThreatReportController::class, 'store'])->name('threats.store');
 

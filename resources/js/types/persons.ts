@@ -85,6 +85,8 @@ export type PersonSearchFilters = {
     q: string;
     role: string;
     state: string;
+    /** Phase 11A.2: a geopolitical zone (national users). */
+    zone: string;
     lga: string;
     gender: string;
     classification: string;
