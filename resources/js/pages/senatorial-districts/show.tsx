@@ -11,14 +11,13 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import type { NamedRef } from '@/types/local-government';
-import type { PersonRow } from '@/types/persons';
-import type { PoliticalOffice } from '@/types/political';
+import type { PoliticalOffice, RoleGroup } from '@/types/political';
 
 type Props = {
     district: NamedRef & { code: string; state: NamedRef };
     lgas: (NamedRef & { chief: NamedRef | null; chairman: NamedRef[] })[];
     currentHolders: PoliticalOffice[];
-    prominentPersons: PersonRow[];
+    prominentByRole: RoleGroup[];
     pastHolders: PoliticalOffice[];
     canViewPolitical: boolean;
 };
@@ -28,7 +27,7 @@ export default function SenatorialDistrictShow({
     district,
     lgas,
     currentHolders,
-    prominentPersons,
+    prominentByRole,
     pastHolders,
     canViewPolitical,
 }: Props) {
@@ -103,43 +102,46 @@ export default function SenatorialDistrictShow({
                             <OfficeHoldersTable offices={currentHolders} />
                         </section>
 
-                        <section className="space-y-3">
+                        {/* Prominent persons, grouped by role type (Phase 11A.1). */}
+                        <section className="space-y-4">
                             <h2 className="text-sm font-semibold">
                                 Prominent persons
                             </h2>
-                            {prominentPersons.length === 0 ? (
+                            {prominentByRole.length === 0 && (
                                 <p className="text-sm text-muted-foreground">
                                     None recorded.
                                 </p>
-                            ) : (
-                                <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                    {prominentPersons.map((person) => (
-                                        <li
-                                            key={person.ulid}
-                                            className="rounded-md border px-3 py-2 text-sm"
-                                        >
-                                            <Link
-                                                href={PersonController.show(
-                                                    person.ulid,
-                                                )}
-                                                className="font-medium hover:underline"
-                                            >
-                                                {person.name}
-                                            </Link>
-                                            <div className="text-xs text-muted-foreground">
-                                                {[
-                                                    person.lga?.name,
-                                                    ...person.roles.map(
-                                                        (r) => r.label,
-                                                    ),
-                                                ]
-                                                    .filter(Boolean)
-                                                    .join(' · ')}
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
                             )}
+                            {prominentByRole.map((group) => (
+                                <div
+                                    key={group.type.value}
+                                    className="space-y-2"
+                                >
+                                    <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                        {group.type.label}
+                                    </h3>
+                                    <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                        {group.persons.map((person) => (
+                                            <li
+                                                key={person.ulid}
+                                                className="rounded-md border px-3 py-2 text-sm"
+                                            >
+                                                <Link
+                                                    href={PersonController.show(
+                                                        person.ulid,
+                                                    )}
+                                                    className="font-medium hover:underline"
+                                                >
+                                                    {person.name}
+                                                </Link>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {person.lga?.name}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
                         </section>
 
                         <Collapsible>

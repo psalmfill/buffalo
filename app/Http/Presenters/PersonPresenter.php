@@ -5,11 +5,11 @@ namespace App\Http\Presenters;
 use App\Enums\AssociationRelationship;
 use App\Enums\Classification;
 use App\Enums\Gender;
-use App\Enums\PersonRoleType;
 use App\Models\Media;
 use App\Models\Person;
 use App\Models\PersonAlias;
 use App\Models\PersonRole;
+use App\Models\PersonRoleType;
 use BackedEnum;
 
 /**
@@ -72,10 +72,11 @@ final class PersonPresenter
             'nationality' => $person->nationality,
             'description' => $person->description,
             'all_roles' => $person->roles
-                ->sortBy(fn (PersonRole $role) => $role->role->value)
+                ->sortBy(fn (PersonRole $role) => [$role->type->sort_order, $role->type->name])
                 ->values()
                 ->map(fn (PersonRole $role) => [
-                    'role' => self::option($role->role),
+                    'role' => $role->type->option(),
+                    'type_active' => $role->type->is_active,
                     'is_active' => $role->is_active,
                     'notes' => $role->notes,
                 ])->all(),
@@ -91,8 +92,8 @@ final class PersonPresenter
     {
         return array_values($person->roles
             ->filter(fn (PersonRole $role) => $role->is_active)
-            ->sortBy(fn (PersonRole $role) => $role->role->value)
-            ->map(fn (PersonRole $role) => self::option($role->role))
+            ->sortBy(fn (PersonRole $role) => [$role->type->sort_order, $role->type->name])
+            ->map(fn (PersonRole $role) => $role->type->option())
             ->all());
     }
 
@@ -142,8 +143,11 @@ final class PersonPresenter
     {
         return [
             'genders' => array_map(self::option(...), Gender::cases()),
-            'roles' => array_map(self::option(...), PersonRoleType::assignable()),
-            'allRoles' => array_map(self::option(...), PersonRoleType::cases()),
+            // Role types (Phase 11A.1): `roles` may be newly assigned;
+            // `allRoles` (every type, for filters and display) includes
+            // deactivated types and the person-of-interest type.
+            'roles' => array_values(PersonRoleType::query()->assignable()->orderBy('sort_order')->orderBy('name')->get()->map(fn (PersonRoleType $t) => $t->option())->all()),
+            'allRoles' => array_values(PersonRoleType::query()->orderBy('sort_order')->orderBy('name')->get()->map(fn (PersonRoleType $t) => $t->option())->all()),
             'classifications' => array_map(self::option(...), Classification::cases()),
             'relationships' => array_map(self::option(...), AssociationRelationship::cases()),
         ];
@@ -154,7 +158,7 @@ final class PersonPresenter
      */
     public static function option(BackedEnum $case): array
     {
-        /** @var Gender|PersonRoleType|Classification|AssociationRelationship $case */
+        /** @var Gender|Classification|AssociationRelationship $case */
         return ['value' => (string) $case->value, 'label' => $case->label()];
     }
 }

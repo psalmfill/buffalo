@@ -65,7 +65,7 @@ test('a merge applies every rule, and undo restores every row exactly', function
         ->and(aliasesOf($src))->toBe(['Big Garba']);
 
     // Roles: union, active if active on either.
-    expect(DB::table('person_roles')->where('person_id', $s->id)->orderBy('role')->get(['role', 'is_active'])->map(fn ($r) => $r->role.':'.($r->is_active ? 'on' : 'off'))->all())
+    expect(DB::table('person_roles')->join('person_role_types', 'person_role_types.id', '=', 'person_roles.person_role_type_id')->where('person_id', $s->id)->orderBy('code')->get(['code', 'person_roles.is_active'])->map(fn ($r) => $r->code.':'.($r->is_active ? 'on' : 'off'))->all())
         ->toBe(['community_leader:on', 'political_leader:on']);
 
     // Associations: the link between the two dropped, the duplicate pair combined, the rest repointed.

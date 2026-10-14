@@ -4,11 +4,12 @@ namespace App\Http\Requests\Persons;
 
 use App\Enums\Classification;
 use App\Enums\Gender;
-use App\Enums\PersonRoleType;
 use App\Enums\UploadKind;
 use App\Models\Community;
 use App\Models\Lga;
 use App\Models\Person;
+use App\Models\PersonRole;
+use App\Models\PersonRoleType;
 use App\Models\User;
 use App\Rules\MalwareFree;
 use App\Rules\PersonPhoto;
@@ -125,8 +126,8 @@ class PersonRequest extends FormRequest
                 }
             }],
             'is_deceased' => ['boolean'],
-            'roles' => ['nullable', 'array', 'max:'.count(PersonRoleType::assignable())],
-            'roles.*.role' => ['required', 'string', 'distinct', Rule::in(array_map(fn (PersonRoleType $role) => $role->value, PersonRoleType::assignable()))],
+            'roles' => ['nullable', 'array', 'max:50'],
+            'roles.*.role' => ['required', 'string', 'distinct', Rule::notIn([PersonRoleType::PERSON_OF_INTEREST]), Rule::in($this->settableRoles())],
             'roles.*.notes' => ['nullable', 'string', 'max:1000'],
             'photo' => $creating ? ['bail', 'nullable', 'file', 'max:10240', new MalwareFree(UploadKind::PersonPhoto), 'mimetypes:image/jpeg,image/png,image/webp', new PersonPhoto] : ['prohibited'],
             'confirm_new' => $creating ? ['boolean'] : ['prohibited'],
@@ -142,7 +143,8 @@ class PersonRequest extends FormRequest
         return [
             'nin.regex' => 'A NIN is exactly 11 digits.',
             'approximate_age.prohibits' => 'Give either a date of birth or an approximate age, not both.',
-            'roles.*.role.in' => 'The person of interest role is managed in the persons of interest module.',
+            'roles.*.role.not_in' => 'The person of interest role is managed in the persons of interest module.',
+            'roles.*.role.in' => 'This role type is not active: it can stay on persons who hold it, but cannot be newly assigned.',
             'photo.mimetypes' => 'The photo must be a JPEG, PNG or WebP image.',
             'photo.max' => 'The photo may be at most 10 MB.',
             'lga.prohibited' => 'A person\'s LGA cannot be changed.',
@@ -174,7 +176,21 @@ class PersonRequest extends FormRequest
     }
 
     /**
-     * Checked roles: role value => notes.
+     * Role codes the form may set (Phase 11A.1): the assignable types, plus
+     * any type this person already holds actively (e.g. deactivated since).
+     *
+     * @return list<string>
+     */
+    private function settableRoles(): array
+    {
+        $person = $this->person();
+        $held = $person === null ? [] : $person->roles()->where('is_active', true)->with('type')->get()->map(fn (PersonRole $role) => $role->type->code)->all();
+
+        return array_values(array_unique([...PersonRoleType::query()->assignable()->pluck('code')->all(), ...$held]));
+    }
+
+    /**
+     * Checked roles: role code => notes.
      *
      * @return array<string, string|null>
      */

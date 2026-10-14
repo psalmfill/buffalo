@@ -20,6 +20,8 @@ export type PersonRow = {
 
 export type PersonRoleEntry = {
     role: Option;
+    /** Whether the role type is still active (Phase 11A.1). */
+    type_active: boolean;
     is_active: boolean;
     notes: string | null;
 };

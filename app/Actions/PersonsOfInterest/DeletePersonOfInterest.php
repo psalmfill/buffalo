@@ -3,9 +3,9 @@
 namespace App\Actions\PersonsOfInterest;
 
 use App\Actions\CommunityInformation\DeleteWithReason;
-use App\Enums\PersonRoleType;
 use App\Models\Person;
 use App\Models\PersonOfInterest;
+use App\Models\PersonRoleType;
 use App\Models\User;
 use App\Support\Persons\RoleAssigner;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +28,7 @@ final class DeletePersonOfInterest
             ($this->delete)($poi, 'person_of_interest', $reason, $actor);
 
             if ($person !== null) {
-                $this->roles->deactivate($person, PersonRoleType::PersonOfInterest);
+                $this->roles->deactivate($person, PersonRoleType::PERSON_OF_INTEREST);
             }
         });
     }

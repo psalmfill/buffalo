@@ -2,10 +2,10 @@
 
 namespace App\Http\Requests\CommunityInformation;
 
-use App\Enums\PersonRoleType;
 use App\Enums\ReligiousInstitutionType;
 use App\Models\Community;
 use App\Models\Denomination;
+use App\Models\PersonRoleType;
 use App\Models\Religion;
 use App\Models\ReligiousInstitution;
 use App\Rules\ActiveOption;
@@ -60,7 +60,7 @@ class ReligiousInstitutionRequest extends LgaRecordRequest
             }],
             'notes' => ['nullable', 'string', 'max:5000'],
             // Absent: unchanged (e.g. a leader the user cannot see).
-            'leader' => ['sometimes', 'nullable', 'string', new PersonWithRole(PersonRoleType::ReligiousLeader, $current?->leader?->ulid)],
+            'leader' => ['sometimes', 'nullable', 'string', new PersonWithRole(PersonRoleType::RELIGIOUS_LEADER, $current?->leader?->ulid)],
         ];
     }
 

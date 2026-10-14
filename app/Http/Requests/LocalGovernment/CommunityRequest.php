@@ -3,9 +3,9 @@
 namespace App\Http\Requests\LocalGovernment;
 
 use App\Enums\CommunityType;
-use App\Enums\PersonRoleType;
 use App\Models\Community;
 use App\Models\Lga;
+use App\Models\PersonRoleType;
 use App\Models\Ward;
 use App\Rules\ActiveOption;
 use App\Rules\PersonWithRole;
@@ -84,7 +84,7 @@ class CommunityRequest extends FormRequest
             'population_estimate' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'notes' => ['nullable', 'string', 'max:5000'],
             // Absent: unchanged (e.g. a ruler the user cannot see).
-            'traditional_ruler' => ['sometimes', 'nullable', 'string', new PersonWithRole(PersonRoleType::TraditionalRuler, $community?->traditionalRuler?->ulid)],
+            'traditional_ruler' => ['sometimes', 'nullable', 'string', new PersonWithRole(PersonRoleType::TRADITIONAL_RULER, $community?->traditionalRuler?->ulid)],
         ];
     }
 

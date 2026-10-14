@@ -207,15 +207,20 @@ export default function ReferenceDataIndex({
                                                     Edit
                                                 </Link>
                                             </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setToggling(row)}
-                                            >
-                                                {row.is_active
-                                                    ? 'Deactivate'
-                                                    : 'Activate'}
-                                            </Button>
+                                            {(row.can_deactivate ||
+                                                !row.is_active) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setToggling(row)
+                                                    }
+                                                >
+                                                    {row.is_active
+                                                        ? 'Deactivate'
+                                                        : 'Activate'}
+                                                </Button>
+                                            )}
                                         </td>
                                     )}
                                 </tr>

@@ -4,10 +4,10 @@ namespace Database\Factories;
 
 use App\Enums\Classification;
 use App\Enums\Gender;
-use App\Enums\PersonRoleType;
 use App\Models\Community;
 use App\Models\Lga;
 use App\Models\Person;
+use App\Models\PersonRoleType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -61,8 +61,9 @@ class PersonFactory extends Factory
         return $this->state(['classification' => $level]);
     }
 
-    public function withRole(PersonRoleType $role, bool $active = true): static
+    /** $code: a PersonRoleType code (constant). */
+    public function withRole(string $code, bool $active = true): static
     {
-        return $this->afterCreating(fn (Person $person) => $person->roles()->create(['role' => $role, 'is_active' => $active]));
+        return $this->afterCreating(fn (Person $person) => $person->roles()->forceCreate(['person_role_type_id' => PersonRoleType::idFor($code), 'is_active' => $active]));
     }
 }

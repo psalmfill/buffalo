@@ -2,7 +2,6 @@
 
 namespace App\Support\Political;
 
-use App\Enums\PersonRoleType;
 use App\Enums\PoliticalOfficeType;
 use App\Enums\Role;
 use App\Http\Presenters\PersonPresenter;
@@ -11,6 +10,7 @@ use App\Models\Community;
 use App\Models\Lga;
 use App\Models\OfficerPosting;
 use App\Models\Person;
+use App\Models\PersonRoleType;
 use App\Models\PoliticalOffice;
 use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
@@ -18,7 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Who leads an LGA or a senatorial district (Phase 3B): current office
- * holders, traditional rulers, religious and community leaders.
+ * holders, traditional rulers, religious leaders, and community-level
+ * leaders grouped by role type (Phase 11A.1).
  *
  * Every query goes through the scopes, so each viewer sees only the
  * offices and persons they may see (an LGA chief, for example, sees their
@@ -91,7 +92,13 @@ final class Leadership
                     'institution' => ['ulid' => $i->ulid, 'name' => $i->name, 'religion' => $i->religion->name],
                     'person' => ['ulid' => $i->leader?->ulid, 'name' => $i->leader?->name],
                 ])->all(),
-            'communityLeaders' => $this->personsWithRoles([PersonRoleType::CommunityLeader], [$lga->id], 100),
+            // Community-level leaders, grouped by role type (Phase 11A.1),
+            // including types added by administrators.
+            'leadersByRole' => $this->groupedByRole(
+                PersonRoleType::query()->whereNotIn('code', PersonRoleType::NOT_COMMUNITY_LEVEL),
+                [$lga->id],
+                100,
+            ),
         ];
     }
 
@@ -132,8 +139,9 @@ final class Leadership
                 'chairman' => $chairmen->get($lga->id)?->map(fn (PoliticalOffice $o) => ['ulid' => $o->person?->ulid, 'name' => $o->person?->name])->values()->all() ?? [],
             ])->all(),
             'currentHolders' => $current->map(fn (PoliticalOffice $o) => PoliticalPresenter::office($o))->values()->all(),
-            'prominentPersons' => $this->personsWithRoles(
-                [PersonRoleType::PoliticalLeader, PersonRoleType::TraditionalRuler, PersonRoleType::ReligiousLeader, PersonRoleType::CommunityLeader],
+            // Persons holding any leadership role, grouped by role type.
+            'prominentByRole' => $this->groupedByRole(
+                PersonRoleType::query()->where('code', '!=', PersonRoleType::PERSON_OF_INTEREST),
                 $lgaIds,
                 200,
             ),
@@ -147,23 +155,33 @@ final class Leadership
     }
 
     /**
-     * Visible persons of these LGAs holding any of these roles (active).
+     * Visible persons of these LGAs holding each role type (active roles),
+     * one group per type that has anyone (types in order). A deactivated
+     * type still lists those who hold it.
      *
-     * @param  list<PersonRoleType>  $roles
+     * @param  Builder<PersonRoleType>  $types
      * @param  list<int>  $lgaIds
-     * @return list<array<string, mixed>>
+     * @return list<array{type: array{value: string, label: string}, persons: list<array<string, mixed>>}>
      */
-    private function personsWithRoles(array $roles, array $lgaIds, int $limit): array
+    private function groupedByRole(Builder $types, array $lgaIds, int $limit): array
     {
-        return array_values(Person::query()
-            ->with(['lga', 'roles'])
-            ->whereIn('persons.lga_id', $lgaIds)
-            ->whereHas('roles', fn (Builder $q) => $q->where('is_active', true)->whereIn('role', array_map(fn (PersonRoleType $r) => $r->value, $roles)))
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->limit($limit)
-            ->get()
-            ->map(fn (Person $p) => PersonPresenter::row($p))
-            ->all());
+        $groups = [];
+
+        foreach ($types->orderBy('sort_order')->orderBy('name')->get() as $type) {
+            $persons = Person::query()
+                ->with(['lga', 'roles'])
+                ->whereIn('persons.lga_id', $lgaIds)
+                ->whereHas('roles', fn (Builder $q) => $q->where('is_active', true)->where('person_role_type_id', $type->id))
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->limit($limit)
+                ->get();
+
+            if ($persons->isNotEmpty()) {
+                $groups[] = ['type' => $type->option(), 'persons' => array_values($persons->map(fn (Person $p) => PersonPresenter::row($p))->all())];
+            }
+        }
+
+        return $groups;
     }
 }

@@ -3,11 +3,11 @@
 namespace App\Actions\Persons;
 
 use App\Enums\Classification;
-use App\Enums\PersonRoleType;
 use App\Models\Community;
 use App\Models\Lga;
 use App\Models\Person;
 use App\Models\PersonRole;
+use App\Models\PersonRoleType;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -78,28 +78,45 @@ final class SavePerson
     }
 
     /**
-     * @param  array<string, string|null>  $roles  role value => notes
+     * The checked roles (code => notes) become the person's active roles.
+     * The form manages every assignable type (active, never the POI type)
+     * and any other type the person already holds (e.g. one deactivated
+     * since). A deactivated type is never newly assigned: not added, and
+     * not switched back on (Phase 11A.1).
+     *
+     * @param  array<string, string|null>  $roles  role code => notes
      */
     private function syncRoles(Person $person, array $roles, User $actor): void
     {
-        foreach (array_keys($roles) as $value) {
-            if (PersonRoleType::tryFrom($value) === null || $value === PersonRoleType::PersonOfInterest->value) {
-                throw new InvalidArgumentException("Role {$value} cannot be set here.");
+        $existing = PersonRole::query()->with('type')->where('person_id', $person->id)->get()
+            ->keyBy(fn (PersonRole $role) => $role->type->code);
+        // Plain arrays: Eloquent collections merge by primary key, not by these keys.
+        $types = collect([
+            ...PersonRoleType::query()->assignable()->get()->keyBy('code')->all(),
+            ...$existing->mapWithKeys(fn (PersonRole $role) => [$role->type->code => $role->type])->all(),
+        ])->except([PersonRoleType::PERSON_OF_INTEREST]);
+
+        foreach (array_keys($roles) as $code) {
+            /** @var PersonRole|null $row */
+            $row = $existing->get($code);
+            /** @var PersonRoleType|null $type */
+            $type = $types->get($code);
+
+            if ($type === null || (! $type->is_active && ! ($row !== null && $row->is_active))) {
+                throw new InvalidArgumentException("Role {$code} cannot be set here.");
             }
         }
 
-        $existing = $person->roles()->get()->keyBy(fn (PersonRole $role) => $role->role->value);
-
-        foreach (PersonRoleType::assignable() as $type) {
-            $checked = array_key_exists($type->value, $roles);
-            $notes = $checked ? self::blankToNull($roles[$type->value]) : null;
+        foreach ($types as $code => $type) {
+            $checked = array_key_exists($code, $roles);
+            $notes = $checked ? self::blankToNull($roles[$code]) : null;
             /** @var PersonRole|null $role */
-            $role = $existing->get($type->value);
+            $role = $existing->get($code);
 
             if ($role === null) {
                 if ($checked) {
-                    $new = new PersonRole(['role' => $type, 'is_active' => true, 'notes' => $notes]);
-                    $new->forceFill(['person_id' => $person->id, 'created_by' => $actor->id])->save();
+                    $new = new PersonRole(['is_active' => true, 'notes' => $notes]);
+                    $new->forceFill(['person_id' => $person->id, 'person_role_type_id' => $type->id, 'created_by' => $actor->id])->save();
                 }
 
                 continue;

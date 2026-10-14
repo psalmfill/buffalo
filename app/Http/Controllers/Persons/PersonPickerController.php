@@ -34,7 +34,7 @@ class PersonPickerController extends Controller
 
         $query = Person::query()
             ->with(['lga', 'roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)])
-            ->when($role, fn (Builder $q, string $role) => $q->whereHas('roles', fn (Builder $r) => $r->where('role', $role)->where('is_active', true)))
+            ->when($role, fn (Builder $q, string $role) => $q->whereHas('roles', fn (Builder $r) => $r->where('is_active', true)->whereHas('type', fn (Builder $t) => $t->where('code', $role))))
             ->when($except, fn (Builder $q, string $ulid) => $q->where('persons.ulid', '!=', $ulid))
             ->when($request->boolean('own'), fn (Builder $q) => $q->ownJurisdiction($user));
 

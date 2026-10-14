@@ -5,6 +5,7 @@ namespace App\Support\ReferenceData;
 use App\Models\Denomination;
 use App\Models\IncidentType;
 use App\Models\OrganizationSector;
+use App\Models\PersonRoleType;
 use App\Models\PropertyType;
 use App\Models\ReferenceModel;
 use App\Models\Religion;
@@ -24,9 +25,10 @@ enum ReferenceTable: string
     case Denominations = 'denominations';
     case PropertyTypes = 'property-types';
     case OrganizationSectors = 'organization-sectors';
+    case PersonRoleTypes = 'person-role-types';
 
     /**
-     * @return class-string<IncidentType|ThreatType|SecurityAgency|Religion|Denomination|PropertyType|OrganizationSector>
+     * @return class-string<IncidentType|ThreatType|SecurityAgency|Religion|Denomination|PropertyType|OrganizationSector|PersonRoleType>
      */
     public function modelClass(): string
     {
@@ -38,11 +40,12 @@ enum ReferenceTable: string
             self::Denominations => Denomination::class,
             self::PropertyTypes => PropertyType::class,
             self::OrganizationSectors => OrganizationSector::class,
+            self::PersonRoleTypes => PersonRoleType::class,
         };
     }
 
     /**
-     * @return Builder<IncidentType>|Builder<ThreatType>|Builder<SecurityAgency>|Builder<Religion>|Builder<Denomination>|Builder<PropertyType>|Builder<OrganizationSector>
+     * @return Builder<IncidentType>|Builder<ThreatType>|Builder<SecurityAgency>|Builder<Religion>|Builder<Denomination>|Builder<PropertyType>|Builder<OrganizationSector>|Builder<PersonRoleType>
      */
     public function query(): Builder
     {
@@ -66,6 +69,7 @@ enum ReferenceTable: string
             self::Denominations => 'Denominations',
             self::PropertyTypes => 'Property types',
             self::OrganizationSectors => 'Organization sectors',
+            self::PersonRoleTypes => 'Person role types',
         };
     }
 
@@ -79,6 +83,7 @@ enum ReferenceTable: string
             self::Denominations => 'Denomination',
             self::PropertyTypes => 'Property type',
             self::OrganizationSectors => 'Organization sector',
+            self::PersonRoleTypes => 'Person role type',
         };
     }
 

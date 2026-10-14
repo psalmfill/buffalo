@@ -1,9 +1,9 @@
 <?php
 
-use App\Enums\PersonRoleType;
 use App\Enums\PoliticalOfficeType;
 use App\Models\Person;
 use App\Models\PersonRole;
+use App\Models\PersonRoleType;
 use App\Models\PoliticalOffice;
 use App\Models\SenatorialDistrict;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +20,7 @@ beforeEach(function () {
     CrossFixtures::system();
     $this->world = JurisdictionWorld::build();
     $this->lga = $this->world->lgas['A1a'];
-    $this->wrong = Person::factory()->in($this->lga)->named('Bala', 'Wrongly')->withRole(PersonRoleType::PoliticalLeader)->create();
+    $this->wrong = Person::factory()->in($this->lga)->named('Bala', 'Wrongly')->withRole(PersonRoleType::POLITICAL_LEADER)->create();
     $this->right = Person::factory()->in($this->world->lgas['A1b'])->named('Bala', 'Rightly')->create();
     $district = SenatorialDistrict::query()->findOrFail($this->lga->senatorial_district_id);
     $this->office = PoliticalOffice::factory()->forPerson($this->wrong)->senator($district)->create();
@@ -29,7 +29,7 @@ beforeEach(function () {
 
 function isLeader(Person $person): bool
 {
-    return (bool) PersonRole::query()->where('person_id', $person->id)->where('role', PersonRoleType::PoliticalLeader->value)->value('is_active');
+    return (bool) PersonRole::query()->where('person_id', $person->id)->where('person_role_type_id', PersonRoleType::idFor(PersonRoleType::POLITICAL_LEADER))->value('is_active');
 }
 
 test('who may reassign an office', function (string $who, int $status) {

@@ -1,10 +1,10 @@
 <?php
 
-use App\Enums\PersonRoleType;
 use App\Enums\PoliticalOfficeType;
 use App\Models\Community;
 use App\Models\Lga;
 use App\Models\Person;
+use App\Models\PersonRoleType;
 use App\Models\PoliticalOffice;
 use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
@@ -41,12 +41,14 @@ function leadershipWorld(): array
     PoliticalOffice::factory()->forPerson($person($world->lgas['A1b'], 'Far', 'Senator'))->senator(SenatorialDistrict::query()->findOrFail($world->lgas['A1b']->senatorial_district_id))->create();
 
     $community = Community::factory()->in($a1a)->create(['name' => 'Oba Town']);
-    $ruler = Person::factory()->in($a1a)->named('Oba', 'Ruler')->withRole(PersonRoleType::TraditionalRuler)->create();
+    $ruler = Person::factory()->in($a1a)->named('Oba', 'Ruler')->withRole(PersonRoleType::TRADITIONAL_RULER)->create();
     $community->forceFill(['traditional_ruler_id' => $ruler->id])->save();
-    $imam = Person::factory()->in($a1a)->named('Imam', 'Leader')->withRole(PersonRoleType::ReligiousLeader)->create();
+    $imam = Person::factory()->in($a1a)->named('Imam', 'Leader')->withRole(PersonRoleType::RELIGIOUS_LEADER)->create();
     ReligiousInstitution::factory()->in($community)->create(['name' => 'Central Mosque', 'leader_person_id' => $imam->id]);
-    Person::factory()->in($a1a)->named('Comm', 'Leader')->withRole(PersonRoleType::CommunityLeader)->create();
-    Person::factory()->in($a1a)->named('Former', 'Leader')->withRole(PersonRoleType::CommunityLeader, active: false)->create();
+    Person::factory()->in($a1a)->named('Comm', 'Leader')->withRole(PersonRoleType::COMMUNITY_LEADER)->create();
+    Person::factory()->in($a1a)->named('Former', 'Leader')->withRole(PersonRoleType::COMMUNITY_LEADER, active: false)->create();
+    // A type added by an administrator (Phase 11A.1).
+    Person::factory()->in($a1a)->named('Yemi', 'Youth')->withRole('youth_leader')->create();
 
     return [$world, $district, $a1a, $sibling];
 }
@@ -60,8 +62,9 @@ test('the district page shows current holders, prominent persons and past holder
         ->where('pastHolders', fn ($holders) => collect($holders)->pluck('person.name')->sort()->values()->all() === ['Ex Chairman', 'Olu OldSenator'])
         ->where('lgas', fn ($lgas) => collect($lgas)->mapWithKeys(fn ($l) => [$l['name'] => collect($l['chairman'])->pluck('name')->all()])->sortKeys()->all()
             === collect([$a1a->name => ['Chika Chairman'], 'Sibling LGA' => ['Sib Chairman']])->sortKeys()->all())
-        // Persons holding a leadership role (active) in the district's LGAs.
-        ->where('prominentPersons', fn ($persons) => collect($persons)->pluck('name')->sort()->values()->all() === ['Comm Leader', 'Imam Leader', 'Oba Ruler']));
+        // Persons holding a leadership role (active) in the district's LGAs, grouped by role type.
+        ->where('prominentByRole', fn ($groups) => collect($groups)->mapWithKeys(fn ($g) => [$g['type']['label'] => collect($g['persons'])->pluck('name')->all()])->all()
+            === ['Traditional ruler' => ['Oba Ruler'], 'Religious leader' => ['Imam Leader'], 'Community leader' => ['Comm Leader'], 'Youth leader' => ['Yemi Youth']]));
 });
 
 test('an LGA chief sees their district with their own LGA\'s holders only', function () {
@@ -104,5 +107,7 @@ test('the LGA leadership tab shows current leaders and excludes ended offices', 
         ->where('leadership.traditionalRulers.0.person.name', 'Oba Ruler')
         ->where('leadership.traditionalRulers.0.community.name', 'Oba Town')
         ->where('leadership.religiousLeaders.0.person.name', 'Imam Leader')
-        ->where('leadership.communityLeaders', fn ($l) => collect($l)->pluck('name')->all() === ['Comm Leader']));
+        // Community-level leaders grouped by role type, new types included.
+        ->where('leadership.leadersByRole', fn ($groups) => collect($groups)->mapWithKeys(fn ($g) => [$g['type']['label'] => collect($g['persons'])->pluck('name')->all()])->all()
+            === ['Community leader' => ['Comm Leader'], 'Youth leader' => ['Yemi Youth']]));
 });

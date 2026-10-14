@@ -7,6 +7,7 @@ use App\Enums\IncidentCategory;
 use App\Enums\Severity;
 use App\Models\Denomination;
 use App\Models\IncidentType;
+use App\Models\PersonRoleType;
 use App\Models\ReferenceModel;
 use App\Models\Religion;
 use App\Models\SecurityAgency;
@@ -66,6 +67,7 @@ final class ReferenceValuePresenter
             ReferenceTable::Denominations => [['key' => 'religion', 'label' => 'Religion']],
             ReferenceTable::Religions => [['key' => 'denominations', 'label' => 'Denominations']],
             ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors => [],
+            ReferenceTable::PersonRoleTypes => [['key' => 'system', 'label' => 'System type']],
         };
     }
 
@@ -81,6 +83,8 @@ final class ReferenceValuePresenter
             'description' => $value->description,
             'sort_order' => $value->sort_order,
             'is_active' => $value->is_active,
+            // System role types (Phase 11A.1) cannot be deactivated.
+            'can_deactivate' => ! ($value instanceof PersonRoleType && $value->is_system),
             'extras' => self::extras($value),
         ];
     }
@@ -144,7 +148,7 @@ final class ReferenceValuePresenter
                     'createOnly' => true,
                 ],
             ],
-            ReferenceTable::Religions, ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors => [],
+            ReferenceTable::Religions, ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors, ReferenceTable::PersonRoleTypes => [],
         };
     }
 
@@ -167,6 +171,7 @@ final class ReferenceValuePresenter
             ],
             $value instanceof Denomination => ['religion' => $value->religion->name],
             $value instanceof Religion => ['denominations' => (string) $value->denominations->count()],
+            $value instanceof PersonRoleType => ['system' => $value->is_system ? 'Yes: the code is used by BUFFALO; it cannot be deactivated' : 'No'],
             default => [],
         };
     }

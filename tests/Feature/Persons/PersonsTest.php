@@ -1,11 +1,11 @@
 <?php
 
 use App\Enums\Classification;
-use App\Enums\PersonRoleType;
 use App\Models\Community;
 use App\Models\Person;
 use App\Models\PersonAlias;
 use App\Models\PersonRole;
+use App\Models\PersonRoleType;
 use App\Models\RecordAccessLog;
 use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Persons\PersonSearch;
@@ -136,7 +136,7 @@ test('an LGA chief creates a person with roles; the audit shows fields, never pr
         ->and($person->phone)->toBe(PersonFixtures::SECRETS['phone_normalised'])
         ->and($person->nin)->toBe(PersonFixtures::SECRETS['nin'])
         ->and($person->created_by)->toBe($world->users['lga_chief']->id)
-        ->and($person->roles->map(fn (PersonRole $r) => [$r->role->value, $r->is_active, $r->notes])->all())->toBe([['community_leader', true, 'Youth leader']]);
+        ->and($person->roles->map(fn (PersonRole $r) => [$r->typeCode(), $r->is_active, $r->notes])->all())->toBe([['community_leader', true, 'Youth leader']]);
 
     $log = Activity::query()->get()->map(fn (Activity $a) => json_encode([$a->attribute_changes, $a->properties, $a->description]))->implode("\n");
 
@@ -203,20 +203,20 @@ test('the person of interest role cannot be set through the persons forms', func
     expect(Person::query()->count())->toBe(0);
 
     // Editing leaves a POI role (set by the 3B module) untouched.
-    $person = Person::factory()->in($lga)->withRole(PersonRoleType::PersonOfInterest)->create();
+    $person = Person::factory()->in($lga)->withRole(PersonRoleType::PERSON_OF_INTEREST)->create();
     $this->actingAs($world->users['state_director'])
         ->put("/persons/{$person->ulid}", PersonFixtures::payload($lga, ['lga' => null, 'confirm_new' => null, 'roles' => [['role' => 'political_leader']]]))
         ->assertSessionHasNoErrors();
 
     PersonFixtures::system();
-    expect($person->roles()->orderBy('role')->get()->map(fn (PersonRole $r) => [$r->role->value, $r->is_active])->all())
+    expect($person->roles()->get()->sortBy(fn (PersonRole $r) => $r->typeCode())->values()->map(fn (PersonRole $r) => [$r->typeCode(), $r->is_active])->all())
         ->toBe([['person_of_interest', true], ['political_leader', true]]);
 });
 
 test('unchecking a role deactivates it, and checking it again reactivates it', function () {
     $world = JurisdictionWorld::build();
     $lga = $world->lgas['A1a'];
-    $person = Person::factory()->in($lga)->withRole(PersonRoleType::TraditionalRuler)->create();
+    $person = Person::factory()->in($lga)->withRole(PersonRoleType::TRADITIONAL_RULER)->create();
     $sd = $world->users['state_director'];
     $update = fn (array $roles) => $this->actingAs($sd)->put("/persons/{$person->ulid}", PersonFixtures::payload($lga, ['lga' => null, 'confirm_new' => null, 'roles' => $roles]))->assertSessionHasNoErrors();
 
@@ -346,8 +346,8 @@ test('persons are found by NIN, by a phone written differently and by a misspell
 test('search filters and the recent list', function () {
     $world = JurisdictionWorld::build();
     $lga = $world->lgas['A1a'];
-    $ruler = Person::factory()->in($lga)->named('Oba', 'Ruler')->withRole(PersonRoleType::TraditionalRuler)->create(['gender' => 'male']);
-    Person::factory()->in($lga)->named('Former', 'Ruler')->withRole(PersonRoleType::TraditionalRuler, active: false)->create();
+    $ruler = Person::factory()->in($lga)->named('Oba', 'Ruler')->withRole(PersonRoleType::TRADITIONAL_RULER)->create(['gender' => 'male']);
+    Person::factory()->in($lga)->named('Former', 'Ruler')->withRole(PersonRoleType::TRADITIONAL_RULER, active: false)->create();
     Person::factory()->count(22)->in($lga)->create();
 
     $sd = $world->users['state_director'];
@@ -453,7 +453,7 @@ test('the person page shows protected fields; other pages never carry them', fun
     $world = JurisdictionWorld::build();
     $lga = $world->lgas['A1a'];
     $community = Community::factory()->in($lga)->create();
-    $person = Person::factory()->inCommunity($community)->named('Babatunde', 'Adeyemi')->withRole(PersonRoleType::TraditionalRuler)->create([
+    $person = Person::factory()->inCommunity($community)->named('Babatunde', 'Adeyemi')->withRole(PersonRoleType::TRADITIONAL_RULER)->create([
         'nin' => PersonFixtures::SECRETS['nin'],
         'phone' => PersonFixtures::SECRETS['phone_normalised'],
         'date_of_birth' => PersonFixtures::SECRETS['date_of_birth'],

@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\Classification;
 use App\Enums\Gender;
-use App\Enums\PersonRoleType;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
 use App\Models\Concerns\HasUlidRouteKey;
@@ -393,9 +392,10 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
         return $this->hasMany(PersonRole::class);
     }
 
-    public function holdsRole(PersonRoleType $role): bool
+    /** Holds the role (a PersonRoleType code constant) actively. */
+    public function holdsRole(string $code): bool
     {
-        return $this->roles()->where('role', $role->value)->where('is_active', true)->exists();
+        return $this->roles()->where('person_role_type_id', PersonRoleType::idFor($code))->where('is_active', true)->exists();
     }
 
     /**

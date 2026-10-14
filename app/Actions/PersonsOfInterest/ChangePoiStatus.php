@@ -2,11 +2,11 @@
 
 namespace App\Actions\PersonsOfInterest;
 
-use App\Enums\PersonRoleType;
 use App\Enums\PoiStatus;
 use App\Enums\RiskLevel;
 use App\Models\Person;
 use App\Models\PersonOfInterest;
+use App\Models\PersonRoleType;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
 use App\Support\Persons\RoleAssigner;
@@ -51,9 +51,9 @@ final class ChangePoiStatus
 
                 if ($status === PoiStatus::Cleared) {
                     $poi->review_due_at = CarbonImmutable::today()->addDays((int) config('buffalo.poi_cleared_review_days', 30));
-                    $this->roles->deactivate($person, PersonRoleType::PersonOfInterest);
+                    $this->roles->deactivate($person, PersonRoleType::PERSON_OF_INTEREST);
                 } elseif ($oldStatus === PoiStatus::Cleared) {
-                    $this->roles->activate($person, PersonRoleType::PersonOfInterest, $actor);
+                    $this->roles->activate($person, PersonRoleType::PERSON_OF_INTEREST, $actor);
                 }
 
                 if ($status === PoiStatus::Deceased && ! $person->is_deceased) {

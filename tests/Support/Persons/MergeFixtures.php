@@ -6,7 +6,6 @@ use App\Actions\Persons\MergePersons;
 use App\Actions\Persons\UndoPersonMerge;
 use App\Enums\IncidentStatus;
 use App\Enums\MembershipStatus;
-use App\Enums\PersonRoleType;
 use App\Enums\PoiStatus;
 use App\Enums\RiskLevel;
 use App\Models\Community;
@@ -17,6 +16,7 @@ use App\Models\OrganizationSite;
 use App\Models\Person;
 use App\Models\PersonMerge;
 use App\Models\PersonOfInterest;
+use App\Models\PersonRoleType;
 use App\Models\PoliticalOffice;
 use App\Models\ReligiousInstitution;
 use App\Models\User;
@@ -82,8 +82,8 @@ final class MergeFixtures
         }
 
         // Roles: political leader on both (inactive on the survivor), community leader on the source.
-        foreach ([[$survivor, PersonRoleType::PoliticalLeader, false], [$source, PersonRoleType::PoliticalLeader, true], [$source, PersonRoleType::CommunityLeader, true]] as [$person, $role, $active]) {
-            $add('person_roles', DB::table('person_roles')->insertGetId(['person_id' => $person->id, 'role' => $role->value, 'is_active' => $active, 'notes' => null, 'created_at' => now(), 'updated_at' => now()]));
+        foreach ([[$survivor, PersonRoleType::POLITICAL_LEADER, false], [$source, PersonRoleType::POLITICAL_LEADER, true], [$source, PersonRoleType::COMMUNITY_LEADER, true]] as [$person, $role, $active]) {
+            $add('person_roles', DB::table('person_roles')->insertGetId(['person_id' => $person->id, 'person_role_type_id' => PersonRoleType::idFor($role), 'is_active' => $active, 'notes' => null, 'created_at' => now(), 'updated_at' => now()]));
         }
 
         // Associations: survivor<->other and source<->other (duplicate pair),

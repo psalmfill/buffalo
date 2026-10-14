@@ -93,22 +93,32 @@ export default function LeadershipPanel({ data }: { data: LgaLeadership }) {
                         </ul>
                     )}
                 </section>
-                <section className="space-y-3">
-                    <h3 className="text-sm font-semibold">Community leaders</h3>
-                    {data.communityLeaders.length === 0 ? (
+                {/* Community-level leaders by role type (Phase 11A.1). */}
+                {data.leadersByRole.length === 0 ? (
+                    <section className="space-y-3">
+                        <h3 className="text-sm font-semibold">
+                            Community leaders
+                        </h3>
                         <p className="text-sm text-muted-foreground">
                             None recorded.
                         </p>
-                    ) : (
-                        <ul className="divide-y rounded-lg border text-sm">
-                            {data.communityLeaders.map((person) => (
-                                <li key={person.ulid} className="px-3 py-2">
-                                    <PersonLink person={person} />
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </section>
+                    </section>
+                ) : (
+                    data.leadersByRole.map((group) => (
+                        <section key={group.type.value} className="space-y-3">
+                            <h3 className="text-sm font-semibold">
+                                {group.type.label}
+                            </h3>
+                            <ul className="divide-y rounded-lg border text-sm">
+                                {group.persons.map((person) => (
+                                    <li key={person.ulid} className="px-3 py-2">
+                                        <PersonLink person={person} />
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    ))
+                )}
             </div>
         </div>
     );

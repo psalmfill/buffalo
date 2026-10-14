@@ -2,9 +2,9 @@
 
 namespace App\Support\Persons;
 
-use App\Enums\PersonRoleType;
 use App\Models\Person;
 use App\Models\PersonRole;
+use App\Models\PersonRoleType;
 use App\Models\User;
 
 /**
@@ -14,13 +14,15 @@ use App\Models\User;
  */
 final class RoleAssigner
 {
-    public function activate(Person $person, PersonRoleType $type, User $actor): void
+    /** $code: a PersonRoleType code constant. */
+    public function activate(Person $person, string $code, User $actor): void
     {
-        $role = PersonRole::query()->where('person_id', $person->id)->where('role', $type->value)->first();
+        $typeId = PersonRoleType::idFor($code);
+        $role = PersonRole::query()->where('person_id', $person->id)->where('person_role_type_id', $typeId)->first();
 
         if ($role === null) {
-            $role = new PersonRole(['role' => $type, 'is_active' => true]);
-            $role->forceFill(['person_id' => $person->id, 'created_by' => $actor->id])->save();
+            $role = new PersonRole(['is_active' => true]);
+            $role->forceFill(['person_id' => $person->id, 'person_role_type_id' => $typeId, 'created_by' => $actor->id])->save();
         } elseif (! $role->is_active) {
             $role->fill(['is_active' => true])->save();
         }
@@ -28,9 +30,9 @@ final class RoleAssigner
         $person->unsetRelation('roles');
     }
 
-    public function deactivate(Person $person, PersonRoleType $type): void
+    public function deactivate(Person $person, string $code): void
     {
-        $role = PersonRole::query()->where('person_id', $person->id)->where('role', $type->value)->first();
+        $role = PersonRole::query()->where('person_id', $person->id)->where('person_role_type_id', PersonRoleType::idFor($code))->first();
 
         if ($role !== null && $role->is_active) {
             $role->fill(['is_active' => false])->save();

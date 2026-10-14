@@ -1,13 +1,13 @@
 <?php
 
 use App\Enums\Classification;
-use App\Enums\PersonRoleType;
 use App\Models\Community;
 use App\Models\Denomination;
 use App\Models\IncidentType;
 use App\Models\OrganizationSector;
 use App\Models\Person;
 use App\Models\PersonAssociation;
+use App\Models\PersonRoleType;
 use App\Models\PropertyType;
 use App\Models\Religion;
 use App\Models\ReligiousInstitution;
@@ -158,10 +158,10 @@ function rulerCommunityPayload(Community $community, array $overrides = []): arr
 test('a traditional ruler must hold the traditional ruler role and be visible', function () {
     $world = JurisdictionWorld::build();
     $community = Community::factory()->in($world->lgas['A1a'])->create();
-    $ruler = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::TraditionalRuler)->create();
-    $notRuler = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::ReligiousLeader)->create();
-    $formerRuler = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::TraditionalRuler, active: false)->create();
-    $elsewhere = Person::factory()->in($world->lgas['A1b'])->withRole(PersonRoleType::TraditionalRuler)->create();
+    $ruler = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::TRADITIONAL_RULER)->create();
+    $notRuler = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::RELIGIOUS_LEADER)->create();
+    $formerRuler = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::TRADITIONAL_RULER, active: false)->create();
+    $elsewhere = Person::factory()->in($world->lgas['A1b'])->withRole(PersonRoleType::TRADITIONAL_RULER)->create();
     $chief = $world->users['lga_chief'];
     $url = "/communities/{$community->ulid}";
 
@@ -185,7 +185,7 @@ test('a traditional ruler must hold the traditional ruler role and be visible', 
 test('a ruler the editor cannot see is shown as hidden and kept when the form omits it', function () {
     $world = JurisdictionWorld::build();
     $community = Community::factory()->in($world->lgas['A1a'])->create();
-    $secretRuler = Person::factory()->in($world->lgas['A1a'])->classified(Classification::Secret)->withRole(PersonRoleType::TraditionalRuler)->create();
+    $secretRuler = Person::factory()->in($world->lgas['A1a'])->classified(Classification::Secret)->withRole(PersonRoleType::TRADITIONAL_RULER)->create();
     $community->forceFill(['traditional_ruler_id' => $secretRuler->id])->save();
     $chief = $world->users['lga_chief'];
 
@@ -210,8 +210,8 @@ test('a religious institution leader must hold the religious leader role', funct
     $world = JurisdictionWorld::build();
     $community = Community::factory()->in($world->lgas['A1a'])->create();
     $institution = ReligiousInstitution::factory()->in($community)->create();
-    $leader = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::ReligiousLeader)->create();
-    $notLeader = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::TraditionalRuler)->create();
+    $leader = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::RELIGIOUS_LEADER)->create();
+    $notLeader = Person::factory()->in($world->lgas['A1a'])->withRole(PersonRoleType::TRADITIONAL_RULER)->create();
     $chief = $world->users['lga_chief'];
 
     PersonFixtures::system();
@@ -240,9 +240,9 @@ test('a religious institution leader must hold the religious leader role', funct
 
 test('the person picker returns only visible persons, optionally with a role', function () {
     $world = JurisdictionWorld::build();
-    $ruler = Person::factory()->in($world->lgas['A1a'])->named('Adewale', 'Ogunleye')->withRole(PersonRoleType::TraditionalRuler)->create();
+    $ruler = Person::factory()->in($world->lgas['A1a'])->named('Adewale', 'Ogunleye')->withRole(PersonRoleType::TRADITIONAL_RULER)->create();
     Person::factory()->in($world->lgas['A1a'])->named('Adewale', 'Ogunlade')->create();
-    Person::factory()->in($world->lgas['B1'])->named('Adewale', 'Ogunleye')->withRole(PersonRoleType::TraditionalRuler)->create();
+    Person::factory()->in($world->lgas['B1'])->named('Adewale', 'Ogunleye')->withRole(PersonRoleType::TRADITIONAL_RULER)->create();
     $chief = $world->users['lga_chief'];
 
     $all = $this->actingAs($chief)->postJson('/persons/picker', ['q' => 'Adewale Ogunleye'])->assertOk()->json('results');
@@ -297,7 +297,7 @@ test('modules register their own usage checks', function () {
 
     expect($registry->isInUse($religion))->toBeTrue()
         ->and($registry->lookups())->toBe([Religion::class])
-        ->and(app(ReferenceUsageRegistry::class)->lookups())->toEqualCanonicalizing([Religion::class, Denomination::class, ThreatType::class, SecurityAgency::class, OrganizationSector::class, IncidentType::class, PropertyType::class]);
+        ->and(app(ReferenceUsageRegistry::class)->lookups())->toEqualCanonicalizing([Religion::class, Denomination::class, ThreatType::class, SecurityAgency::class, OrganizationSector::class, IncidentType::class, PropertyType::class, PersonRoleType::class]);
 });
 
 beforeEach(function () {

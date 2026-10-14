@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Persons;
 
-use App\Enums\PersonRoleType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +23,7 @@ class PersonPickerRequest extends FormRequest
     {
         return [
             'q' => ['required', 'string', 'min:2', 'max:100'],
-            'role' => ['nullable', Rule::enum(PersonRoleType::class)],
+            'role' => ['nullable', Rule::exists('person_role_types', 'code')],
             'except' => ['nullable', 'string', 'size:26'],
             // Own jurisdiction only, never records seen under a grant (Phase 10A merge requests).
             'own' => ['nullable', 'boolean'],

@@ -1,13 +1,13 @@
 <?php
 
 use App\Enums\Classification;
-use App\Enums\PersonRoleType;
 use App\Enums\PoiStatus;
 use App\Enums\RiskLevel;
 use App\Models\Lga;
 use App\Models\Person;
 use App\Models\PersonOfInterest;
 use App\Models\PersonRole;
+use App\Models\PersonRoleType;
 use App\Models\RecordAccessLog;
 use App\Models\ThreatType;
 use App\Models\User;
@@ -45,7 +45,7 @@ function designation(array $overrides = []): array
 function poiFor(Person $person, array $attributes = []): PersonOfInterest
 {
     $poi = PersonOfInterest::factory()->forPerson($person)->create($attributes);
-    $person->roles()->create(['role' => PersonRoleType::PersonOfInterest, 'is_active' => true]);
+    $person->roles()->forceCreate(['person_role_type_id' => PersonRoleType::idFor(PersonRoleType::PERSON_OF_INTEREST), 'is_active' => true]);
 
     return $poi;
 }
@@ -137,7 +137,7 @@ test('designating creates the POI where the person is, due for review in 12 mont
         ->and($poi->state_id)->toBe($person->state_id)
         ->and($poi->risk_level)->toBe(RiskLevel::High)
         ->and($poi->review_due_at->toDateString())->toBe(CarbonImmutable::today()->addMonthsNoOverflow(12)->toDateString())
-        ->and($person->holdsRole(PersonRoleType::PersonOfInterest))->toBeTrue()
+        ->and($person->holdsRole(PersonRoleType::PERSON_OF_INTEREST))->toBeTrue()
         ->and(Activity::query()->where('event', 'poi_designated')->sole()->properties['comment'])->toBe('Named by two witnesses.')
         // Threat types used by POIs are "in use" (ReferenceUsage).
         ->and(app(ReferenceUsage::class)->isInUse(ThreatType::query()->where('code', 'armed_robbery_test')->sole()))->toBeTrue()
@@ -206,7 +206,7 @@ test('clearing needs poi.clear, sets a review in 30 days and deactivates the rol
 
     PersonFixtures::system();
     $poi->refresh();
-    $role = PersonRole::query()->where('person_id', $person->id)->where('role', 'person_of_interest')->sole();
+    $role = PersonRole::query()->where('person_id', $person->id)->where('person_role_type_id', PersonRoleType::idFor('person_of_interest'))->sole();
 
     expect($poi->status)->toBe(PoiStatus::Cleared)
         ->and($poi->review_due_at->toDateString())->toBe(CarbonImmutable::today()->addDays(30)->toDateString())
@@ -323,7 +323,7 @@ test('deleting a POI needs State Director or above and a reason, and deactivates
     PersonFixtures::system();
     expect(PersonOfInterest::query()->count())->toBe(0)
         ->and(PersonOfInterest::withTrashed()->count())->toBe(1)
-        ->and($person->holdsRole(PersonRoleType::PersonOfInterest))->toBeFalse()
+        ->and($person->holdsRole(PersonRoleType::PERSON_OF_INTEREST))->toBeFalse()
         ->and(Activity::query()->where('event', 'person_of_interest_deleted')->sole()->properties['reason'])->toBe('Wrong person');
 
     // A new designation is possible afterwards.

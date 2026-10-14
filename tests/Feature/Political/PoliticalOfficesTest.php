@@ -1,11 +1,11 @@
 <?php
 
 use App\Enums\Classification;
-use App\Enums\PersonRoleType;
 use App\Enums\PoliticalOfficeType;
 use App\Models\Lga;
 use App\Models\Person;
 use App\Models\PersonRole;
+use App\Models\PersonRoleType;
 use App\Models\PoliticalOffice;
 use App\Models\SenatorialDistrict;
 use App\Models\Ward;
@@ -93,7 +93,8 @@ test('recording an office gives the person the political leader role and is audi
         ->assertSessionHas('toast.type', 'success');
 
     PersonFixtures::system();
-    expect(PersonRole::query()->where('person_id', $person->id)->sole()->only(['role', 'is_active']))->toBe(['role' => PersonRoleType::PoliticalLeader, 'is_active' => true])
+    $role = PersonRole::query()->where('person_id', $person->id)->sole();
+    expect([$role->typeCode(), $role->is_active])->toBe([PersonRoleType::POLITICAL_LEADER, true])
         ->and(Activity::query()->where('subject_type', PoliticalOffice::class)->where('event', 'created')->count())->toBe(1);
 });
 

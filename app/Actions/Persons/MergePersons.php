@@ -230,10 +230,10 @@ final class MergePersons
     /** Union of roles: a role on both stays the survivor's, active if active on either. */
     private function mergeRoles(Person $survivor, Person $source, MergeManifest $manifest): void
     {
-        $existing = DB::table('person_roles')->where('person_id', $survivor->id)->get(['id', 'role', 'is_active'])->keyBy('role');
+        $existing = DB::table('person_roles')->where('person_id', $survivor->id)->get(['id', 'person_role_type_id', 'is_active'])->keyBy('person_role_type_id');
 
-        foreach (DB::table('person_roles')->where('person_id', $source->id)->orderBy('id')->get(['id', 'role', 'is_active']) as $role) {
-            $own = $existing->get($role->role);
+        foreach (DB::table('person_roles')->where('person_id', $source->id)->orderBy('id')->get(['id', 'person_role_type_id', 'is_active']) as $role) {
+            $own = $existing->get($role->person_role_type_id);
 
             if ($own === null) {
                 $manifest->update('person_roles', (int) $role->id, ['person_id' => $survivor->id]);

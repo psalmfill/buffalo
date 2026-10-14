@@ -15,6 +15,8 @@ export type ReferenceRow = {
     description: string | null;
     sort_order: number;
     is_active: boolean;
+    /** False for system person role types (Phase 11A.1). */
+    can_deactivate: boolean;
     extras: Record<string, string | null>;
     /** Referenced by records (index page only). */
     in_use?: boolean;

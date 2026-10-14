@@ -4,7 +4,6 @@ namespace App\Http\Requests\Persons;
 
 use App\Enums\Classification;
 use App\Enums\Gender;
-use App\Enums\PersonRoleType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +26,7 @@ class PersonSearchRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:100'],
-            'role' => ['nullable', Rule::enum(PersonRoleType::class)],
+            'role' => ['nullable', Rule::exists('person_role_types', 'code')],
             'state' => ['nullable', 'string', 'size:26'],
             'lga' => ['nullable', 'string', 'size:26'],
             'gender' => ['nullable', Rule::enum(Gender::class)],

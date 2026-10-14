@@ -2,8 +2,8 @@
 
 namespace App\Actions\Political;
 
-use App\Enums\PersonRoleType;
 use App\Models\Person;
+use App\Models\PersonRoleType;
 use App\Models\PoliticalOffice;
 use App\Models\User;
 use App\Support\Persons\RoleAssigner;
@@ -37,7 +37,7 @@ final class SavePoliticalOffice
                 'updated_by' => $actor->id,
             ])->save();
 
-            $this->roles->activate($person, PersonRoleType::PoliticalLeader, $actor);
+            $this->roles->activate($person, PersonRoleType::POLITICAL_LEADER, $actor);
 
             return ['office' => $office, 'warnings' => $this->overlaps->warnings($office)];
         });

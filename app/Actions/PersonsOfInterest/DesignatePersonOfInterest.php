@@ -2,11 +2,11 @@
 
 namespace App\Actions\PersonsOfInterest;
 
-use App\Enums\PersonRoleType;
 use App\Enums\PoiStatus;
 use App\Enums\RiskLevel;
 use App\Models\Person;
 use App\Models\PersonOfInterest;
+use App\Models\PersonRoleType;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
 use App\Support\Persons\RoleAssigner;
@@ -45,7 +45,7 @@ final class DesignatePersonOfInterest
             ])->save();
 
             $this->details->logSighting($poi, null, SavePoiDetails::coordinates($data), $actor);
-            $this->roles->activate($person, PersonRoleType::PersonOfInterest, $actor);
+            $this->roles->activate($person, PersonRoleType::PERSON_OF_INTEREST, $actor);
 
             AuditLog::event('poi_designated', 'Designated as a person of interest', $poi, [
                 'risk_level' => $poi->risk_level->value,

@@ -126,5 +126,12 @@ export type LgaLeadership = {
         institution: NamedRef & { religion: string };
         person: NamedRef;
     }[];
-    communityLeaders: PersonRow[];
+    /** Community-level leaders grouped by role type (Phase 11A.1). */
+    leadersByRole: RoleGroup[];
+};
+
+/** Persons holding one role type (Phase 11A.1). */
+export type RoleGroup = {
+    type: Option;
+    persons: PersonRow[];
 };

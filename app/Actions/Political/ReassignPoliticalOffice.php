@@ -2,8 +2,8 @@
 
 namespace App\Actions\Political;
 
-use App\Enums\PersonRoleType;
 use App\Models\Person;
+use App\Models\PersonRoleType;
 use App\Models\PoliticalOffice;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
@@ -50,14 +50,14 @@ final class ReassignPoliticalOffice
             $oldHolder = Person::query()->whereKey($office->person_id)->firstOrFail();
 
             $office->forceFill(['person_id' => $newHolder->id, 'updated_by' => $actor->id])->save();
-            $this->roles->activate($newHolder, PersonRoleType::PoliticalLeader, $actor);
+            $this->roles->activate($newHolder, PersonRoleType::POLITICAL_LEADER, $actor);
 
             // Any current office, wherever it is (bookkeeping only: nothing is shown).
             $stillHolds = DB::table('political_offices')->where('person_id', $oldHolder->id)->whereNull('deleted_at')
                 ->where(fn ($q) => $q->whereNull('ended_on')->orWhere('ended_on', '>=', now()->toDateString()))
                 ->exists();
             if (! $stillHolds) {
-                $this->roles->deactivate($oldHolder, PersonRoleType::PoliticalLeader);
+                $this->roles->deactivate($oldHolder, PersonRoleType::POLITICAL_LEADER);
             }
 
             $properties = ['office' => $office->ulid, 'old_holder' => $oldHolder->ulid, 'new_holder' => $newHolder->ulid, 'reason' => trim($reason)];

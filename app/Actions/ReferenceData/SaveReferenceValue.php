@@ -2,9 +2,11 @@
 
 namespace App\Actions\ReferenceData;
 
+use App\Models\PersonRoleType;
 use App\Models\ReferenceModel;
 use App\Models\User;
 use App\Support\ReferenceData\ReferenceTable;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Creates a reference value, or updates one. $attributes are validated
@@ -48,6 +50,11 @@ final class SaveReferenceValue
     {
         if ($value->getAttribute('is_active') === $active) {
             return;
+        }
+
+        // System person role types carry behaviour by code (Phase 11A.1).
+        if (! $active && $value instanceof PersonRoleType && $value->is_system) {
+            throw ValidationException::withMessages(['is_active' => "\"{$value->name}\" is a system role type: BUFFALO relies on it, so it cannot be deactivated. You can rename it."]);
         }
 
         $value->forceFill(['is_active' => $active, 'updated_by' => $actor->id])->save();

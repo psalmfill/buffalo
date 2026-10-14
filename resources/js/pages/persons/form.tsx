@@ -57,8 +57,24 @@ export default function PersonForm({
     options,
 }: Props) {
     const editing = person !== null;
+    // Assignable types, plus a deactivated type this person still holds
+    // (it stays on them; Phase 11A.1).
+    const roleOptions = [
+        ...options.roles,
+        ...(person?.all_roles ?? [])
+            .filter(
+                (entry) =>
+                    entry.is_active &&
+                    !entry.type_active &&
+                    !options.roles.some((r) => r.value === entry.role.value),
+            )
+            .map((entry) => ({
+                ...entry.role,
+                label: `${entry.role.label} (no longer in use)`,
+            })),
+    ];
     const initialRoles: RoleState = Object.fromEntries(
-        options.roles.map((role) => {
+        roleOptions.map((role) => {
             const existing = person?.all_roles.find(
                 (entry) => entry.role.value === role.value,
             );
@@ -405,7 +421,7 @@ export default function PersonForm({
                 <fieldset className="space-y-3">
                     <legend className="text-sm font-medium">Roles</legend>
                     <div className="grid gap-3 sm:grid-cols-2">
-                        {options.roles.map((role) => {
+                        {roleOptions.map((role) => {
                             const state = form.data.roles[role.value];
 
                             return (

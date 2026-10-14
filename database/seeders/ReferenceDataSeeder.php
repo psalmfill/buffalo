@@ -8,6 +8,7 @@ use App\Enums\Severity;
 use App\Models\Denomination;
 use App\Models\IncidentType;
 use App\Models\OrganizationSector;
+use App\Models\PersonRoleType;
 use App\Models\PropertyType;
 use App\Models\Religion;
 use App\Models\SecurityAgency;
@@ -37,6 +38,7 @@ class ReferenceDataSeeder extends Seeder
             $this->religions();
             $this->propertyTypes();
             $this->organizationSectors();
+            $this->personRoleTypes();
         });
 
         $this->command->info("Reference data: {$this->created} missing entries created.");
@@ -308,6 +310,34 @@ class ReferenceDataSeeder extends Seeder
             $this->createMissing(OrganizationSector::class, ['code' => $code], [
                 'name' => $name,
                 'sort_order' => ++$order * 10,
+            ]);
+        }
+    }
+
+    /**
+     * Person role types (Phase 11A.1): the five system types (codes the
+     * application relies on) and three examples the client may rename or
+     * deactivate. The migration inserts the same rows; this only fills gaps.
+     */
+    private function personRoleTypes(): void
+    {
+        $types = [
+            PersonRoleType::POLITICAL_LEADER => ['Political leader', 'Added automatically with a political office.', 10, true],
+            PersonRoleType::TRADITIONAL_RULER => ['Traditional ruler', 'Required to be named traditional ruler of a community.', 20, true],
+            PersonRoleType::RELIGIOUS_LEADER => ['Religious leader', 'Required to be named leader of a religious institution.', 30, true],
+            PersonRoleType::COMMUNITY_LEADER => ['Community leader', null, 40, true],
+            'youth_leader' => ['Youth leader', null, 50, false],
+            'women_leader' => ['Women leader', null, 60, false],
+            'market_leader' => ['Market or trade association leader', null, 70, false],
+            PersonRoleType::PERSON_OF_INTEREST => ['Person of interest', 'Set only by the persons of interest module.', 90, true],
+        ];
+
+        foreach ($types as $code => [$name, $description, $order, $system]) {
+            $this->createMissing(PersonRoleType::class, ['code' => $code], [
+                'name' => $name,
+                'description' => $description,
+                'sort_order' => $order,
+                'is_system' => $system,
             ]);
         }
     }

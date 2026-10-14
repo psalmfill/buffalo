@@ -386,7 +386,7 @@ class PersonController extends Controller
             ->with(['lga', 'state', 'roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)])
             ->when($state, fn (Builder $q) => $q->where('persons.state_id', $state?->id))
             ->when($lga, fn (Builder $q) => $q->where('persons.lga_id', $lga?->id))
-            ->when($filters['role'], fn (Builder $q, string $role) => $q->whereHas('roles', fn (Builder $r) => $r->where('role', $role)->where('is_active', true)))
+            ->when($filters['role'], fn (Builder $q, string $role) => $q->whereHas('roles', fn (Builder $r) => $r->where('is_active', true)->whereHas('type', fn (Builder $t) => $t->where('code', $role))))
             ->when($filters['gender'], fn (Builder $q, string $gender) => $q->where('persons.gender', $gender))
             ->when($filters['classification'], fn (Builder $q, string $level) => $q->where('persons.classification', $level));
 
