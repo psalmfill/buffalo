@@ -5,6 +5,7 @@ namespace App\Actions\LocalGovernment;
 use App\Models\Lga;
 use App\Models\User;
 use App\Support\LocalGovernment\CommunityRules;
+use App\Support\RichText\RichText;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -50,7 +51,8 @@ final class ImportCommunities
                         'latitude' => $row['latitude'] === '' ? null : (float) $row['latitude'],
                         'longitude' => $row['longitude'] === '' ? null : (float) $row['longitude'],
                         'population_estimate' => $row['population_estimate'] === '' ? null : (int) $row['population_estimate'],
-                        'notes' => $row['notes'] === '' ? null : (string) $row['notes'],
+                        // CSV notes are plain text; stored as rich text (Phase 11B).
+                        'notes' => RichText::fromPlainText((string) $row['notes'])?->html,
                     ], $actor);
                     $imported++;
                 }

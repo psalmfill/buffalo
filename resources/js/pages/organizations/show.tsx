@@ -3,6 +3,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
 import OrganizationSiteController from '@/actions/App/Http/Controllers/Organizations/OrganizationSiteController';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import { SitesMap, SitesTable } from '@/components/organizations/site-parts';
 import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
@@ -107,9 +108,9 @@ export default function OrganizationShow({
                         {(organization.description || organization.website) && (
                             <section className="space-y-1 rounded-lg border p-4 text-sm">
                                 {organization.description && (
-                                    <p className="whitespace-pre-line">
-                                        {organization.description}
-                                    </p>
+                                    <RichTextView
+                                        html={organization.description}
+                                    />
                                 )}
                                 {organization.website && (
                                     <p className="text-muted-foreground">

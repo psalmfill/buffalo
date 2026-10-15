@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
 import EntityPicker from '@/components/pickers/entity-picker';
@@ -12,7 +13,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import type { ClassificationLevel } from '@/types/auth';
 import type {
     CoverageOptions,
@@ -806,13 +806,12 @@ export default function CoverageReportForm({
                     ).map(([field, label]) => (
                         <div key={field} className="grid gap-2 md:col-span-2">
                             <Label htmlFor={field}>{label}</Label>
-                            <Textarea
+                            <RichTextEditor
                                 id={field}
-                                rows={4}
                                 value={form.data[field]}
-                                onChange={(e) =>
-                                    form.setData(field, e.target.value)
-                                }
+                                onChange={(html) => form.setData(field, html)}
+                                limit={20000}
+                                invalid={!!errors[field]}
                             />
                             <InputError message={errors[field]} />
                         </div>

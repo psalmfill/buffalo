@@ -8,6 +8,8 @@ import FlashpointAssessmentController from '@/actions/App/Http/Controllers/Flash
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
 import FlashpointLinkController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointLinkController';
 import DisseminationController from '@/actions/App/Http/Controllers/Disseminations/DisseminationController';
+import RichTextView from '@/components/rich-text/rich-text-view';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import DisseminationPrompt from '@/components/disseminations/dissemination-prompt';
 import SharedBanner from '@/components/disseminations/shared-banner';
@@ -31,7 +33,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import ActivityTable from '@/components/users/activity-table';
 import ConfirmActionDialog from '@/components/users/confirm-action-dialog';
 import { formatDate, formatDateTime } from '@/lib/time';
@@ -345,6 +346,7 @@ function OverviewTab({ flashpoint, map, latest, incidentMarkers }: Props) {
                         <Fact
                             label="Description"
                             value={flashpoint.description}
+                            rich
                         />
                     </div>
                 </dl>
@@ -391,17 +393,22 @@ function AssessmentBody({ assessment }: { assessment: Assessment }) {
                         : ''}
                 </span>
             </p>
-            <p className="text-sm whitespace-pre-line">
-                {assessment.assessment}
-            </p>
+            {/* Assessments before Phase 11B are plain text, shown as before. */}
+            <RichTextView
+                html={assessment.assessment}
+                format={assessment.format}
+                className="text-sm"
+            />
             {assessment.recommended_action && (
                 <div>
                     <p className="text-xs text-muted-foreground">
                         Recommended action
                     </p>
-                    <p className="text-sm whitespace-pre-line">
-                        {assessment.recommended_action}
-                    </p>
+                    <RichTextView
+                        html={assessment.recommended_action}
+                        format={assessment.format}
+                        className="text-sm"
+                    />
                 </div>
             )}
         </div>
@@ -496,13 +503,14 @@ function AssessmentsTab({
                     </p>
                     <div className="grid gap-2">
                         <Label htmlFor="assessment">Assessment</Label>
-                        <Textarea
+                        <RichTextEditor
                             id="assessment"
-                            rows={5}
                             value={form.data.assessment}
-                            onChange={(e) =>
-                                form.setData('assessment', e.target.value)
+                            onChange={(html) =>
+                                form.setData('assessment', html)
                             }
+                            limit={10000}
+                            invalid={!!form.errors.assessment}
                         />
                         <InputError message={form.errors.assessment} />
                     </div>
@@ -510,16 +518,14 @@ function AssessmentsTab({
                         <Label htmlFor="recommended_action">
                             Recommended action (optional)
                         </Label>
-                        <Textarea
+                        <RichTextEditor
                             id="recommended_action"
-                            rows={3}
                             value={form.data.recommended_action}
-                            onChange={(e) =>
-                                form.setData(
-                                    'recommended_action',
-                                    e.target.value,
-                                )
+                            onChange={(html) =>
+                                form.setData('recommended_action', html)
                             }
+                            limit={5000}
+                            invalid={!!form.errors.recommended_action}
                         />
                         <InputError message={form.errors.recommended_action} />
                     </div>
@@ -816,11 +822,26 @@ function NotesTab({
     );
 }
 
-function Fact({ label, value }: { label: string; value: string | null }) {
+function Fact({
+    label,
+    value,
+    rich = false,
+}: {
+    label: string;
+    value: string | null;
+    /** Rich text (Phase 11B): sanitised HTML. */
+    rich?: boolean;
+}) {
     return (
         <div>
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm whitespace-pre-line">{value ?? '—'}</dd>
+            {rich ? (
+                <dd className="text-sm">
+                    <RichTextView html={value} empty="—" />
+                </dd>
+            ) : (
+                <dd className="text-sm whitespace-pre-line">{value ?? '—'}</dd>
+            )}
         </div>
     );
 }

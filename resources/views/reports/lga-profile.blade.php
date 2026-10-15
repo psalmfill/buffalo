@@ -12,7 +12,7 @@
     </tbody></table>
     @if ($profile['exists'])
         @foreach (['history' => 'History', 'economic_activities' => 'Economic activities', 'major_roads' => 'Major roads', 'waterways' => 'Waterways', 'borders' => 'Borders', 'general_notes' => 'General notes'] as $key => $label)
-            @if ($profile[$key])<h3>{{ $label }}</h3><p class="pre">{{ $profile[$key] }}</p>@endif
+            @if ($profile[$key])<h3>{{ $label }}</h3><div class="rich">{!! \App\Support\RichText\RichText::display($profile[$key]) !!}</div>@endif
         @endforeach
         @if ($profile['last_reviewed_at'])<p class="small muted">Last reviewed {{ \Carbon\CarbonImmutable::parse($profile['last_reviewed_at'])->setTimezone(config('app.timezone'))->format('j M Y') }}</p>@endif
     @else

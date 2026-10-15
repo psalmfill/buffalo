@@ -4,6 +4,7 @@ namespace App\Support\Persons\Merge;
 
 use App\Enums\Gender;
 use App\Models\Person;
+use App\Support\RichText\RichText;
 
 /**
  * The person's scalar fields as a merge sees them (Phase 10A.4).
@@ -121,6 +122,11 @@ final class MergeFields
     {
         if (! is_string($value)) {
             return $value;
+        }
+
+        // The description is rich text (Phase 11B): compared on its plain text.
+        if ($field === 'description') {
+            $value = RichText::fromStored($value)->text ?? '';
         }
 
         $value = trim((string) preg_replace('/\s+/', ' ', $value));

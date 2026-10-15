@@ -8,6 +8,7 @@ use App\Enums\SiteStatus;
 use App\Enums\SiteType;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Models\Concerns\LogsReads;
@@ -69,6 +70,7 @@ class OrganizationSite extends Model implements Classified, JurisdictionScoped
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use LogsReads;
@@ -87,6 +89,16 @@ class OrganizationSite extends Model implements Classified, JurisdictionScoped
         'status' => 'active',
         'has_private_security' => false,
     ];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['security_notes'];
+    }
 
     protected function casts(): array
     {

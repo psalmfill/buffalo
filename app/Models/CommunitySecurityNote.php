@@ -7,6 +7,7 @@ use App\Enums\SecurityNoteCategory;
 use App\Enums\SecurityNoteStatus;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Models\Concerns\LogsReads;
@@ -50,6 +51,7 @@ class CommunitySecurityNote extends Model implements Classified, JurisdictionSco
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use LogsReads;
@@ -63,6 +65,16 @@ class CommunitySecurityNote extends Model implements Classified, JurisdictionSco
         'classification' => 'restricted',
         'status' => 'active',
     ];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['description'];
+    }
 
     protected function casts(): array
     {

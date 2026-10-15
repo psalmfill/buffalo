@@ -7,6 +7,7 @@ use App\Enums\OrganizationType;
 use App\Models\Organization;
 use App\Models\OrganizationSector;
 use App\Rules\ActiveOption;
+use App\Rules\RichTextRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -61,7 +62,7 @@ class OrganizationRequest extends FormRequest
             'rc_number' => ['nullable', 'string', 'max:32', 'regex:/^[A-Z0-9]+$/',
                 Rule::unique('organizations', 'rc_number')->whereNull('deleted_at')->ignore($current?->id)],
             'website' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:5000'],
+            'description' => ['nullable', new RichTextRule(5000)],
             'status' => ['required', Rule::enum(OrganizationStatus::class)],
         ];
     }

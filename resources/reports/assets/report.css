@@ -33,3 +33,11 @@ tr { break-inside: avoid; }
     font-size: 40pt; font-weight: 700; color: rgba(15, 23, 42, 0.06); z-index: 0; pointer-events: none; white-space: nowrap; }
 main { position: relative; z-index: 1; }
 .pre { white-space: pre-line; }
+/* Rich text (Phase 11B): sanitised HTML from the editor. */
+.rich p { margin: 0 0 4pt; }
+.rich h3, .rich h4 { margin: 6pt 0 3pt; }
+.rich ul, .rich ol { margin: 0 0 4pt; padding-left: 16pt; }
+.rich blockquote { margin: 0 0 4pt; padding-left: 8pt; border-left: 2pt solid #cbd5e1; color: #334155; }
+.rich table { margin: 4pt 0; }
+.rich td p, .rich th p, .rich li p { margin: 0; }
+.rich a { color: #1d4ed8; }

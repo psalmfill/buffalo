@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CommunityType;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
@@ -49,6 +50,7 @@ class Community extends Model implements JurisdictionScoped
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use SoftDeletes;
@@ -59,6 +61,16 @@ class Community extends Model implements JurisdictionScoped
     protected $fillable = ['name', 'other_names', 'type', 'population_estimate', 'notes'];
 
     protected $hidden = ['id', 'state_id', 'lga_id', 'ward_id', 'traditional_ruler_id', 'location', 'search_names', 'created_by', 'updated_by'];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['notes'];
+    }
 
     protected function casts(): array
     {

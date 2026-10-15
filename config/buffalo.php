@@ -520,4 +520,17 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Rich text (Phase 11B)
+    |--------------------------------------------------------------------------
+    | Limits apply to the plain text; the HTML may be at most html_factor
+    | times the field's plain text limit, and never longer than
+    | max_html_length (oversized payloads are refused before sanitising).
+    */
+    'rich_text' => [
+        'html_factor' => (int) env('BUFFALO_RICH_TEXT_HTML_FACTOR', 10),
+        'max_html_length' => (int) env('BUFFALO_RICH_TEXT_MAX_HTML', 200000),
+    ],
+
 ];

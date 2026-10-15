@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PoiStatus;
 use App\Enums\RiskLevel;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Models\Concerns\LogsReads;
@@ -62,6 +63,7 @@ class PersonOfInterest extends Model implements JurisdictionScoped
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use LogsReads;
@@ -72,6 +74,16 @@ class PersonOfInterest extends Model implements JurisdictionScoped
     protected $fillable = ['offence_categories', 'known_offences', 'modus_operandi', 'last_known_location_description', 'last_sighted_at'];
 
     protected $hidden = ['id', 'person_id', 'state_id', 'lga_id', 'last_known_location', 'last_reviewed_by', 'created_by', 'updated_by'];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['known_offences', 'modus_operandi'];
+    }
 
     protected function casts(): array
     {

@@ -6,6 +6,7 @@ import {
     CONCERN_COLOURS,
     formatRadius,
 } from '@/components/flashpoints/flashpoint-areas';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import InputError from '@/components/input-error';
 import type { MapCircle } from '@/components/map/BuffaloMap';
 import MapPointPicker, {
@@ -16,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import type { MapView } from '@/types/dashboard';
 import type {
     ConcernLevel,
@@ -206,11 +206,12 @@ export default function FlashpointForm({
         <div className="grid gap-2">
             <Label htmlFor={field}>{label}</Label>
             {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-            <Textarea
+            <RichTextEditor
                 id={field}
-                rows={4}
                 value={form.data[field]}
-                onChange={(e) => form.setData(field, e.target.value)}
+                onChange={(html) => form.setData(field, html)}
+                limit={field === 'recommended_action' ? 5000 : 10000}
+                invalid={!!form.errors[field]}
             />
             <InputError message={form.errors[field]} />
         </div>

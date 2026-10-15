@@ -6,6 +6,7 @@ use App\Enums\PoiStatus;
 use App\Enums\RiskLevel;
 use App\Models\PersonOfInterest;
 use App\Models\ThreatType;
+use App\Rules\RichTextRule;
 use App\Support\LocalGovernment\Nigeria;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -44,8 +45,8 @@ class PoiDetailsRequest extends FormRequest
         return [
             'offence_categories' => ['present', 'array', 'max:20'],
             'offence_categories.*' => ['string', 'distinct', Rule::in($allowed)],
-            'known_offences' => ['required', 'string', 'max:10000'],
-            'modus_operandi' => ['nullable', 'string', 'max:10000'],
+            'known_offences' => ['required', new RichTextRule(10000, required: true)],
+            'modus_operandi' => ['nullable', new RichTextRule(10000)],
             'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:'.Nigeria::MIN_LATITUDE.','.Nigeria::MAX_LATITUDE],
             'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:'.Nigeria::MIN_LONGITUDE.','.Nigeria::MAX_LONGITUDE],
             'last_known_location_description' => ['nullable', 'string', 'max:2000'],

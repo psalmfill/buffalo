@@ -12,6 +12,7 @@ use App\Models\Lga;
 use App\Models\ThreatType;
 use App\Models\User;
 use App\Rules\ActiveOption;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\CommunityRules;
@@ -103,7 +104,7 @@ class FlashpointRequest extends FormRequest
                 }
             }],
             'radius_meters' => ['required', 'integer', 'between:100,50000'],
-            'description' => ['required', 'string', 'max:10000'],
+            'description' => ['required', new RichTextRule(10000, required: true)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 $level = Classification::tryFrom((string) $value);
                 /** @var User $user */
@@ -118,8 +119,8 @@ class FlashpointRequest extends FormRequest
             // The first assessment (creation only).
             'concern_level' => $creating ? ['required', Rule::enum(ConcernLevel::class)] : ['prohibited'],
             'status' => $creating ? ['required', Rule::enum(FlashpointStatus::class)] : ['prohibited'],
-            'assessment' => $creating ? ['required', 'string', 'max:10000'] : ['prohibited'],
-            'recommended_action' => $creating ? ['nullable', 'string', 'max:5000'] : ['prohibited'],
+            'assessment' => $creating ? ['required', new RichTextRule(10000, required: true)] : ['prohibited'],
+            'recommended_action' => $creating ? ['nullable', new RichTextRule(5000)] : ['prohibited'],
         ];
     }
 

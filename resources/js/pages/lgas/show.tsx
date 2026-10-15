@@ -1,6 +1,8 @@
 import type { IncidentListRow } from '@/types/incidents';
 import type { Paginated } from '@/types/pagination';
 import type { MapView } from '@/types/dashboard';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CheckCircle2, Plus, Upload } from 'lucide-react';
@@ -26,7 +28,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import { formatDateTime } from '@/lib/time';
 import LgaOrganizationsPanel from '@/components/organizations/lga-organizations-panel';
 import type { LgaOrganizationsTab } from '@/components/organizations/lga-organizations-panel';
@@ -470,8 +471,8 @@ function ProfileTab({
                         <dt className="text-xs text-muted-foreground">
                             {label}
                         </dt>
-                        <dd className="text-sm whitespace-pre-line">
-                            {profile[field] ?? '—'}
+                        <dd className="text-sm">
+                            <RichTextView html={profile[field]} empty="—" />
                         </dd>
                     </div>
                 ))}
@@ -501,11 +502,12 @@ function ProfileTab({
     const text = (field: ProfileTextField, label: string) => (
         <div key={field} className="grid gap-2">
             <Label htmlFor={field}>{label}</Label>
-            <Textarea
+            <RichTextEditor
                 id={field}
-                rows={3}
                 value={form.data[field]}
-                onChange={(event) => form.setData(field, event.target.value)}
+                onChange={(html) => form.setData(field, html)}
+                limit={20000}
+                invalid={!!form.errors[field]}
             />
             <InputError message={form.errors[field]} />
         </div>

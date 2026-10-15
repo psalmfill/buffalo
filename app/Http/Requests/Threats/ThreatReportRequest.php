@@ -15,6 +15,7 @@ use App\Models\ThreatReport;
 use App\Models\ThreatType;
 use App\Models\User;
 use App\Rules\ActiveOption;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\CommunityRules;
@@ -93,7 +94,7 @@ class ThreatReportRequest extends FormRequest
             }],
             'threat_type' => ['required', 'string', new ActiveOption(ThreatType::class, $this->threat()?->threatType->ulid)],
             'title' => ['required', 'string', 'max:200'],
-            'description' => ['required', 'string', 'max:20000'],
+            'description' => ['required', new RichTextRule(20000, required: true)],
             'credibility' => ['required', Rule::enum(ThreatCredibility::class)],
             'urgency' => ['required', Rule::enum(ThreatUrgency::class)],
             'source_type' => ['required', Rule::enum(ThreatSourceType::class)],
@@ -117,12 +118,12 @@ class ThreatReportRequest extends FormRequest
                 }
             }],
             'radius_meters' => ['nullable', 'required_with:latitude', 'integer', 'between:100,50000'],
-            'target_description' => ['nullable', 'string', 'max:2000'],
+            'target_description' => ['nullable', new RichTextRule(2000)],
             'expected_from' => ['nullable', 'date_format:'.self::DATETIME],
             'expected_until' => ['nullable', 'date_format:'.self::DATETIME, 'after_or_equal:expected_from'],
             // The effective expiry is checked in after().
             'expires_at' => $creating ? ['nullable', 'date_format:'.self::DATETIME] : ['prohibited'],
-            'recommended_action' => ['nullable', 'string', 'max:5000'],
+            'recommended_action' => ['nullable', new RichTextRule(5000)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 $level = Classification::tryFrom((string) $value);
                 /** @var User $user */

@@ -9,6 +9,7 @@ use App\Models\PersonRoleType;
 use App\Models\Ward;
 use App\Rules\ActiveOption;
 use App\Rules\PersonWithRole;
+use App\Rules\RichTextRule;
 use App\Support\LocalGovernment\CommunityRules;
 use App\Support\LocalGovernment\Nigeria;
 use App\Support\Persons\LinkedPerson;
@@ -82,7 +83,7 @@ class CommunityRequest extends FormRequest
                 }
             }],
             'population_estimate' => ['nullable', 'integer', 'min:0', 'max:100000000'],
-            'notes' => ['nullable', 'string', 'max:5000'],
+            'notes' => ['nullable', new RichTextRule(5000)],
             // Absent: unchanged (e.g. a ruler the user cannot see).
             'traditional_ruler' => ['sometimes', 'nullable', 'string', new PersonWithRole(PersonRoleType::TRADITIONAL_RULER, $community?->traditionalRuler?->ulid)],
         ];

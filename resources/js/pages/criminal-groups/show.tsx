@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Crosshair, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -601,8 +602,8 @@ export default function CriminalGroupShow({
                                 <dt className="text-xs text-muted-foreground">
                                     Description
                                 </dt>
-                                <dd className="text-sm whitespace-pre-line">
-                                    {group.description}
+                                <dd className="text-sm">
+                                    <RichTextView html={group.description} />
                                 </dd>
                             </div>
                             <div>

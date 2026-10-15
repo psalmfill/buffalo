@@ -10,6 +10,7 @@ use App\Enums\OccurrencePrecision;
 use App\Enums\Severity;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Models\Concerns\LogsReads;
@@ -98,6 +99,7 @@ class Incident extends Model implements Classified, JurisdictionScoped
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use LogsReads;
@@ -118,6 +120,16 @@ class Incident extends Model implements Classified, JurisdictionScoped
         'details' => '{}',
         'occurred_at_precision' => 'exact',
     ];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['description', 'action_taken', 'resolution_summary'];
+    }
 
     protected function casts(): array
     {

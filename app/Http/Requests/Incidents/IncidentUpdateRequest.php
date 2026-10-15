@@ -5,6 +5,7 @@ namespace App\Http\Requests\Incidents;
 use App\Enums\Classification;
 use App\Enums\IncidentUpdateType;
 use App\Models\Incident;
+use App\Rules\RichTextRule;
 use App\Support\Incidents\ChildClassification;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -28,7 +29,7 @@ class IncidentUpdateRequest extends FormRequest
     {
         return [
             'type' => ['required', Rule::enum(IncidentUpdateType::class)],
-            'body' => ['required', 'string', 'max:20000'],
+            'body' => ['required', new RichTextRule(20000, required: true)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 /** @var Incident $incident */
                 $incident = $this->route('incident');

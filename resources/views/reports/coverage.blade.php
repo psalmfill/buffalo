@@ -5,7 +5,7 @@
     <p>{{ $report['period_type']['label'] }} · {{ $report['status']['label'] }} · Overall rating: {{ $report['overall_rating']['label'] ?? 'Not rated' }}</p>
 
     @foreach (['summary' => 'Summary', 'gaps_identified' => 'Gaps identified', 'recommendations' => 'Recommendations'] as $key => $label)
-        @if ($report[$key])<h2>{{ $label }}</h2><p class="pre">{{ $report[$key] }}</p>@endif
+        @if ($report[$key])<h2>{{ $label }}</h2><div class="rich">{!! \App\Support\RichText\RichText::display($report[$key]) !!}</div>@endif
     @endforeach
 
     <h2>Deployments</h2>

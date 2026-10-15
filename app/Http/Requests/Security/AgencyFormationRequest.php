@@ -11,6 +11,7 @@ use App\Models\Lga;
 use App\Models\SecurityAgency;
 use App\Models\User;
 use App\Rules\ActiveOption;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\CommunityRules;
@@ -151,7 +152,7 @@ class AgencyFormationRequest extends FormRequest
                     $fail('You cannot classify a record above your own clearance.');
                 }
             }],
-            'notes' => ['nullable', 'string', 'max:5000'],
+            'notes' => ['nullable', new RichTextRule(5000)],
         ];
     }
 

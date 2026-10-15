@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import type { ReactNode } from 'react';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import DynamicFieldsView from '@/components/dynamic-fields/dynamic-fields-view';
 import { formatDateTime } from '@/lib/time';
 import type { IncidentRecord, TimelineEntry } from '@/types/incidents';
@@ -97,9 +98,7 @@ export default function IncidentPrint({
                 </header>
 
                 <Block title="What happened">
-                    <p className="whitespace-pre-line">
-                        {incident.description}
-                    </p>
+                    <RichTextView html={incident.description} />
                     {incident.type.fields.length > 0 && (
                         <DynamicFieldsView
                             fields={incident.type.fields}
@@ -107,14 +106,18 @@ export default function IncidentPrint({
                         />
                     )}
                     {incident.action_taken && (
-                        <p className="mt-2">
-                            Action taken: {incident.action_taken}
-                        </p>
+                        <div className="mt-2">
+                            <p className="font-medium">Action taken</p>
+                            <RichTextView html={incident.action_taken} />
+                        </div>
                     )}
                     {incident.workflow.resolution_summary && (
-                        <p className="mt-2">
-                            Resolution: {incident.workflow.resolution_summary}
-                        </p>
+                        <div className="mt-2">
+                            <p className="font-medium">Resolution</p>
+                            <RichTextView
+                                html={incident.workflow.resolution_summary}
+                            />
+                        </div>
                     )}
                 </Block>
 
@@ -237,9 +240,11 @@ export default function IncidentPrint({
                                 · {entry.label}
                                 {entry.who && ` · ${entry.who}`}
                                 {entry.body && (
-                                    <span className="block pl-4 whitespace-pre-line">
-                                        {entry.body}
-                                    </span>
+                                    <RichTextView
+                                        html={entry.body}
+                                        format={entry.format}
+                                        className="pl-4"
+                                    />
                                 )}
                             </li>
                         ))}

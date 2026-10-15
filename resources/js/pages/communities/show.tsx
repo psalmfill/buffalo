@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -60,11 +61,26 @@ const TAB_LABELS: Record<CommunityTab, string> = {
     history: 'History',
 };
 
-function Fact({ label, value }: { label: string; value: string | null }) {
+function Fact({
+    label,
+    value,
+    rich = false,
+}: {
+    label: string;
+    value: string | null;
+    /** Rich text (Phase 11B): sanitised HTML. */
+    rich?: boolean;
+}) {
     return (
         <div>
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm whitespace-pre-line">{value ?? '—'}</dd>
+            {rich ? (
+                <dd className="text-sm">
+                    <RichTextView html={value} empty="—" />
+                </dd>
+            ) : (
+                <dd className="text-sm whitespace-pre-line">{value ?? '—'}</dd>
+            )}
         </div>
     );
 }
@@ -183,7 +199,11 @@ export default function CommunityShow({
                                 }
                             />
                             <div className="sm:col-span-2">
-                                <Fact label="Notes" value={community.notes} />
+                                <Fact
+                                    label="Notes"
+                                    value={community.notes}
+                                    rich
+                                />
                             </div>
                         </dl>
                         {marker ? (

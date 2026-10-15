@@ -23,7 +23,8 @@ trait LogsBuffaloActivity
         return LogOptions::defaults()
             ->useLogName('model')
             ->logAll()
-            ->logExcept([...AuditExclusions::NAMES, 'created_at', 'updated_at', ...$this->auditExcept()])
+            // Plain text copies of rich text fields (Phase 11B) duplicate the field itself.
+            ->logExcept([...AuditExclusions::NAMES, 'created_at', 'updated_at', ...$this->auditExcept(), ...(method_exists($this, 'richTextCopies') ? $this->richTextCopies() : [])])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }

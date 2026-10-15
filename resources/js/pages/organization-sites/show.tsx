@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
@@ -228,6 +229,7 @@ export default function OrganizationSiteShow({
                                     <Fact
                                         label="Security notes"
                                         value={site.security_notes}
+                                        rich
                                     />
                                 </div>
                             </dl>
@@ -708,11 +710,26 @@ function ContactForm({
     );
 }
 
-function Fact({ label, value }: { label: string; value: string | null }) {
+function Fact({
+    label,
+    value,
+    rich = false,
+}: {
+    label: string;
+    value: string | null;
+    /** Rich text (Phase 11B): sanitised HTML. */
+    rich?: boolean;
+}) {
     return (
         <div>
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm whitespace-pre-line">{value ?? '—'}</dd>
+            {rich ? (
+                <dd className="text-sm">
+                    <RichTextView html={value} empty="—" />
+                </dd>
+            ) : (
+                <dd className="text-sm whitespace-pre-line">{value ?? '—'}</dd>
+            )}
         </div>
     );
 }

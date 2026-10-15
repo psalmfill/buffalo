@@ -98,7 +98,7 @@ test('issuing a setup link logs the delivery method but never the link or token'
     app(SendAccountSetupLink::class)($user);
     $token = basename(parse_url($url, PHP_URL_PATH));
 
-    $events = Activity::query()->where('event', 'setup_link_issued')->get();
+    $events = Activity::query()->where('event', 'setup_link_issued')->orderBy('id')->get();
 
     expect($events->pluck('properties')->map(fn ($p) => $p['delivery'])->all())->toBe(['manual', 'email'])
         ->and(allActivityJson())->not->toContain($token)->not->toContain('/account/setup/');

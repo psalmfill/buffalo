@@ -3,6 +3,7 @@
 namespace App\Http\Requests\LocalGovernment;
 
 use App\Enums\Terrain;
+use App\Rules\RichTextRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,7 +27,7 @@ class LgaProfileRequest extends FormRequest
      */
     public function rules(): array
     {
-        $text = ['nullable', 'string', 'max:20000'];
+        $text = ['nullable', new RichTextRule(20000)];
 
         return [
             'history' => $text,

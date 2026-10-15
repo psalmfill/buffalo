@@ -15,6 +15,7 @@ use App\Support\Jurisdiction\NotificationRecipients;
 use App\Support\Persons\Merge\MergeBlocked;
 use App\Support\Persons\Merge\MergeFields;
 use App\Support\Persons\Merge\PersonMergeLocks;
+use App\Support\RichText\RichText;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\QueryException;
@@ -276,7 +277,8 @@ final class UndoPersonMerge
             'address' => $target['address'],
             'occupation' => $target['occupation'],
             'nationality' => $target['nationality'],
-            'description' => $target['description'],
+            // A snapshot taken before Phase 11B holds plain text.
+            'description' => RichText::fromStored(is_string($target['description']) ? $target['description'] : null)?->html,
         ]);
         $survivor->forceFill([
             'state_id' => $target['state_id'],
@@ -340,6 +342,8 @@ final class UndoPersonMerge
             'community' => Community::query()->whereKey($values['community_id'] ?? 0)->value('name'),
             'is_deceased' => ($values['is_deceased'] ?? false) ? 'Yes' : 'No',
             'gender' => Gender::tryFrom((string) ($values['gender'] ?? ''))?->label(),
+            // Rich text (Phase 11B), or plain text in a snapshot from before.
+            'description' => RichText::fromStored(is_string($values['description'] ?? null) ? $values['description'] : null)?->text,
             default => $values[$field] ?? null,
         };
 

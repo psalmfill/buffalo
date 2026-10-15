@@ -11,6 +11,7 @@ use App\Models\Lga;
 use App\Models\Organization;
 use App\Models\OrganizationSite;
 use App\Models\User;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\CommunityRules;
@@ -152,7 +153,7 @@ class OrganizationSiteRequest extends FormRequest
                     $fail('An organization cannot be its own security provider.');
                 }
             }],
-            'security_notes' => ['nullable', 'string', 'max:20000'],
+            'security_notes' => ['nullable', new RichTextRule(20000)],
             'status' => ['required', Rule::enum(SiteStatus::class)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 $level = Classification::tryFrom((string) $value);

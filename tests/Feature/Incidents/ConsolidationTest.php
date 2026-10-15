@@ -118,11 +118,13 @@ test('consolidation applies every rule and invalidates the duplicate in one step
     // Follow-up copied with attribution; the original stays on the duplicate.
     $copy = DB::table('incident_updates')->where('copied_from_update_id', $update)->first();
     expect($copy->incident_id)->toBe($this->original->id)
-        ->and($copy->body)->toBe('Witness says the gang fled north in a white bus.')
+        // The copy is a new row, so rich text (Phase 11B): the plain text original is converted.
+        ->and($copy->body)->toBe('<p>Witness says the gang fled north in a white bus.</p>')
+        ->and($copy->body_format)->toBe('html')
         ->and($copy->created_by)->toBe($this->sd->id)
         ->and(DB::table('incident_updates')->where('id', $update)->value('incident_id'))->toBe($this->duplicate->id);
     $timeline = CrossFixtures::signIn($this->sd)->get("/incidents/{$this->original->ulid}?tab=timeline")->viewData('page')['props']['timeline'];
-    $copied = collect($timeline)->firstWhere('body', 'Witness says the gang fled north in a white bus.');
+    $copied = collect($timeline)->firstWhere('body', '<p>Witness says the gang fled north in a white bus.</p>');
     expect($copied['origin'])->toStartWith("Originally recorded on {$ref} by {$this->chief->name} at ")
         ->and(collect($timeline)->pluck('label'))->toContain("Content consolidated from {$ref}");
 

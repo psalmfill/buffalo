@@ -63,6 +63,8 @@ final class IncidentTimeline
                 'kind' => 'update_'.$update->type->value,
                 'label' => $update->type->label(),
                 'body' => $update->body,
+                // Rich text since Phase 11B; older follow-ups are plain text, shown as before.
+                'format' => $update->isHtml() ? 'html' : 'text',
                 'who' => $names->get($update->created_by),
                 // A follow-up copied from a duplicate (Phase 10B): its original author and time.
                 'origin' => Consolidation::attribution($update),
@@ -117,7 +119,7 @@ final class IncidentTimeline
             ];
         }
 
-        $entries = array_map(fn (array $entry) => ['origin' => null, ...$entry], $entries);
+        $entries = array_map(fn (array $entry) => ['origin' => null, 'format' => 'text', ...$entry], $entries);
         usort($entries, fn (array $a, array $b) => strcmp($a['at'], $b['at']));
 
         return $entries;

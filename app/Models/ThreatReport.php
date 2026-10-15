@@ -10,6 +10,7 @@ use App\Enums\ThreatStatus;
 use App\Enums\ThreatUrgency;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\IsDisseminable;
 use App\Models\Concerns\LogsBuffaloActivity;
@@ -76,6 +77,7 @@ class ThreatReport extends Model implements Classified, Disseminable
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use IsDisseminable;
     use LogsBuffaloActivity;
@@ -93,6 +95,16 @@ class ThreatReport extends Model implements Classified, Disseminable
         'classification' => 'restricted',
         'status' => 'active',
     ];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['description', 'recommended_action', 'target_description'];
+    }
 
     protected function casts(): array
     {

@@ -91,6 +91,8 @@ export type TimelineEntry = {
     kind: string;
     label: string;
     body: string | null;
+    /** Follow-ups are HTML since Phase 11B; everything else, and older follow-ups, plain text. */
+    format: 'text' | 'html';
     who: string | null;
     classification: { value: ClassificationLevel; label: string } | null;
     /** A follow-up copied from a duplicate (Phase 10B): its original author and time. */

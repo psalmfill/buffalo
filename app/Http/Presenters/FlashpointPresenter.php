@@ -84,6 +84,8 @@ final class FlashpointPresenter
             'status' => self::option($a->status),
             'assessment' => $a->assessment,
             'recommended_action' => $a->recommended_action,
+            // Rich text since Phase 11B; older assessments are plain text, shown as before.
+            'format' => $a->isHtml() ? 'html' : 'text',
             'assessed_by' => $names->get($a->assessed_by),
             'assessed_at' => $a->assessed_at->toIso8601String(),
         ])->all());

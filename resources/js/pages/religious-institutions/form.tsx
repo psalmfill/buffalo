@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import ReligiousInstitutionController from '@/actions/App/Http/Controllers/CommunityInformation/ReligiousInstitutionController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import MapPointPicker, {
@@ -14,7 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import type { InstitutionRow } from '@/types/community-information';
 import type { MapView } from '@/types/dashboard';
 import type { LgaFacts, NamedRef, Option } from '@/types/local-government';
@@ -195,14 +195,12 @@ export default function ReligiousInstitutionForm({
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="notes">Notes</Label>
-                            <Textarea
+                            <RichTextEditor
                                 id="notes"
-                                rows={4}
-                                maxLength={5000}
                                 value={form.data.notes}
-                                onChange={(event) =>
-                                    form.setData('notes', event.target.value)
-                                }
+                                onChange={(html) => form.setData('notes', html)}
+                                limit={5000}
+                                invalid={!!form.errors.notes}
                             />
                             <InputError message={form.errors.notes} />
                         </div>

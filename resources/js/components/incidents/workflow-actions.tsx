@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import IncidentWorkflowController from '@/actions/App/Http/Controllers/Incidents/IncidentWorkflowController';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import ConsolidationPreview from '@/components/incidents/consolidation-preview';
 import { Field } from '@/components/incidents/editor-parts';
 import InputError from '@/components/input-error';
@@ -259,18 +260,33 @@ function StepDialog({
                             label={config.prompt ?? ''}
                             error={form.errors[config.field]}
                         >
-                            <Textarea
-                                id={`step-${config.field}`}
-                                rows={4}
-                                value={form.data[config.field]}
-                                onChange={(e) =>
-                                    form.setData(
-                                        config.field as
-                                            'reason' | 'summary' | 'comment',
-                                        e.target.value,
-                                    )
-                                }
-                            />
+                            {config.field === 'summary' ? (
+                                // The resolution summary is rich text (Phase 11B); reasons and comments stay plain.
+                                <RichTextEditor
+                                    id="step-summary"
+                                    value={form.data.summary}
+                                    onChange={(html) =>
+                                        form.setData('summary', html)
+                                    }
+                                    limit={10000}
+                                    invalid={!!form.errors.summary}
+                                />
+                            ) : (
+                                <Textarea
+                                    id={`step-${config.field}`}
+                                    rows={4}
+                                    value={form.data[config.field]}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            config.field as
+                                                | 'reason'
+                                                | 'summary'
+                                                | 'comment',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            )}
                         </Field>
                     )}
                     <DialogFooter>

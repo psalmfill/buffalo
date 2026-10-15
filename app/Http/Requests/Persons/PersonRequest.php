@@ -13,6 +13,7 @@ use App\Models\PersonRoleType;
 use App\Models\User;
 use App\Rules\MalwareFree;
 use App\Rules\PersonPhoto;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\CommunityRules;
@@ -115,7 +116,7 @@ class PersonRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:1000'],
             'occupation' => ['nullable', 'string', 'max:150'],
             'nationality' => ['nullable', 'string', 'max:100'],
-            'description' => ['nullable', 'string', 'max:5000'],
+            'description' => ['nullable', new RichTextRule(5000)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 $level = Classification::tryFrom((string) $value);
                 /** @var User $user */

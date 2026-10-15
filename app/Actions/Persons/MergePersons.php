@@ -29,6 +29,7 @@ use App\Support\Persons\Merge\MergeFields;
 use App\Support\Persons\Merge\MergeManifest;
 use App\Support\Persons\Merge\MergePlan;
 use App\Support\Persons\Merge\PersonMergeLocks;
+use App\Support\RichText\RichText;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
@@ -291,7 +292,7 @@ final class MergePersons
      */
     private function mergePoi(Person $survivor, Person $source, MergeChoices $choices, MergeManifest $manifest, string $ulid, User $actor): array
     {
-        $columns = ['id', 'ulid', 'risk_level', 'status', 'offence_categories', 'known_offences', 'modus_operandi', 'last_known_location', 'last_known_location_description', 'last_sighted_at', 'review_due_at'];
+        $columns = ['id', 'ulid', 'risk_level', 'status', 'offence_categories', 'known_offences', 'known_offences_text', 'modus_operandi', 'modus_operandi_text', 'last_known_location', 'last_known_location_description', 'last_sighted_at', 'review_due_at'];
         $theirs = DB::table('persons_of_interest')->where('person_id', $source->id)->whereNull('deleted_at')->first($columns);
 
         if ($theirs === null) {
@@ -323,8 +324,9 @@ final class MergePersons
             'risk_level' => $risk,
             'status' => $choices->poiStatus === 'source' ? $theirs->status : $ours->status,
             'offence_categories' => json_encode($categories),
-            'known_offences' => self::combineText($ours->known_offences, $theirs->known_offences, $source),
-            'modus_operandi' => self::combineText($ours->modus_operandi, $theirs->modus_operandi, $source),
+            // Rich text (Phase 11B): one block per record under a labelled heading.
+            ...self::combineRich('known_offences', $ours, $theirs, $survivor, $source),
+            ...self::combineRich('modus_operandi', $ours, $theirs, $survivor, $source),
             'last_known_location' => $theirsLater || $ours->last_known_location === null ? ($theirs->last_known_location ?? $ours->last_known_location) : $ours->last_known_location,
             'last_known_location_description' => self::combineText($ours->last_known_location_description, $theirs->last_known_location_description, $source),
             'last_sighted_at' => $theirsLater ? $theirs->last_sighted_at : $ours->last_sighted_at,
@@ -569,6 +571,25 @@ final class MergePersons
         foreach ($this->recipients->users($cancelledMergeRequests) as $user) {
             $user->notify(new PersonMergeNotification(PersonMergeNotification::MERGE_REQUEST_CANCELLED, '/persons/merge-requests'));
         }
+    }
+
+    /**
+     * A rich text field of two records combined (Phase 11B): each record's
+     * text as an HTML block under a heading naming it, sanitised, with its
+     * plain text copy (written together so an undo restores both).
+     *
+     * @return array<string, string|null>
+     */
+    public static function combineRich(string $field, object $ours, object $theirs, Person $survivor, Person $source): array
+    {
+        $combined = RichText::combine(
+            $ours->{$field},
+            "Surviving record {$survivor->ulid}",
+            $theirs->{$field},
+            "From merged record {$source->ulid}",
+        );
+
+        return [$field => $combined?->html, "{$field}_text" => $combined?->text];
     }
 
     /**

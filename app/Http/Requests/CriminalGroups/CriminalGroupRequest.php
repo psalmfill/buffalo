@@ -8,6 +8,7 @@ use App\Enums\CriminalGroupType;
 use App\Models\CriminalGroup;
 use App\Models\Lga;
 use App\Models\User;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Closure;
@@ -62,7 +63,7 @@ class CriminalGroupRequest extends FormRequest
             'other_names' => ['present', 'array', 'max:20'],
             'other_names.*' => ['nullable', 'string', 'max:200', 'distinct:ignore_case'],
             'type' => ['required', Rule::enum(CriminalGroupType::class)],
-            'description' => ['required', 'string', 'max:20000'],
+            'description' => ['required', new RichTextRule(20000, required: true)],
             'estimated_size' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'status' => ['required', Rule::enum(CriminalGroupStatus::class)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {

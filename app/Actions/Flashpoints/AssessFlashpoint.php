@@ -7,6 +7,7 @@ use App\Enums\FlashpointStatus;
 use App\Models\Flashpoint;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
+use App\Support\RichText\RichText;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -48,6 +49,10 @@ final class AssessFlashpoint
             'review_due_at' => $flashpoint->review_due_at->toDateString(),
         ];
 
+        // Rich text (Phase 11B), sanitised here: this insert bypasses the model's cast.
+        $assessment = RichText::sanitize($data['assessment']);
+        $action = RichText::sanitize($data['recommended_action']);
+
         DB::table('flashpoint_assessments')->insert([
             'ulid' => Str::lower((string) Str::ulid()),
             'flashpoint_id' => $flashpoint->id,
@@ -55,8 +60,11 @@ final class AssessFlashpoint
             'lga_id' => $flashpoint->lga_id,
             'concern_level' => $concern->value,
             'status' => $status->value,
-            'assessment' => $data['assessment'],
-            'recommended_action' => $data['recommended_action'],
+            'assessment' => $assessment?->html,
+            'assessment_text' => $assessment?->text,
+            'recommended_action' => $action?->html,
+            'recommended_action_text' => $action?->text,
+            'body_format' => 'html',
             'assessed_by' => $actor->id,
             'assessed_at' => $now,
         ]);

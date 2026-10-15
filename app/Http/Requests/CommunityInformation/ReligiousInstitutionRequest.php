@@ -10,6 +10,7 @@ use App\Models\Religion;
 use App\Models\ReligiousInstitution;
 use App\Rules\ActiveOption;
 use App\Rules\PersonWithRole;
+use App\Rules\RichTextRule;
 use App\Support\LocalGovernment\CommunityRules;
 use App\Support\LocalGovernment\Nigeria;
 use App\Support\Persons\LinkedPerson;
@@ -58,7 +59,7 @@ class ReligiousInstitutionRequest extends LgaRecordRequest
                     }
                 }
             }],
-            'notes' => ['nullable', 'string', 'max:5000'],
+            'notes' => ['nullable', new RichTextRule(5000)],
             // Absent: unchanged (e.g. a leader the user cannot see).
             'leader' => ['sometimes', 'nullable', 'string', new PersonWithRole(PersonRoleType::RELIGIOUS_LEADER, $current?->leader?->ulid)],
         ];

@@ -1,13 +1,14 @@
 import { useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import IncidentWorkflowController from '@/actions/App/Http/Controllers/Incidents/IncidentWorkflowController';
+import RichTextView from '@/components/rich-text/rich-text-view';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import ClassificationSelect from '@/components/community-information/classification-select';
 import { Field } from '@/components/incidents/editor-parts';
 import NativeSelect from '@/components/native-select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { formatDateTime } from '@/lib/time';
 import type { ClassificationLevel } from '@/types/auth';
 import type { TimelineEntry, WorkflowOptions } from '@/types/incidents';
@@ -70,9 +71,11 @@ export default function IncidentTimeline({
                             </p>
                         )}
                         {entry.body && (
-                            <p className="mt-2 whitespace-pre-line">
-                                {entry.body}
-                            </p>
+                            <RichTextView
+                                html={entry.body}
+                                format={entry.format}
+                                className="mt-2"
+                            />
                         )}
                     </li>
                 ))}
@@ -136,11 +139,12 @@ function AddUpdate({
                 </NativeSelect>
             </Field>
             <Field id="update-body" label="Update" error={form.errors.body}>
-                <Textarea
+                <RichTextEditor
                     id="update-body"
-                    rows={5}
                     value={form.data.body}
-                    onChange={(e) => form.setData('body', e.target.value)}
+                    onChange={(html) => form.setData('body', html)}
+                    limit={20000}
+                    invalid={!!form.errors.body}
                 />
             </Field>
             <Field

@@ -8,6 +8,7 @@ import IncidentThreatsSection, {
 } from '@/components/threats/incident-threats';
 import { useMemo, useState } from 'react';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import { flashpointCircles } from '@/components/flashpoints/flashpoint-areas';
 import IncidentFlashpointsSection, {
     NearFlashpointBadge,
@@ -307,9 +308,10 @@ export default function IncidentShow({
                     <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
                         <div className="space-y-6">
                             <Section title="What happened">
-                                <p className="text-sm whitespace-pre-line">
-                                    {incident.description}
-                                </p>
+                                <RichTextView
+                                    html={incident.description}
+                                    className="text-sm"
+                                />
                                 {incident.type.fields.length > 0 && (
                                     <DynamicFieldsView
                                         fields={incident.type.fields}
@@ -605,7 +607,9 @@ export default function IncidentShow({
                             {incident.action_taken && (
                                 <dl className="text-sm">
                                     <Fact label="Action taken">
-                                        {incident.action_taken}
+                                        <RichTextView
+                                            html={incident.action_taken}
+                                        />
                                     </Fact>
                                 </dl>
                             )}
@@ -791,7 +795,7 @@ function WorkflowSummary({ incident }: { incident: IncidentDetail }) {
             {incident.action_taken && (
                 <dl className="text-sm">
                     <Fact label="Action taken at the time of reporting">
-                        {incident.action_taken}
+                        <RichTextView html={incident.action_taken} />
                     </Fact>
                 </dl>
             )}
@@ -802,10 +806,16 @@ function WorkflowSummary({ incident }: { incident: IncidentDetail }) {
 /** Return reasons and resolution summaries, when there are any. */
 function WorkflowFacts({ incident }: { incident: IncidentDetail }) {
     const w = incident.workflow;
-    const facts: [string, string, string | null][] = [];
+    // [label, text, by, rich]: the resolution summary is rich text (Phase 11B).
+    const facts: [string, string, string | null, boolean][] = [];
 
     if (incident.status.value === 'returned' && w.return_reason) {
-        facts.push(['Returned', w.return_reason, w.returned?.by ?? null]);
+        facts.push([
+            'Returned',
+            w.return_reason,
+            w.returned?.by ?? null,
+            false,
+        ]);
     }
     if (
         w.resolution_summary &&
@@ -815,6 +825,7 @@ function WorkflowFacts({ incident }: { incident: IncidentDetail }) {
             'Resolution',
             w.resolution_summary,
             w.resolved?.by ?? null,
+            true,
         ]);
     }
 
@@ -824,13 +835,19 @@ function WorkflowFacts({ incident }: { incident: IncidentDetail }) {
 
     return (
         <dl className="grid gap-3 rounded-lg border p-4 text-sm">
-            {facts.map(([label, text, by]) => (
+            {facts.map(([label, text, by, rich]) => (
                 <div key={label}>
                     <dt className="text-xs text-muted-foreground">
                         {label}
                         {by && ` by ${by}`}
                     </dt>
-                    <dd className="whitespace-pre-line">{text}</dd>
+                    {rich ? (
+                        <dd>
+                            <RichTextView html={text} />
+                        </dd>
+                    ) : (
+                        <dd className="whitespace-pre-line">{text}</dd>
+                    )}
                 </div>
             ))}
         </dl>

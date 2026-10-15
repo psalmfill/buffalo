@@ -4,6 +4,7 @@ import { useState } from 'react';
 import SecurityNoteController from '@/actions/App/Http/Controllers/CommunityInformation/SecurityNoteController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import NoteStatusBadge from '@/components/community-information/note-status-badge';
 import InputError from '@/components/input-error';
@@ -113,9 +114,10 @@ export default function SecurityNoteShow({
 
                 <div className="grid gap-4 lg:grid-cols-3">
                     <section className="rounded-lg border p-4 lg:col-span-2">
-                        <p className="text-sm whitespace-pre-line">
-                            {note.description}
-                        </p>
+                        <RichTextView
+                            html={note.description}
+                            className="text-sm"
+                        />
                     </section>
                     <section className="space-y-4 rounded-lg border p-4 text-sm">
                         <dl className="grid gap-2">

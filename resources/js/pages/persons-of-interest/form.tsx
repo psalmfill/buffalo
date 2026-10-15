@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
 import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOfInterest/PersonOfInterestController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import MapPointPicker, {
@@ -213,26 +214,27 @@ export default function PoiForm({ person, poi, options, map }: Props) {
                 <section className="grid gap-4 sm:grid-cols-2">
                     <div className="grid content-start gap-2">
                         <Label htmlFor="known_offences">Known offences</Label>
-                        <Textarea
+                        <RichTextEditor
                             id="known_offences"
-                            rows={5}
-                            required
                             value={form.data.known_offences}
-                            onChange={(e) =>
-                                form.setData('known_offences', e.target.value)
+                            onChange={(html) =>
+                                form.setData('known_offences', html)
                             }
+                            limit={10000}
+                            invalid={!!form.errors.known_offences}
                         />
                         <InputError message={form.errors.known_offences} />
                     </div>
                     <div className="grid content-start gap-2">
                         <Label htmlFor="modus_operandi">Modus operandi</Label>
-                        <Textarea
+                        <RichTextEditor
                             id="modus_operandi"
-                            rows={5}
                             value={form.data.modus_operandi}
-                            onChange={(e) =>
-                                form.setData('modus_operandi', e.target.value)
+                            onChange={(html) =>
+                                form.setData('modus_operandi', html)
                             }
+                            limit={10000}
+                            invalid={!!form.errors.modus_operandi}
                         />
                         <InputError message={form.errors.modus_operandi} />
                     </div>

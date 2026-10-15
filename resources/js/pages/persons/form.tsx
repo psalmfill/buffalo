@@ -3,6 +3,7 @@ import { ShieldAlert } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import HitsPanel from '@/components/access-requests/hits-panel';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import ClassificationSelect from '@/components/community-information/classification-select';
@@ -405,14 +406,14 @@ export default function PersonForm({
                             Description (physical description, distinguishing
                             marks)
                         </Label>
-                        <Textarea
+                        <RichTextEditor
                             id="description"
-                            rows={3}
-                            maxLength={5000}
                             value={form.data.description}
-                            onChange={(event) =>
-                                form.setData('description', event.target.value)
+                            onChange={(html) =>
+                                form.setData('description', html)
                             }
+                            limit={5000}
+                            invalid={!!form.errors.description}
                         />
                         <InputError message={form.errors.description} />
                     </div>

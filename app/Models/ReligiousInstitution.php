@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ReligiousInstitutionType;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
@@ -48,6 +49,7 @@ class ReligiousInstitution extends Model implements JurisdictionScoped
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use SoftDeletes;
@@ -55,6 +57,16 @@ class ReligiousInstitution extends Model implements JurisdictionScoped
     protected $fillable = ['name', 'type', 'estimated_congregation', 'notes'];
 
     protected $hidden = ['id', 'state_id', 'lga_id', 'community_id', 'religion_id', 'denomination_id', 'leader_person_id', 'location', 'created_by', 'updated_by'];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['notes'];
+    }
 
     protected function casts(): array
     {

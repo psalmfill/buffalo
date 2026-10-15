@@ -4,6 +4,7 @@ import { useState } from 'react';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import OrganizationSiteController from '@/actions/App/Http/Controllers/Organizations/OrganizationSiteController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import InputError from '@/components/input-error';
 import MapPointPicker, {
     coordinatesProblem,
@@ -16,7 +17,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import type { ClassificationLevel } from '@/types/auth';
 import type { MapView } from '@/types/dashboard';
 import type { NamedRef, Option } from '@/types/local-government';
@@ -292,16 +292,14 @@ export default function OrganizationSiteForm({
                                 Security notes (threats, past incidents,
                                 vulnerabilities)
                             </Label>
-                            <Textarea
+                            <RichTextEditor
                                 id="security_notes"
-                                rows={5}
                                 value={form.data.security_notes}
-                                onChange={(e) =>
-                                    form.setData(
-                                        'security_notes',
-                                        e.target.value,
-                                    )
+                                onChange={(html) =>
+                                    form.setData('security_notes', html)
                                 }
+                                limit={20000}
+                                invalid={!!form.errors.security_notes}
                             />
                             <InputError message={errors.security_notes} />
                         </div>

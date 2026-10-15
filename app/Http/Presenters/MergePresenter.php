@@ -14,6 +14,7 @@ use App\Support\Jurisdiction\OfficerNames;
 use App\Support\Persons\Merge\MergeFields;
 use App\Support\Persons\Merge\MergePlan;
 use App\Support\Persons\Merge\PersonDuplicateFinder;
+use App\Support\RichText\RichText;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -178,6 +179,8 @@ final class MergePresenter
         return match ($field) {
             'gender' => $person->gender->label(),
             'community' => $person->community?->name,
+            // Rich text (Phase 11B): compared side by side as plain text.
+            'description' => RichText::fromStored($person->description)?->text,
             default => (string) MergeFields::value($person, $field),
         };
     }

@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import FormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import InputError from '@/components/input-error';
 import BuffaloMap from '@/components/map/BuffaloMap';
@@ -539,7 +540,8 @@ function Text({ label, value }: { label: string; value: string | null }) {
     return (
         <div>
             <h3 className="text-xs text-muted-foreground">{label}</h3>
-            <p className="text-sm whitespace-pre-line">{value ?? '—'}</p>
+            {/* Rich text (Phase 11B). */}
+            <RichTextView html={value} empty="—" className="text-sm" />
         </div>
     );
 }

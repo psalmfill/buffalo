@@ -25,6 +25,7 @@ use App\Models\PropertyType;
 use App\Models\SecurityAgency;
 use App\Models\User;
 use App\Rules\ActiveOption;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use App\Support\DynamicFields\DetailsValidator;
 use App\Support\DynamicFields\FieldDefinition;
@@ -119,7 +120,7 @@ class IncidentRequest extends FormRequest
             'incident_type' => ['required', 'string', new ActiveOption(IncidentType::class, $current?->type->ulid)],
             'details' => ['nullable', 'array'],
             'title' => ['required', 'string', 'max:200'],
-            'description' => ['required', 'string', 'max:20000'],
+            'description' => ['required', new RichTextRule(20000, required: true)],
             'severity' => ['required', Rule::enum(Severity::class)],
             'occurred_at' => ['required', 'date_format:'.self::DATETIME, function (string $attribute, mixed $value, Closure $fail): void {
                 $at = self::time($value);
@@ -153,7 +154,7 @@ class IncidentRequest extends FormRequest
                 }
             }],
             'location_description' => ['nullable', 'string', 'max:2000'],
-            'action_taken' => ['nullable', 'string', 'max:20000'],
+            'action_taken' => ['nullable', new RichTextRule(20000)],
             // After verification every save needs a reason (Phase 5C).
             'amendment_reason' => $current?->requiresAmendmentReason() === true ? ['required', 'string', 'min:10', 'max:2000'] : ['prohibited'],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {

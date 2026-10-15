@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import SecurityNoteController from '@/actions/App/Http/Controllers/CommunityInformation/SecurityNoteController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import ClassificationSelect from '@/components/community-information/classification-select';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -10,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import type { ClassificationLevel } from '@/types/auth';
 import type { NoteDetail } from '@/types/community-information';
 import type { LgaFacts, Option } from '@/types/local-government';
@@ -173,15 +173,12 @@ export default function SecurityNoteForm({
 
                 <div className="grid gap-2">
                     <Label htmlFor="description">Description</Label>
-                    <Textarea
+                    <RichTextEditor
                         id="description"
-                        rows={8}
-                        maxLength={20000}
                         value={form.data.description}
-                        onChange={(event) =>
-                            form.setData('description', event.target.value)
-                        }
-                        required
+                        onChange={(html) => form.setData('description', html)}
+                        limit={20000}
+                        invalid={!!form.errors.description}
                     />
                     <InputError message={form.errors.description} />
                 </div>

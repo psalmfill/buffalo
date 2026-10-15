@@ -4,6 +4,7 @@ namespace App\Http\Requests\Flashpoints;
 
 use App\Enums\ConcernLevel;
 use App\Enums\FlashpointStatus;
+use App\Rules\RichTextRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,8 +26,8 @@ class AssessmentRequest extends FormRequest
         return [
             'concern_level' => ['required', Rule::enum(ConcernLevel::class)],
             'status' => ['required', Rule::enum(FlashpointStatus::class)],
-            'assessment' => ['required', 'string', 'max:10000'],
-            'recommended_action' => ['nullable', 'string', 'max:5000'],
+            'assessment' => ['required', new RichTextRule(10000, required: true)],
+            'recommended_action' => ['nullable', new RichTextRule(5000)],
         ];
     }
 

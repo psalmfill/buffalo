@@ -42,6 +42,8 @@ export type Assessment = {
     status: { value: FlashpointStatus; label: string };
     assessment: string;
     recommended_action: string | null;
+    /** HTML since Phase 11B; older assessments are plain text. */
+    format: 'text' | 'html';
     assessed_by: string | null;
     assessed_at: string;
 };

@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import DynamicFields from '@/components/dynamic-fields/dynamic-fields';
 import EvidenceSection from '@/components/evidence/evidence-section';
 import CasualtiesEditor from '@/components/incidents/casualties-editor';
@@ -454,13 +455,14 @@ export default function IncidentForm(props: Props) {
                         label="Description"
                         error={errors.description}
                     >
-                        <Textarea
+                        <RichTextEditor
                             id="description"
-                            rows={5}
                             value={form.data.description}
-                            onChange={(e) =>
-                                form.setData('description', e.target.value)
+                            onChange={(html) =>
+                                form.setData('description', html)
                             }
+                            limit={20000}
+                            invalid={!!form.errors.description}
                         />
                     </Field>
                 </section>
@@ -626,13 +628,14 @@ export default function IncidentForm(props: Props) {
                         label="Action taken at the time of reporting"
                         error={errors.action_taken}
                     >
-                        <Textarea
+                        <RichTextEditor
                             id="action_taken"
-                            rows={3}
                             value={form.data.action_taken}
-                            onChange={(e) =>
-                                form.setData('action_taken', e.target.value)
+                            onChange={(html) =>
+                                form.setData('action_taken', html)
                             }
+                            limit={20000}
+                            invalid={!!form.errors.action_taken}
                         />
                     </Field>
                 </section>

@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { GitMerge, KeyRound, Pencil, Plus, Trash2, Upload } from 'lucide-react';
@@ -762,10 +763,17 @@ export default function PersonShow({
                                 </div>
                             )}
                             <div className="sm:col-span-3">
-                                <Fact
-                                    label="Description"
-                                    value={person.description}
-                                />
+                                <div>
+                                    <dt className="text-xs text-muted-foreground">
+                                        Description
+                                    </dt>
+                                    <dd className="text-sm">
+                                        <RichTextView
+                                            html={person.description}
+                                            empty="—"
+                                        />
+                                    </dd>
+                                </div>
                             </div>
                         </dl>
                         <div className="space-y-4">

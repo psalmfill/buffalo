@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
@@ -41,6 +42,7 @@ class LgaProfile extends Model implements JurisdictionScoped
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use SoftDeletes;
@@ -56,6 +58,16 @@ class LgaProfile extends Model implements JurisdictionScoped
     ];
 
     protected $hidden = ['id', 'lga_id', 'state_id', 'last_reviewed_by', 'created_by', 'updated_by'];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['history', 'economic_activities', 'major_roads', 'waterways', 'borders', 'general_notes'];
+    }
 
     protected function casts(): array
     {

@@ -13,6 +13,7 @@ use App\Models\CoverageReportDeployment;
 use App\Models\Lga;
 use App\Models\SecurityAgency;
 use App\Models\User;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Carbon\CarbonImmutable;
@@ -79,6 +80,7 @@ class CoverageReportRequest extends FormRequest
         $editing = $this->report() !== null;
         $submitting = $this->submitting();
         $rating = CoverageRating::tryFrom((string) $this->input('overall_rating'));
+        $gapsRequired = $submitting && $rating !== null && $rating !== CoverageRating::Adequate;
 
         return [
             'submit' => ['sometimes', 'boolean'],
@@ -91,9 +93,9 @@ class CoverageReportRequest extends FormRequest
             'period_start' => $editing ? ['prohibited'] : ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'period_end' => $editing ? ['prohibited'] : ['required', 'date_format:Y-m-d', 'after_or_equal:period_start'],
             'overall_rating' => [$submitting ? 'required' : 'nullable', Rule::enum(CoverageRating::class)],
-            'summary' => [$submitting ? 'required' : 'nullable', 'string', 'max:20000'],
-            'gaps_identified' => [$submitting && $rating !== null && $rating !== CoverageRating::Adequate ? 'required' : 'nullable', 'string', 'max:20000'],
-            'recommendations' => ['nullable', 'string', 'max:20000'],
+            'summary' => [$submitting ? 'required' : 'nullable', new RichTextRule(20000, required: $submitting)],
+            'gaps_identified' => [$gapsRequired ? 'required' : 'nullable', new RichTextRule(20000, required: $gapsRequired)],
+            'recommendations' => ['nullable', new RichTextRule(20000)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 $level = Classification::tryFrom((string) $value);
                 /** @var User $user */

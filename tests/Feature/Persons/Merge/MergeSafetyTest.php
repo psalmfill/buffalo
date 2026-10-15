@@ -238,7 +238,8 @@ test('survivor edits made after the merge are kept or discarded as chosen', func
     $a = Person::factory()->in($this->world->lgas['A1a'])->create(['occupation' => 'Trader', 'description' => 'Tall']);
     $b = Person::factory()->in($this->world->lgas['A1a'])->create(['occupation' => 'Farmer']);
     $merge = MergeFixtures::merge($this->sd, $a, $b, new MergeChoices(fields: ['occupation' => 'source']));
-    DB::table('persons')->where('id', $a->id)->update(['occupation' => 'Mechanic', 'description' => 'Tall, scar on left arm']);
+    // The description is rich text since Phase 11B.
+    DB::table('persons')->where('id', $a->id)->update(['occupation' => 'Mechanic', 'description' => '<p>Tall, scar on left arm</p>', 'description_text' => 'Tall, scar on left arm']);
 
     $edits = UndoPersonMerge::editsSinceMerge($merge->fresh(), MergeFixtures::reload($a));
     expect(array_column($edits, 'field'))->toBe(['occupation', 'description'])
@@ -247,7 +248,7 @@ test('survivor edits made after the merge are kept or discarded as chosen', func
     MergeFixtures::undo($this->sd, $merge, keep: ['description']);
 
     $restored = MergeFixtures::reload($a);
-    expect([$restored->occupation, $restored->description])->toBe(['Trader', 'Tall, scar on left arm']);
+    expect([$restored->occupation, $restored->description])->toBe(['Trader', '<p>Tall, scar on left arm</p>']);
 });
 
 /*

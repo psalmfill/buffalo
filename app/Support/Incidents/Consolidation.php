@@ -15,6 +15,7 @@ use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Audit\AuditLog;
 use App\Support\Jurisdiction\OfficerNames;
+use App\Support\RichText\RichText;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -265,7 +266,9 @@ final class Consolidation
             'state_id' => $original->state_id,
             'lga_id' => $original->lga_id,
             'type' => $source->type,
-            'body' => $source->body,
+            // A copy is a new row, so it is rich text (Phase 11B); a plain text
+            // original (written before 11B) is converted, line breaks kept.
+            'body' => $source->isHtml() ? $source->body : RichText::fromPlainText($source->body)?->html,
             // Never below the incident (5C trigger): raised when the original is higher.
             'classification' => $level,
             'created_by' => $actor->id,

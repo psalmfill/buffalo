@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import ThreatReportController from '@/actions/App/Http/Controllers/Threats/ThreatReportController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import { formatRadius } from '@/components/flashpoints/flashpoint-areas';
 import InputError from '@/components/input-error';
 import type { MapCircle } from '@/components/map/BuffaloMap';
@@ -228,6 +229,11 @@ export default function ThreatForm({
         </div>
     );
 
+    const RICH_LIMITS: Record<string, number> = {
+        description: 20000,
+        target_description: 2000,
+        recommended_action: 5000,
+    };
     const textarea = (
         field:
             | 'description'
@@ -242,12 +248,23 @@ export default function ThreatForm({
         <div className="grid gap-2">
             <Label htmlFor={field}>{label}</Label>
             {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-            <Textarea
-                id={field}
-                rows={rows}
-                value={form.data[field]}
-                onChange={(e) => form.setData(field, e.target.value)}
-            />
+            {field in RICH_LIMITS ? (
+                // Rich text (Phase 11B); source notes and comments stay plain text.
+                <RichTextEditor
+                    id={field}
+                    value={form.data[field]}
+                    onChange={(html) => form.setData(field, html)}
+                    limit={RICH_LIMITS[field]}
+                    invalid={!!form.errors[field]}
+                />
+            ) : (
+                <Textarea
+                    id={field}
+                    rows={rows}
+                    value={form.data[field]}
+                    onChange={(e) => form.setData(field, e.target.value)}
+                />
+            )}
             <InputError message={form.errors[field]} />
         </div>
     );

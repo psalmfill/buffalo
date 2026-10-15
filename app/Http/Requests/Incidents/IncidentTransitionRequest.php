@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Incidents;
 
+use App\Rules\RichTextRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -33,7 +34,7 @@ class IncidentTransitionRequest extends FormRequest
 
         return [
             'reason' => $required === 'reason' ? ['required', 'string', 'min:5', 'max:5000'] : ['prohibited'],
-            'summary' => $required === 'summary' ? ['required', 'string', 'min:10', 'max:10000'] : ['prohibited'],
+            'summary' => $required === 'summary' ? ['required', new RichTextRule(10000, required: true, min: 10)] : ['prohibited'],
             'comment' => $required === null ? ['nullable', 'string', 'max:5000'] : ['prohibited'],
             'confirm_duplicates' => ['sometimes', 'boolean'],
         ];

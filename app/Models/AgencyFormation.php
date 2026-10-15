@@ -7,6 +7,7 @@ use App\Enums\FormationStatus;
 use App\Enums\FormationType;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Models\Concerns\LogsReads;
@@ -75,6 +76,7 @@ class AgencyFormation extends Model implements Classified, JurisdictionScoped
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use LogsReads;
@@ -95,6 +97,16 @@ class AgencyFormation extends Model implements Classified, JurisdictionScoped
         'status' => 'active',
         'is_temporary' => false,
     ];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['notes'];
+    }
 
     protected function casts(): array
     {

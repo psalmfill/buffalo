@@ -80,8 +80,10 @@ test('a merge applies every rule, and undo restores every row exactly', function
     expect($poi->risk_level)->toBe('high')
         ->and($poi->status)->toBe('under_surveillance')
         ->and(json_decode($poi->offence_categories, true))->toBe(['armed_robbery', 'kidnapping'])
-        ->and($poi->known_offences)->toBe("Kidnapping on the highway.\n\n[From merged record {$src->ulid}] Armed robbery in 2024.")
-        ->and($poi->modus_operandi)->toBe("[From merged record {$src->ulid}] Night raids.")
+        // Rich text (Phase 11B): one labelled block per record, with plain text copies.
+        ->and($poi->known_offences)->toBe("<h4>Surviving record {$s->ulid}</h4>Kidnapping on the highway.<h4>From merged record {$src->ulid}</h4>Armed robbery in 2024.")
+        ->and($poi->known_offences_text)->toBe("Surviving record {$s->ulid}\n\nKidnapping on the highway.\n\nFrom merged record {$src->ulid}\n\nArmed robbery in 2024.")
+        ->and($poi->modus_operandi)->toBe("<h4>From merged record {$src->ulid}</h4>Night raids.")
         ->and($poi->review_due_at)->toBe('2027-01-15')
         ->and($poi->last_sighted_at)->not->toBeNull()
         ->and($oldPoi->deleted_at)->not->toBeNull()

@@ -3,6 +3,7 @@ import { CalendarCheck, Crosshair, Pencil, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOfInterest/PersonOfInterestController';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import EmptyState from '@/components/empty-state';
 import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
@@ -18,11 +19,26 @@ import type { PoiDetail, PoiOptions } from '@/types/political';
 const date = (value: string | null) =>
     value ? new Date(value).toLocaleString('en-NG') : '—';
 
-function Fact({ label, value }: { label: string; value: string | null }) {
+function Fact({
+    label,
+    value,
+    rich = false,
+}: {
+    label: string;
+    value: string | null;
+    /** Rich text (Phase 11B): sanitised HTML. */
+    rich?: boolean;
+}) {
     return (
         <div>
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm whitespace-pre-line">{value || '—'}</dd>
+            {rich ? (
+                <dd className="text-sm">
+                    <RichTextView html={value} empty="—" />
+                </dd>
+            ) : (
+                <dd className="text-sm whitespace-pre-line">{value || '—'}</dd>
+            )}
         </div>
     );
 }
@@ -263,12 +279,14 @@ export default function PoiPanel({
                             <Fact
                                 label="Known offences"
                                 value={poi.known_offences}
+                                rich
                             />
                         </div>
                         <div className="sm:col-span-2">
                             <Fact
                                 label="Modus operandi"
                                 value={poi.modus_operandi}
+                                rich
                             />
                         </div>
                         <Fact

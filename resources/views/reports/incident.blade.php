@@ -10,12 +10,12 @@
     @endif
 
     <h2>What happened</h2>
-    <p class="pre">{{ $incident['description'] }}</p>
+    <div class="rich">{!! \App\Support\RichText\RichText::display($incident['description']) !!}</div>
     @if (count($details) > 0)
         <table><tbody>@foreach ($details as $label => $value)<tr><th>{{ $label }}</th><td>{{ $value }}</td></tr>@endforeach</tbody></table>
     @endif
-    @if ($incident['action_taken'])<p>Action taken: {{ $incident['action_taken'] }}</p>@endif
-    @if ($incident['workflow']['resolution_summary'])<p>Resolution: {{ $incident['workflow']['resolution_summary'] }}</p>@endif
+    @if ($incident['action_taken'])<h3>Action taken</h3><div class="rich">{!! \App\Support\RichText\RichText::display($incident['action_taken']) !!}</div>@endif
+    @if ($incident['workflow']['resolution_summary'])<h3>Resolution</h3><div class="rich">{!! \App\Support\RichText\RichText::display($incident['workflow']['resolution_summary']) !!}</div>@endif
 
     <h2>People</h2>
     @if (count($casualties) === 0)
@@ -57,7 +57,8 @@
     <ol>
         @foreach ($timeline as $entry)
             <li><strong>{{ $at($entry['at']) }}</strong> · {{ $entry['label'] }}@if ($entry['who']) · {{ $entry['who'] }}@endif
-                @if ($entry['body'])<div class="pre">{{ $entry['body'] }}</div>@endif</li>
+                {{-- Follow-ups are rich text since Phase 11B; everything else (and older follow-ups) is plain text. --}}
+                @if ($entry['body'])@if (($entry['format'] ?? 'text') === 'html')<div class="rich">{!! \App\Support\RichText\RichText::display($entry['body']) !!}</div>@else<div class="pre">{{ $entry['body'] }}</div>@endif @endif</li>
         @endforeach
     </ol>
 @endsection

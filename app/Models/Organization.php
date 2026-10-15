@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrganizationStatus;
 use App\Enums\OrganizationType;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use Carbon\CarbonImmutable;
@@ -46,6 +47,7 @@ class Organization extends Model
     /** @use HasFactory<OrganizationFactory> */
     use HasFactory;
 
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use SoftDeletes;
@@ -58,6 +60,16 @@ class Organization extends Model
         'status' => 'active',
         'other_names' => '[]',
     ];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['description'];
+    }
 
     protected function casts(): array
     {

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import FormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import InputError from '@/components/input-error';
 import MapPointPicker, {
     coordinatesProblem,
@@ -14,7 +15,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import type { MapView } from '@/types/dashboard';
 import type {
     AgencyOption,
@@ -369,12 +369,12 @@ export default function FormationForm({
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="notes">Notes</Label>
-                            <Textarea
+                            <RichTextEditor
                                 id="notes"
                                 value={form.data.notes}
-                                onChange={(e) =>
-                                    form.setData('notes', e.target.value)
-                                }
+                                onChange={(html) => form.setData('notes', html)}
+                                limit={5000}
+                                invalid={!!form.errors.notes}
                             />
                             <InputError message={form.errors.notes} />
                         </div>

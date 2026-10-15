@@ -97,7 +97,9 @@ class SeedDemoIncidents extends Command
                         'details' => '{}',
                         'details_schema_version' => 1,
                         'title' => '[Demo] Synthetic incident '.$sequence,
-                        'description' => 'Synthetic incident generated for performance testing. Not real.',
+                        // Rich text with its plain copy (Phase 11B; raw insert, no cast).
+                        'description' => '<p>Synthetic incident generated for performance testing. Not real.</p>',
+                        'description_text' => 'Synthetic incident generated for performance testing. Not real.',
                         'severity' => $severity,
                         'occurred_at' => $occurred,
                         'occurred_at_precision' => 'approximate',
@@ -204,7 +206,9 @@ class SeedDemoIncidents extends Command
                 'details' => '{}',
                 'details_schema_version' => 1,
                 'title' => '[Demo] Hotspot incident '.$sequence,
-                'description' => 'Synthetic hotspot incident generated for blackspot suggestions. Not real.',
+                // Rich text with its plain copy (Phase 11B; raw insert, no cast).
+                'description' => '<p>Synthetic hotspot incident generated for blackspot suggestions. Not real.</p>',
+                'description_text' => 'Synthetic hotspot incident generated for blackspot suggestions. Not real.',
                 'severity' => 'high',
                 'occurred_at' => $occurred,
                 'occurred_at_precision' => 'approximate',

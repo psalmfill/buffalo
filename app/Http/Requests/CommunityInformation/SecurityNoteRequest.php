@@ -7,6 +7,7 @@ use App\Enums\SecurityNoteCategory;
 use App\Enums\SecurityNoteStatus;
 use App\Models\Community;
 use App\Models\User;
+use App\Rules\RichTextRule;
 use App\Support\Classification\ClassificationGate;
 use Closure;
 use Illuminate\Validation\Rule;
@@ -35,7 +36,7 @@ class SecurityNoteRequest extends LgaRecordRequest
             'community' => ['required', 'string', $this->communityOfLga()],
             'category' => ['required', Rule::enum(SecurityNoteCategory::class)],
             'title' => ['required', 'string', 'max:200'],
-            'description' => ['required', 'string', 'max:20000'],
+            'description' => ['required', new RichTextRule(20000, required: true)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 $level = Classification::tryFrom((string) $value);
                 /** @var User $user */

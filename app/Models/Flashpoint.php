@@ -9,6 +9,7 @@ use App\Enums\FlashpointStatus;
 use App\Enums\NotificationSeverity;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\IsDisseminable;
 use App\Models\Concerns\LogsBuffaloActivity;
@@ -75,6 +76,7 @@ class Flashpoint extends Model implements Classified, Disseminable
     use HasFactory;
 
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use IsDisseminable;
     use LogsBuffaloActivity;
@@ -115,6 +117,16 @@ class Flashpoint extends Model implements Classified, Disseminable
         'status' => 'active',
         'radius_meters' => 1000,
     ];
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['description', 'recommended_action'];
+    }
 
     protected function casts(): array
     {

@@ -3,13 +3,13 @@ import { Plus, X } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
+import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import { postJson } from '@/lib/http';
 import type { Option } from '@/types/local-government';
 import type {
@@ -251,12 +251,14 @@ export default function OrganizationForm({
                     </div>
                     <div className="grid gap-2 sm:col-span-2">
                         <Label htmlFor="description">Description</Label>
-                        <Textarea
+                        <RichTextEditor
                             id="description"
                             value={form.data.description}
-                            onChange={(e) =>
-                                form.setData('description', e.target.value)
+                            onChange={(html) =>
+                                form.setData('description', html)
                             }
+                            limit={5000}
+                            invalid={!!form.errors.description}
                         />
                         <p className="text-xs text-muted-foreground">
                             Public, non-sensitive information only: it is

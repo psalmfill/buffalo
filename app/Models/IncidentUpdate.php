@@ -6,6 +6,7 @@ use App\Enums\Classification;
 use App\Enums\IncidentUpdateType;
 use App\Models\Concerns\HasClassification;
 use App\Models\Concerns\HasJurisdiction;
+use App\Models\Concerns\HasRichText;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use App\Models\Concerns\LogsReads;
@@ -29,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $incident_id
  * @property int $state_id
  * @property int $lga_id
+ * @property string|null $body_format null: written before Phase 11B (plain text)
  * @property IncidentUpdateType $type
  * @property string $body
  * @property Classification $classification
@@ -42,6 +44,7 @@ class IncidentUpdate extends Model implements Classified, JurisdictionScoped
 {
     use HasClassification;
     use HasJurisdiction;
+    use HasRichText;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
     use LogsReads;
@@ -55,6 +58,28 @@ class IncidentUpdate extends Model implements Classified, JurisdictionScoped
     protected static function booted(): void
     {
         static::addGlobalScope('incident', fn (Builder $query) => $query->whereHas('incident'));
+
+        // Append-only (Phase 11B): rows written from now on are HTML. Rows
+        // from before keep a null format (plain text) and are never rewritten.
+        static::creating(function (self $row): void {
+            $row->body_format ??= 'html';
+        });
+    }
+
+    /** Whether the row was written as rich text (Phase 11B); older rows are plain text. */
+    public function isHtml(): bool
+    {
+        return $this->body_format === 'html';
+    }
+
+    /**
+     * Rich text (Phase 11B), sanitised on every save.
+     *
+     * @return list<string>
+     */
+    public function richTextFields(): array
+    {
+        return ['body'];
     }
 
     /**

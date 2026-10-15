@@ -76,3 +76,5 @@ None.
 - `make test`: **passed**, 1,727 Pest tests (13,989 assertions) and 14 Vitest tests.
 - `make lint`: **passed** (Pint, Larastan level 7, ESLint, Prettier, `tsc`).
 - `make ci`: **not passed. It did not run to completion because outbound network access failed, not because of a code failure.** Four attempts each stopped while downloading build dependencies, before any test ran: Composer (`psr/container`, curl timeout), Docker Hub twice (`docker/dockerfile:1` metadata, deadline exceeded), and the Alpine CDN (`dl-cdn.alpinelinux.org` APKINDEX timeout while rebuilding the patched images). The compose hardening checks and the exceptions check passed on every attempt. **Rerun `make ci` when the network is stable**; it has to pass before 11A counts as finished under CLAUDE.md §8.
+
+**Update (2026-10-15):** `make ci` passed ("All CI checks passed") on the Phase 11B working tree, which contains all of 11A's code. The network failures above were transient.

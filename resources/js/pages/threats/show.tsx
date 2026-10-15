@@ -10,6 +10,7 @@ import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerContr
 import ThreatLinkController from '@/actions/App/Http/Controllers/Threats/ThreatLinkController';
 import ThreatReportController from '@/actions/App/Http/Controllers/Threats/ThreatReportController';
 import DisseminationController from '@/actions/App/Http/Controllers/Disseminations/DisseminationController';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import DisseminationPrompt from '@/components/disseminations/dissemination-prompt';
 import SharedBanner from '@/components/disseminations/shared-banner';
@@ -348,13 +349,22 @@ function OverviewTab({ threat, map, links }: Props) {
                         value={threat.community?.name ?? null}
                     />
                     <div className="sm:col-span-2">
-                        <Fact label="Description" value={threat.description} />
+                        <Fact
+                            label="Description"
+                            value={threat.description}
+                            rich
+                        />
                     </div>
-                    <Fact label="Target" value={threat.target_description} />
+                    <Fact
+                        label="Target"
+                        value={threat.target_description}
+                        rich
+                    />
                     <Fact label="Source notes" value={threat.source_notes} />
                     <Fact
                         label="Recommended action"
                         value={threat.recommended_action}
+                        rich
                     />
                     <Fact label="Status note" value={threat.status_note} />
                     <Fact
@@ -602,11 +612,26 @@ function Timeline({ entries }: { entries: TimelineEntry[] }) {
     );
 }
 
-function Fact({ label, value }: { label: string; value: string | null }) {
+function Fact({
+    label,
+    value,
+    rich = false,
+}: {
+    label: string;
+    value: string | null;
+    /** Rich text (Phase 11B): sanitised HTML. */
+    rich?: boolean;
+}) {
     return (
         <div>
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm whitespace-pre-line">{value ?? '—'}</dd>
+            {rich ? (
+                <dd className="text-sm">
+                    <RichTextView html={value} empty="—" />
+                </dd>
+            ) : (
+                <dd className="text-sm whitespace-pre-line">{value ?? '—'}</dd>
+            )}
         </div>
     );
 }
