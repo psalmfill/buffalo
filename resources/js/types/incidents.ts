@@ -110,7 +110,8 @@ export type ConsolidationItem = {
         | 'property'
         | 'flashpoint'
         | 'threat'
-        | 'access_request';
+        | 'access_request'
+        | 'arrest';
     outcome:
         | 'move'
         | 'copy'

@@ -43,7 +43,7 @@ class PickerController extends Controller
         $this->authorize('viewAny', Person::class);
         $data = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
-            'purpose' => ['nullable', Rule::in(['link', 'incident'])],
+            'purpose' => ['nullable', Rule::in(['link', 'incident', 'arrest'])],
             'except' => ['nullable', 'string', 'size:26'],
         ]);
         $term = SearchTerm::parse((string) ($data['q'] ?? ''));
@@ -52,7 +52,11 @@ class PickerController extends Controller
             return $this->respond(collect());
         }
 
-        $ability = ($data['purpose'] ?? 'link') === 'incident' ? 'linkToIncident' : 'link';
+        $ability = match ($data['purpose'] ?? 'link') {
+            'incident' => 'linkToIncident',
+            'arrest' => 'linkToArrest',
+            default => 'link',
+        };
         $query = Person::query()->with(['lga', 'state'])
             ->when($data['except'] ?? null, fn (Builder $q, string $ulid) => $q->where('persons.ulid', '<>', $ulid));
         $results = $term->isNumber()

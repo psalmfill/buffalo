@@ -4,6 +4,7 @@ import {
     ClipboardList,
     Crosshair,
     Flame,
+    Gavel,
     Landmark,
     MapPin,
     Network,
@@ -17,6 +18,7 @@ import {
 export const SEARCH_ICONS: Record<string, LucideIcon> = {
     incidents: ClipboardList,
     threats: TriangleAlert,
+    arrests: Gavel,
     flashpoints: Flame,
     persons: UserSearch,
     pois: Crosshair,

@@ -7,6 +7,7 @@ use App\Enums\IncidentCategory;
 use App\Enums\Severity;
 use App\Models\Denomination;
 use App\Models\IncidentType;
+use App\Models\OffenceType;
 use App\Models\PersonRoleType;
 use App\Models\ReferenceModel;
 use App\Models\Religion;
@@ -33,6 +34,7 @@ final class ReferenceValuePresenter
             ReferenceTable::SecurityAgencies => ['state'],
             ReferenceTable::Denominations => ['religion'],
             ReferenceTable::Religions => ['denominations'],
+            ReferenceTable::OffenceTypes => ['threatType'],
             default => [],
         };
     }
@@ -68,6 +70,7 @@ final class ReferenceValuePresenter
             ReferenceTable::Religions => [['key' => 'denominations', 'label' => 'Denominations']],
             ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors => [],
             ReferenceTable::PersonRoleTypes => [['key' => 'system', 'label' => 'System type']],
+            ReferenceTable::OffenceTypes => [['key' => 'threat_type', 'label' => 'Threat category (analytics)']],
         };
     }
 
@@ -106,6 +109,7 @@ final class ReferenceValuePresenter
                 $value instanceof ThreatType => ['category' => $value->category->value],
                 $value instanceof SecurityAgency => ['short_name' => $value->short_name, 'agency_type' => $value->agency_type->value, 'state' => $value->state->ulid ?? ''],
                 $value instanceof Denomination => ['religion' => $value->religion->ulid],
+                $value instanceof OffenceType => ['threat_type' => $value->threatType->ulid ?? ''],
                 default => [],
             },
         ];
@@ -148,6 +152,16 @@ final class ReferenceValuePresenter
                     'createOnly' => true,
                 ],
             ],
+            ReferenceTable::OffenceTypes => [
+                [
+                    ...self::select('threat_type', 'Threat category', self::recordOptions(
+                        ThreatType::class,
+                        $value instanceof OffenceType ? $value->threatType : null,
+                    )),
+                    'required' => false,
+                    'help' => 'Optional: the threat type this offence counts under in analytics.',
+                ],
+            ],
             ReferenceTable::Religions, ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors, ReferenceTable::PersonRoleTypes => [],
         };
     }
@@ -171,6 +185,7 @@ final class ReferenceValuePresenter
             ],
             $value instanceof Denomination => ['religion' => $value->religion->name],
             $value instanceof Religion => ['denominations' => (string) $value->denominations->count()],
+            $value instanceof OffenceType => ['threat_type' => $value->threatType?->name],
             $value instanceof PersonRoleType => ['system' => $value->is_system ? 'Yes: the code is used by BUFFALO; it cannot be deactivated' : 'No'],
             default => [],
         };
@@ -195,13 +210,13 @@ final class ReferenceValuePresenter
     }
 
     /**
-     * @param  class-string<State|Religion>  $model
+     * @param  class-string<State|Religion|ThreatType>  $model
      * @return list<array{value: string, label: string}>
      */
-    private static function recordOptions(string $model, State|Religion|null $current): array
+    private static function recordOptions(string $model, State|Religion|ThreatType|null $current): array
     {
         $options = $model::query()->active()->orderBy('name')->get(['ulid', 'name'])
-            ->map(fn (State|Religion $record): array => ['value' => $record->ulid, 'label' => $record->name])
+            ->map(fn (State|Religion|ThreatType $record): array => ['value' => $record->ulid, 'label' => $record->name])
             ->all();
 
         if ($current !== null && ! $current->is_active) {

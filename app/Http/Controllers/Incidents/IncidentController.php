@@ -11,11 +11,13 @@ use App\Enums\JurisdictionLevel;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\ArrestPresenter;
 use App\Http\Presenters\EvidencePresenter;
 use App\Http\Presenters\IncidentPresenter;
 use App\Http\Presenters\IncidentTimeline;
 use App\Http\Presenters\PersonPresenter;
 use App\Http\Requests\Incidents\IncidentRequest;
+use App\Models\Arrest;
 use App\Models\Flashpoint;
 use App\Models\Incident;
 use App\Models\IncidentAgency;
@@ -29,6 +31,7 @@ use App\Models\Lga;
 use App\Models\RecordAccessRequest;
 use App\Models\ThreatReport;
 use App\Models\User;
+use App\Support\Arrests\ArrestLinks;
 use App\Support\Dashboard\MapView;
 use App\Support\Evidence\EvidenceFileInspector;
 use App\Support\Flashpoints\FlashpointLinks;
@@ -54,7 +57,7 @@ use Spatie\Activitylog\Models\Activity;
 class IncidentController extends Controller
 {
     /** Detail page tabs (Phase 5D); `duplicates` is for reviewers only. */
-    public const TABS = ['overview', 'people', 'response', 'evidence', 'timeline', 'duplicates', 'history'];
+    public const TABS = ['overview', 'people', 'response', 'arrests', 'evidence', 'timeline', 'duplicates', 'history'];
 
     /** Child models whose activity appears in the incident's history. */
     private const CHILDREN = [IncidentCasualty::class, IncidentPerson::class, IncidentCriminalGroup::class, IncidentAgency::class, IncidentProperty::class, IncidentEvidence::class];
@@ -103,6 +106,9 @@ class IncidentController extends Controller
             'escalate' => $user->can('escalate', $incident),
             'acknowledge' => $user->can('acknowledge', $incident),
             'addUpdate' => $user->can('addUpdate', $incident),
+            // Phase 11C: "Arrest made" (never on an invalid incident).
+            'recordArrest' => $user->can('linkIncident', [Arrest::class, $incident]),
+            'viewArrests' => $user->can('viewAny', Arrest::class),
         ];
         // Reviewers see possible duplicates of a submitted or verified report.
         $reviewing = $can['verify'] || $can['invalidate'];
@@ -121,6 +127,10 @@ class IncidentController extends Controller
             'flashpoints' => $user->can('viewAny', Flashpoint::class) ? FlashpointLinks::forIncident($incident, $user) : null,
             // Linked and possibly related threat reports the viewer can see (Phase 6B).
             'threats' => $user->can('viewAny', ThreatReport::class) ? ThreatLinks::forIncident($incident, $user) : null,
+            // Arrests linked to the incident (Phase 11C), and the reported
+            // `arrested` count against the persons on them (never changed automatically).
+            'arrests' => $tab === 'arrests' && $can['viewArrests'] ? ArrestLinks::rows(ArrestLinks::incident($incident)) : null,
+            'arrestComparison' => $can['viewArrests'] && ArrestLinks::incident($incident)->exists() ? ArrestPresenter::comparison($incident) : null,
             'possibleDuplicates' => $reviewing
                 ? $duplicates->for($incident)->map(fn (Incident $d) => IncidentPresenter::duplicate($d))->values()
                 : [],

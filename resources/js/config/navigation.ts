@@ -10,6 +10,7 @@ import {
     FileSearch,
     FileText,
     Flame,
+    Gavel,
     Gauge,
     HeartPulse,
     History,
@@ -41,6 +42,7 @@ import DisseminationController from '@/actions/App/Http/Controllers/Disseminatio
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
 import BlackspotSuggestionController from '@/actions/App/Http/Controllers/Map/BlackspotSuggestionController';
 import MapController from '@/actions/App/Http/Controllers/Map/MapController';
+import ArrestController from '@/actions/App/Http/Controllers/Arrests/ArrestController';
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import ThreatReportController from '@/actions/App/Http/Controllers/Threats/ThreatReportController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
@@ -113,6 +115,7 @@ export const NAVIGATION: NavSection[] = [
             { title: 'Report incident', icon: FilePlus2, href: IncidentController.create(), permission: 'incidents.create' },
             { title: 'Incidents', icon: ClipboardList, href: IncidentListController.index(), permission: 'incidents.view' },
             { title: 'Incident map', icon: MapPin, href: IncidentListController.map(), permission: 'incidents.view' },
+            { title: 'Arrests', icon: Gavel, href: ArrestController.index(), permission: 'arrests.view' },
         ],
     },
     {

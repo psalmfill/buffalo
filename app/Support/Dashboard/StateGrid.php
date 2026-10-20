@@ -7,6 +7,7 @@ use App\Enums\IncidentStatus;
 use App\Enums\Permission;
 use App\Enums\ThreatStatus;
 use App\Enums\ThreatUrgency;
+use App\Models\Arrest;
 use App\Models\Incident;
 use App\Models\State;
 use App\Models\ThreatReport;
@@ -71,12 +72,15 @@ final class StateGrid
                 ->pluck('total', 'state')->map(fn ($n) => (int) $n)->all()
             : null;
 
+        // Arrests in the last 30 days (Phase 11C): shown, not part of the attention score.
+        $arrests = $user->can('viewAny', Arrest::class) ? app(ArrestFigures::class)->perState($ids) : null;
+
         /** @var list<array{state: array{ulid: string}, percent: int}> $rows */
         $rows = $this->coverage->national($user, $states)['compliance'] ?? [];
         $compliance = collect($rows)->keyBy('state.ulid');
         $weights = (array) config('buffalo.dashboard.attention_weights');
 
-        $cards = $states->map(function (State $state) use ($figures, $threats, $compliance, $weights, $incidents): array {
+        $cards = $states->map(function (State $state) use ($figures, $threats, $arrests, $compliance, $weights, $incidents): array {
             $get = fn (string $key): int => (int) ($figures[$key][$state->id] ?? 0);
             $values = [
                 'incidents7' => $incidents ? $get('incidents7') : null,
@@ -90,6 +94,7 @@ final class StateGrid
                 'killed30' => $incidents ? $get('killed30') : null,
                 'abducted30' => $incidents ? $get('abducted30') : null,
                 'coverageCompliance' => $compliance->get($state->ulid)['percent'] ?? null,
+                'arrests30' => $arrests === null ? null : (int) ($arrests[$state->id] ?? 0),
             ];
             $score = self::score($values, $weights);
 

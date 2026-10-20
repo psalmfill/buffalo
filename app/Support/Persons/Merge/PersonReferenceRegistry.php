@@ -35,6 +35,9 @@ final class PersonReferenceRegistry
     /** Repointed (locked incidents through the merge exception); same incident and involvement combined. */
     public const INCIDENT_PERSONS = 'incident_persons';
 
+    /** Repointed; on the same arrest, offences joined on the survivor's row and the source's row dropped (Phase 11C). */
+    public const ARREST_PERSONS = 'arrest_persons';
+
     /** All photos moved to the survivor; the executor picks the current one. */
     public const PHOTOS = 'photos';
 
@@ -62,6 +65,7 @@ final class PersonReferenceRegistry
      * @var array<string, string>
      */
     public const FOREIGN_KEYS = [
+        'arrest_persons.person_id' => self::ARREST_PERSONS,
         'communities.traditional_ruler_id' => self::REPOINT,
         'criminal_group_members.person_id' => self::GROUP_MEMBERSHIPS,
         'incident_persons.person_id' => self::INCIDENT_PERSONS,

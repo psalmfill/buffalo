@@ -1,3 +1,7 @@
+import type {
+    LgaArrestFigures,
+    StateArrestFigures,
+} from '@/components/dashboard/arrest-figures';
 import type { OnboardingRow } from '@/types/rollout';
 import type {
     LgaThreatFigures,
@@ -91,6 +95,8 @@ export type StateGridCard = {
     killed30: number | null;
     abducted30: number | null;
     coverageCompliance: number | null;
+    /** Phase 11C: arrests in the last 30 days (not in the attention score). */
+    arrests30: number | null;
     attention: {
         score: number;
         level: 'critical' | 'high' | 'elevated' | 'none';
@@ -135,6 +141,8 @@ export type NationalDashboardProps = {
 };
 
 export type StateDashboardProps = {
+    /** Phase 11C: null without arrests.view. */
+    arrests: StateArrestFigures | null;
     place?: DashboardPlace;
     /** Phase 10A: State Directors only; counts only. */
     duplicates: {
@@ -185,6 +193,8 @@ export type StateDashboardProps = {
 };
 
 export type LgaDashboardProps = {
+    /** Phase 11C: null without arrests.view. */
+    arrests: LgaArrestFigures | null;
     period: DashboardPeriod;
     kpis: KpiTile[];
     incidents: LgaIncidentFigures | null;

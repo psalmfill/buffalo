@@ -109,6 +109,8 @@ const ROUTE_PERMISSIONS = [
     'flashpoints.edit' => ['flashpoints.manage'],
     'threats.show' => ['threats.view'],
     'threats.edit' => ['threats.manage'],
+    'arrests.show' => ['arrests.view'],
+    'arrests.edit' => ['arrests.manage'],
 ];
 
 /**

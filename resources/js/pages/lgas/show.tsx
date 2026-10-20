@@ -1,4 +1,6 @@
 import type { IncidentListRow } from '@/types/incidents';
+import ArrestsTable from '@/components/arrests/arrests-table';
+import type { ArrestRow } from '@/types/arrests';
 import type { Paginated } from '@/types/pagination';
 import type { MapView } from '@/types/dashboard';
 import RichTextEditor from '@/components/rich-text/rich-text-editor';
@@ -65,6 +67,7 @@ type Tab =
     | 'security_presence'
     | 'organizations'
     | 'incidents'
+    | 'arrests'
     | 'flashpoints';
 
 type Props = {
@@ -73,6 +76,8 @@ type Props = {
         rows: Paginated<IncidentListRow>;
         last90ByType: { type: string; count: number }[];
     } | null;
+    /** Phase 11C: arrests in the LGA. */
+    arrests: Paginated<ArrestRow> | null;
     lga: LgaFacts;
     tab: Tab;
     tabs: Tab[];
@@ -115,6 +120,7 @@ const TAB_LABELS: Record<Tab, string> = {
     security_presence: 'Security presence',
     organizations: 'Organizations',
     incidents: 'Incidents',
+    arrests: 'Arrests',
     flashpoints: 'Flashpoints',
 };
 
@@ -227,6 +233,9 @@ export default function LgaShow(props: Props) {
                     )}
                 {tab === 'leadership' && props.leadership && (
                     <LeadershipPanel data={props.leadership} />
+                )}
+                {tab === 'arrests' && props.arrests && (
+                    <ArrestsTable arrests={props.arrests} />
                 )}
                 {tab === 'incidents' && props.incidents && (
                     <div className="space-y-4">

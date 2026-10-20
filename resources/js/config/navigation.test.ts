@@ -106,6 +106,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'reports.generate',
         'reports.export_data',
         'reports.schedule',
+        'arrests.view',
+        'arrests.create',
+        'arrests.manage',
+        'arrests.delete',
     ],
     deputy_director_general: [
         'users.view',
@@ -183,6 +187,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'reports.generate',
         'reports.export_data',
         'reports.schedule',
+        'arrests.view',
+        'arrests.create',
+        'arrests.manage',
+        'arrests.delete',
     ],
     state_director: [
         'users.view',
@@ -264,6 +272,10 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'reports.generate',
         'reports.export_data',
         'reports.schedule',
+        'arrests.view',
+        'arrests.create',
+        'arrests.manage',
+        'arrests.delete',
     ],
     deputy_state_director: [
         'users.view',
@@ -323,6 +335,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'reports.generate',
         'reports.export_data',
         'reports.schedule',
+        'arrests.view',
+        'arrests.create',
+        'arrests.manage',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -372,6 +387,9 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'analytics.export',
         'reports.generate',
         'reports.schedule',
+        'arrests.view',
+        'arrests.create',
+        'arrests.manage',
     ],
 };
 
@@ -443,7 +461,12 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Incidents: [
+                    'Report incident',
+                    'Incidents',
+                    'Incident map',
+                    'Arrests',
+                ],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -483,7 +506,12 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Incidents: [
+                    'Report incident',
+                    'Incidents',
+                    'Incident map',
+                    'Arrests',
+                ],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -517,7 +545,12 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Incidents: [
+                    'Report incident',
+                    'Incidents',
+                    'Incident map',
+                    'Arrests',
+                ],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -551,7 +584,12 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Incidents: [
+                    'Report incident',
+                    'Incidents',
+                    'Incident map',
+                    'Arrests',
+                ],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -585,7 +623,12 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: ['Report incident', 'Incidents', 'Incident map'],
+                Incidents: [
+                    'Report incident',
+                    'Incidents',
+                    'Incident map',
+                    'Arrests',
+                ],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',

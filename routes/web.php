@@ -54,6 +54,7 @@ require __DIR__.'/incidents.php';
 require __DIR__.'/evidence.php';
 require __DIR__.'/flashpoints.php';
 require __DIR__.'/threats.php';
+require __DIR__.'/arrests.php';
 require __DIR__.'/map.php';
 require __DIR__.'/disseminations.php';
 require __DIR__.'/search.php';

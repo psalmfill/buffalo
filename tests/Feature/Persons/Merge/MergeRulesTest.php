@@ -98,6 +98,16 @@ test('a merge applies every rule, and undo restores every row exactly', function
         ->and($membership[0]->notes)->toContain("[From merged record {$src->ulid}] Notes on Garba Mussa");
 
     // Incident persons: same incident and involvement combined; the closed incident's row repointed.
+    // Arrests (Phase 11C): repointed; on the shared arrest the survivor's row
+    // gains the offence it lacked and the duplicate offence and row are dropped.
+    $arrestRows = DB::table('arrest_persons')->where('person_id', $s->id)->whereNull('deleted_at')->orderBy('id')->get(['id', 'notes']);
+    $sharedOffences = DB::table('arrest_person_offences')->join('offence_types', 'offence_types.id', '=', 'arrest_person_offences.offence_type_id')
+        ->where('arrest_person_id', $arrestRows[0]->id)->whereNull('arrest_person_offences.deleted_at')->orderBy('offence_types.name')->pluck('offence_types.name')->all();
+    expect($arrestRows)->toHaveCount(2)
+        ->and($sharedOffences)->toBe(['Firearms (merge)', 'Kidnapping (merge)'])
+        ->and($arrestRows[0]->notes)->toBe("Held at the station\n\n[From merged record {$src->ulid}] Gave a false name")
+        ->and(DB::table('arrest_persons')->where('person_id', $src->id)->whereNull('deleted_at')->count())->toBe(0);
+
     $incidentRows = DB::table('incident_persons')->where('person_id', $s->id)->whereNull('deleted_at')->orderBy('id')->get(['incident_id', 'involvement', 'notes']);
     expect($incidentRows)->toHaveCount(3)
         ->and($incidentRows[0]->notes)->toBe("Seen at the scene\n\n[From merged record {$src->ulid}] Fled north");

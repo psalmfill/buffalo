@@ -7,6 +7,7 @@ use App\Actions\Persons\AddPersonPhoto;
 use App\Enums\Classification;
 use App\Enums\PoliticalOfficeType;
 use App\Models\AgencyFormation;
+use App\Models\Arrest;
 use App\Models\BlackspotSuggestion;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
@@ -107,6 +108,7 @@ final class MatrixRecords
         $add((new FlashpointSecurityNote)->forceFill(['flashpoint_id' => $flashpoint->id, 'state_id' => $lga->state_id, 'lga_id' => $lga->id, 'community_security_note_id' => $note->id, 'linked_by' => $author->id, 'linked_at' => now()]))->save();
 
         $add(ThreatFixtures::threat($lga));
+        $add(Arrest::factory()->in($lga)->withPerson(null)->create(['created_by' => $author->id]));
 
         $add((new BlackspotSuggestion)->forceFill([
             'state_id' => $lga->state_id, 'lga_id' => $lga->id, 'centroid' => Incident::pointFrom(9.05, 7.49), 'radius_meters' => 500,

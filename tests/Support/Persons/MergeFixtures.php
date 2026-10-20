@@ -8,10 +8,12 @@ use App\Enums\IncidentStatus;
 use App\Enums\MembershipStatus;
 use App\Enums\PoiStatus;
 use App\Enums\RiskLevel;
+use App\Models\Arrest;
 use App\Models\Community;
 use App\Models\CriminalGroup;
 use App\Models\Incident;
 use App\Models\IncidentPerson;
+use App\Models\OffenceType;
 use App\Models\OrganizationSite;
 use App\Models\Person;
 use App\Models\PersonMerge;
@@ -112,6 +114,19 @@ final class MergeFixtures
             $add('incident_persons', IncidentPerson::query()->forceCreate(['incident_id' => $incident->id, 'state_id' => $incident->state_id, 'lga_id' => $incident->lga_id, 'person_id' => $person->id, 'involvement' => $involvement, 'notes' => $notes])->id);
         }
         DB::table('incidents')->where('id', $closed->id)->update(['status' => IncidentStatus::Closed->value]);
+
+        // Arrests (Phase 11C): one with both records (overlapping offences),
+        // one with the source only.
+        $kidnapping = OffenceType::factory()->create(['name' => 'Kidnapping (merge)']);
+        $firearms = OffenceType::factory()->create(['name' => 'Firearms (merge)']);
+        $shared = Arrest::factory()->in($world->lgas['A1a'])->create();
+        $sourceOnly = Arrest::factory()->in($world->lgas['A1b'])->create();
+        foreach ([[$shared, $survivor, [$kidnapping], 'Held at the station'], [$shared, $source, [$kidnapping, $firearms], 'Gave a false name'], [$sourceOnly, $source, [$firearms], null]] as [$arrest, $person, $offences, $notes]) {
+            $row = $add('arrest_persons', DB::table('arrest_persons')->insertGetId(['ulid' => strtolower((string) Str::ulid()), 'arrest_id' => $arrest->id, 'state_id' => $arrest->state_id, 'lga_id' => $arrest->lga_id, 'person_id' => $person->id, 'status' => 'in_custody', 'notes' => $notes, 'created_at' => now(), 'updated_at' => now()]));
+            foreach ($offences as $offence) {
+                $add('arrest_person_offences', DB::table('arrest_person_offences')->insertGetId(['arrest_person_id' => $row, 'state_id' => $arrest->state_id, 'lga_id' => $arrest->lga_id, 'offence_type_id' => $offence->id, 'created_at' => now()]));
+            }
+        }
 
         // Photos (rows only: a merge never touches files).
         foreach ([[$survivor, 1], [$source, 1], [$source, 2]] as [$person, $order]) {

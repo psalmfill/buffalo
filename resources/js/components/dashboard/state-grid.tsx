@@ -100,6 +100,7 @@ function Card({ card }: { card: StateGridCard }) {
                 />
                 <Figure label="Killed (30 days)" value={card.killed30} />
                 <Figure label="Abducted (30 days)" value={card.abducted30} />
+                <Figure label="Arrests (30 days)" value={card.arrests30} />
                 <Figure
                     label="Coverage compliance"
                     value={card.coverageCompliance}

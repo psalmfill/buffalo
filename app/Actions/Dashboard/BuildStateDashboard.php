@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Models\VulnerablePopulationStat;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\AccessFigures;
+use App\Support\Dashboard\ArrestFigures;
 use App\Support\Dashboard\CoverageFigures;
 use App\Support\Dashboard\DashboardKpis;
 use App\Support\Dashboard\DisseminationFigures;
@@ -107,6 +108,8 @@ final class BuildStateDashboard
             'period' => ['days' => $days, 'options' => DashboardKpis::PERIODS],
             'kpis' => app(DashboardKpis::class)->for($user, $days, $state),
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forState($user, $state, $days) : null,
+            // Arrests by offence and by agency, last 30 days (Phase 11C).
+            'arrests' => app(ArrestFigures::class)->forState($user, $state),
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forState($state) : null,
             // Dissemination (Phase 7A).

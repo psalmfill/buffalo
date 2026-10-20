@@ -17,6 +17,7 @@ use App\Policies\ReferenceDataPolicy;
 use App\Policies\ReportPolicy;
 use App\Services\Search\GlobalSearch;
 use App\Services\Search\Providers;
+use App\Support\Arrests\ReferenceUsageChecks as ArrestsReferenceUsageChecks;
 use App\Support\Audit\AuditAccess;
 use App\Support\Auth\PasswordRules;
 use App\Support\Backups\BackupChecks;
@@ -92,6 +93,7 @@ class AppServiceProvider extends ServiceProvider
             IncidentsReferenceUsageChecks::register($registry);
             FlashpointsReferenceUsageChecks::register($registry);
             ThreatsReferenceUsageChecks::register($registry);
+            ArrestsReferenceUsageChecks::register($registry);
 
             return $registry;
         });
@@ -126,6 +128,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->tag([
             Providers\IncidentProvider::class,
             Providers\ThreatReportProvider::class,
+            Providers\ArrestProvider::class,
             Providers\FlashpointProvider::class,
             Providers\PersonProvider::class,
             Providers\PersonOfInterestProvider::class,

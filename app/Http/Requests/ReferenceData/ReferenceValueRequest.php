@@ -5,10 +5,12 @@ namespace App\Http\Requests\ReferenceData;
 use App\Enums\AgencyType;
 use App\Enums\IncidentCategory;
 use App\Enums\Severity;
+use App\Models\OffenceType;
 use App\Models\ReferenceModel;
 use App\Models\Religion;
 use App\Models\SecurityAgency;
 use App\Models\State;
+use App\Models\ThreatType;
 use App\Rules\ActiveOption;
 use App\Support\DynamicFields\SchemaValidator;
 use App\Support\ReferenceData\ReferenceTable;
@@ -88,6 +90,9 @@ class ReferenceValueRequest extends FormRequest
             ReferenceTable::Denominations => [
                 'religion' => $creating ? ['required', new ActiveOption(Religion::class)] : ['prohibited'],
             ],
+            ReferenceTable::OffenceTypes => [
+                'threat_type' => ['nullable', new ActiveOption(ThreatType::class, $target instanceof OffenceType ? $target->threatType?->ulid : null)],
+            ],
             ReferenceTable::Religions, ReferenceTable::PropertyTypes, ReferenceTable::OrganizationSectors, ReferenceTable::PersonRoleTypes => [],
         }];
     }
@@ -133,6 +138,10 @@ class ReferenceValueRequest extends FormRequest
 
         if ($this->table() === ReferenceTable::SecurityAgencies) {
             $values['state_id'] = isset($data['state']) ? State::query()->where('ulid', $data['state'])->value('id') : null;
+        }
+
+        if ($this->table() === ReferenceTable::OffenceTypes) {
+            $values['threat_type_id'] = isset($data['threat_type']) ? ThreatType::query()->where('ulid', $data['threat_type'])->value('id') : null;
         }
 
         if (isset($data['religion'])) {

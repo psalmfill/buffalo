@@ -89,6 +89,7 @@ final class MergePersons
             $this->repoint('political_offices', 'person_id', $source, $survivor, $manifest);
             $this->mergeMemberships($survivor, $source, $manifest);
             $this->mergeIncidentPersons($survivor, $source, $manifest);
+            $this->mergeArrestPersons($survivor, $source, $manifest);
             $this->repoint('communities', 'traditional_ruler_id', $source, $survivor, $manifest);
             $this->repoint('religious_institutions', 'leader_person_id', $source, $survivor, $manifest);
             $this->repoint('organization_contacts', 'person_id', $source, $survivor, $manifest);
@@ -410,6 +411,43 @@ final class MergePersons
 
             if ($notes !== $own->notes) {
                 $manifest->update('incident_persons', (int) $own->id, ['notes' => $notes]);
+            }
+        }
+    }
+
+    /**
+     * Arrested persons (Phase 11C) repointed, including rows on arrests in
+     * other jurisdictions (linked under a grant). When both records are on
+     * the same arrest, the survivor's row is kept: offences it lacks move
+     * to it, identical person-offence rows are dropped, notes are combined,
+     * and the source's row is dropped. Everything is in the manifest.
+     */
+    private function mergeArrestPersons(Person $survivor, Person $source, MergeManifest $manifest): void
+    {
+        $ours = DB::table('arrest_persons')->where('person_id', $survivor->id)->whereNull('deleted_at')->get(['id', 'arrest_id', 'notes'])->keyBy('arrest_id');
+
+        foreach (DB::table('arrest_persons')->where('person_id', $source->id)->whereNull('deleted_at')->orderBy('id')->get(['id', 'arrest_id', 'notes']) as $theirs) {
+            $own = $ours->get($theirs->arrest_id);
+
+            if ($own === null) {
+                $manifest->update('arrest_persons', (int) $theirs->id, ['person_id' => $survivor->id]);
+
+                continue;
+            }
+
+            $held = DB::table('arrest_person_offences')->where('arrest_person_id', $own->id)->whereNull('deleted_at')->pluck('offence_type_id')->map(fn ($id) => (int) $id)->all();
+
+            foreach (DB::table('arrest_person_offences')->where('arrest_person_id', $theirs->id)->whereNull('deleted_at')->orderBy('id')->get(['id', 'offence_type_id']) as $offence) {
+                in_array((int) $offence->offence_type_id, $held, true)
+                    ? $manifest->drop('arrest_person_offences', (int) $offence->id)
+                    : $manifest->update('arrest_person_offences', (int) $offence->id, ['arrest_person_id' => $own->id]);
+            }
+
+            $manifest->drop('arrest_persons', (int) $theirs->id);
+            $notes = self::combineText($own->notes, $theirs->notes, $source);
+
+            if ($notes !== $own->notes) {
+                $manifest->update('arrest_persons', (int) $own->id, ['notes' => $notes]);
             }
         }
     }

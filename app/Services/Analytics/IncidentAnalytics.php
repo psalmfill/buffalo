@@ -6,6 +6,8 @@ use App\Enums\IncidentCategory;
 use App\Enums\OccurrencePrecision;
 use App\Enums\Permission;
 use App\Enums\Severity;
+use App\Models\Arrest;
+use App\Models\ArrestPersonOffence;
 use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\State;
@@ -48,7 +50,112 @@ final class IncidentAnalytics implements AnalyticsArea
             $this->byGeography($user, $filters),
             $this->bySeverity($user, $filters),
             $this->timePatterns($user, $filters),
+            // Arrests (Phase 11C): a small section of its own.
+            ...($user->can('viewAny', Arrest::class) ? [
+                $this->arrestsTrend($user, $filters),
+                $this->arrestsByOffence($user, $filters),
+                $this->arrestsByAgency($user, $filters),
+                $this->arrestShareByType($user, $filters),
+            ] : []),
         ];
+    }
+
+    /**
+     * Arrests in the period, through the viewer's scopes and the chosen
+     * place. Every arrest counts, also one linked to an incident later
+     * marked invalid (the arrest happened).
+     *
+     * @return Builder<Arrest>
+     */
+    private function arrests(AnalyticsFilters $filters): Builder
+    {
+        return $filters->narrow(Arrest::query()
+            ->where('arrests.arrested_at', '>=', $filters->start)
+            ->where('arrests.arrested_at', '<', $filters->end), 'arrests');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function arrestsTrend(User $user, AnalyticsFilters $filters): array
+    {
+        $buckets = $filters->buckets();
+        $counts = $this->arrests($filters)->toBase()
+            ->selectRaw($filters->bucketSql('arrests.arrested_at').' AS bucket, count(*) AS n')
+            ->groupBy('bucket')->pluck('n', 'bucket')->map(fn ($n) => (int) $n)->all();
+        $data = ChartData::fill($buckets, $counts);
+        $rows = array_map(fn (array $b, int $i) => ['bucket' => $b['label'], 'count' => $data[$i]], $buckets, array_keys($buckets));
+
+        return ChartData::make('arrests_trend', 'Arrests over time', 'line', array_column($buckets, 'label'), [['label' => $filters->periodLabel(), 'data' => $data]],
+            [['key' => 'bucket', 'label' => 'Period'], ['key' => 'count', 'label' => 'Arrests', 'numeric' => true]], $rows,
+            'Every recorded arrest counts, including those linked to incidents later marked invalid.');
+    }
+
+    /**
+     * Arrested persons per offence, with the offence's threat category.
+     *
+     * @return array<string, mixed>
+     */
+    public function arrestsByOffence(User $user, AnalyticsFilters $filters): array
+    {
+        $arrestIds = $this->arrests($filters)->select('arrests.id');
+        $rows = ArrestPersonOffence::query()
+            ->whereHas('arrestPerson', fn (Builder $q) => $q->whereIn('arrest_persons.arrest_id', $arrestIds))
+            ->join('offence_types', 'offence_types.id', '=', 'arrest_person_offences.offence_type_id')
+            ->leftJoin('threat_types', 'threat_types.id', '=', 'offence_types.threat_type_id')
+            ->toBase()
+            ->selectRaw("offence_types.name AS label, coalesce(threat_types.name, '—') AS threat, count(*) AS count")
+            ->groupBy('offence_types.name', 'threat_types.name')
+            ->orderByDesc('count')->orderBy('label')->get()
+            ->map(fn (object $r) => ['label' => (string) $r->label, 'threat' => (string) $r->threat, 'count' => (int) $r->count])->all();
+
+        return ChartData::make('arrests_by_offence', 'Arrests by offence', 'bar', array_column($rows, 'label'), [['label' => 'Arrested persons', 'data' => array_column($rows, 'count')]],
+            [['key' => 'label', 'label' => 'Offence'], ['key' => 'threat', 'label' => 'Threat category'], ['key' => 'count', 'label' => 'Arrested persons', 'numeric' => true]], $rows,
+            'A person held for several offences counts once under each.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function arrestsByAgency(User $user, AnalyticsFilters $filters): array
+    {
+        $rows = $this->arrests($filters)
+            ->join('security_agencies', 'security_agencies.id', '=', 'arrests.security_agency_id')
+            ->toBase()->selectRaw('security_agencies.name AS label, count(*) AS count')
+            ->groupBy('security_agencies.name')->orderByDesc('count')->orderBy('label')->get()
+            ->map(fn (object $r) => ['label' => (string) $r->label, 'count' => (int) $r->count])->all();
+
+        return ChartData::make('arrests_by_agency', 'Arrests by agency', 'bar', array_column($rows, 'label'), [['label' => 'Arrests', 'data' => array_column($rows, 'count')]],
+            [['key' => 'label', 'label' => 'Agency'], ['key' => 'count', 'label' => 'Arrests', 'numeric' => true]], $rows);
+    }
+
+    /**
+     * Of the incidents of each type in the period (counted ones only), the
+     * share with at least one linked arrest the viewer may see.
+     *
+     * @return array<string, mixed>
+     */
+    public function arrestShareByType(User $user, AnalyticsFilters $filters): array
+    {
+        // Incidents with an arrest the viewer may see (the arrests' scopes apply).
+        $withArrest = '{'.implode(',', Arrest::query()->whereNotNull('arrests.incident_id')->distinct()->pluck('arrests.incident_id')->map(fn ($id) => (int) $id)->all()).'}';
+        $rows = $filters->incidents($user)
+            ->join('incident_types', 'incident_types.id', '=', 'incidents.incident_type_id')
+            ->toBase()
+            ->select('incident_types.name AS label')
+            ->selectRaw('count(*) AS incidents')
+            ->selectRaw('count(*) FILTER (WHERE incidents.id = ANY(?::bigint[])) AS with_arrest', [$withArrest])
+            ->groupBy('incident_types.name')->orderBy('incident_types.name')->get()
+            ->map(fn (object $r) => [
+                'label' => (string) $r->label,
+                'incidents' => (int) $r->incidents,
+                'with_arrest' => (int) $r->with_arrest,
+                'count' => (int) $r->incidents === 0 ? 0.0 : round((int) $r->with_arrest * 100 / (int) $r->incidents, 1),
+            ])->all();
+
+        return ChartData::make('arrest_share_by_type', 'Incidents with an arrest, by type', 'bar', array_column($rows, 'label'), [['label' => '% with an arrest', 'data' => array_column($rows, 'count')]],
+            [['key' => 'label', 'label' => 'Type'], ['key' => 'incidents', 'label' => 'Incidents', 'numeric' => true], ['key' => 'with_arrest', 'label' => 'With an arrest', 'numeric' => true], ['key' => 'count', 'label' => '% with an arrest', 'numeric' => true]], $rows,
+            'Drafts and invalid reports are never counted as incidents.');
     }
 
     /**

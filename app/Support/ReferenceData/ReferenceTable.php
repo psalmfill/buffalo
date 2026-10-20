@@ -4,6 +4,7 @@ namespace App\Support\ReferenceData;
 
 use App\Models\Denomination;
 use App\Models\IncidentType;
+use App\Models\OffenceType;
 use App\Models\OrganizationSector;
 use App\Models\PersonRoleType;
 use App\Models\PropertyType;
@@ -26,9 +27,10 @@ enum ReferenceTable: string
     case PropertyTypes = 'property-types';
     case OrganizationSectors = 'organization-sectors';
     case PersonRoleTypes = 'person-role-types';
+    case OffenceTypes = 'offence-types';
 
     /**
-     * @return class-string<IncidentType|ThreatType|SecurityAgency|Religion|Denomination|PropertyType|OrganizationSector|PersonRoleType>
+     * @return class-string<IncidentType|ThreatType|SecurityAgency|Religion|Denomination|PropertyType|OrganizationSector|PersonRoleType|OffenceType>
      */
     public function modelClass(): string
     {
@@ -41,11 +43,12 @@ enum ReferenceTable: string
             self::PropertyTypes => PropertyType::class,
             self::OrganizationSectors => OrganizationSector::class,
             self::PersonRoleTypes => PersonRoleType::class,
+            self::OffenceTypes => OffenceType::class,
         };
     }
 
     /**
-     * @return Builder<IncidentType>|Builder<ThreatType>|Builder<SecurityAgency>|Builder<Religion>|Builder<Denomination>|Builder<PropertyType>|Builder<OrganizationSector>|Builder<PersonRoleType>
+     * @return Builder<IncidentType>|Builder<ThreatType>|Builder<SecurityAgency>|Builder<Religion>|Builder<Denomination>|Builder<PropertyType>|Builder<OrganizationSector>|Builder<PersonRoleType>|Builder<OffenceType>
      */
     public function query(): Builder
     {
@@ -70,6 +73,7 @@ enum ReferenceTable: string
             self::PropertyTypes => 'Property types',
             self::OrganizationSectors => 'Organization sectors',
             self::PersonRoleTypes => 'Person role types',
+            self::OffenceTypes => 'Offence types',
         };
     }
 
@@ -84,6 +88,7 @@ enum ReferenceTable: string
             self::PropertyTypes => 'Property type',
             self::OrganizationSectors => 'Organization sector',
             self::PersonRoleTypes => 'Person role type',
+            self::OffenceTypes => 'Offence type',
         };
     }
 

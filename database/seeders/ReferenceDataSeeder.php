@@ -7,6 +7,7 @@ use App\Enums\IncidentCategory;
 use App\Enums\Severity;
 use App\Models\Denomination;
 use App\Models\IncidentType;
+use App\Models\OffenceType;
 use App\Models\OrganizationSector;
 use App\Models\PersonRoleType;
 use App\Models\PropertyType;
@@ -39,6 +40,7 @@ class ReferenceDataSeeder extends Seeder
             $this->propertyTypes();
             $this->organizationSectors();
             $this->personRoleTypes();
+            $this->offenceTypes();
         });
 
         $this->command->info("Reference data: {$this->created} missing entries created.");
@@ -338,6 +340,45 @@ class ReferenceDataSeeder extends Seeder
                 'description' => $description,
                 'sort_order' => $order,
                 'is_system' => $system,
+            ]);
+        }
+    }
+
+    /**
+     * Offence types for arrests (Phase 11C), each mapped to a threat type
+     * for analytics where one fits (editable by the client).
+     */
+    private function offenceTypes(): void
+    {
+        $offences = [
+            ['murder', 'Murder', null],
+            ['attempted_murder', 'Attempted murder', null],
+            ['armed_robbery', 'Armed robbery', 'armed_robbery'],
+            ['kidnapping', 'Kidnapping', 'kidnapping'],
+            ['cultism', 'Cultism', 'cultism'],
+            ['banditry', 'Banditry', 'banditry'],
+            ['terrorism', 'Terrorism', 'terrorism'],
+            ['unlawful_possession_of_firearms', 'Unlawful possession of firearms', null],
+            ['illegal_arms_dealing', 'Illegal arms dealing', null],
+            ['drug_trafficking', 'Drug trafficking', null],
+            ['illegal_oil_bunkering', 'Illegal oil bunkering', 'oil_theft'],
+            ['pipeline_vandalism', 'Pipeline vandalism', 'oil_theft'],
+            ['sea_piracy', 'Sea piracy', 'sea_piracy'],
+            ['sexual_offence', 'Sexual offence', null],
+            ['assault', 'Assault', null],
+            ['arson', 'Arson', null],
+            ['fraud', 'Fraud', null],
+            ['theft', 'Theft', null],
+            ['criminal_conspiracy', 'Criminal conspiracy', null],
+            ['public_disturbance', 'Public disturbance', null],
+            ['other', 'Other', null],
+        ];
+
+        foreach ($offences as $order => [$code, $name, $threat]) {
+            $this->createMissing(OffenceType::class, ['code' => $code], [
+                'name' => $name,
+                'threat_type_id' => $threat === null ? null : ThreatType::query()->where('code', $threat)->value('id'),
+                'sort_order' => ($order + 1) * 10,
             ]);
         }
     }

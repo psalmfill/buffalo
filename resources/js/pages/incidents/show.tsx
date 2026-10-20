@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Lock, Pencil, Printer, Siren } from 'lucide-react';
+import { Gavel, Lock, Pencil, Printer, Siren } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { IncidentFlashpoints } from '@/types/flashpoints';
 import type { IncidentThreats } from '@/types/threats';
@@ -16,6 +16,9 @@ import IncidentFlashpointsSection, {
 import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
+import ArrestController from '@/actions/App/Http/Controllers/Arrests/ArrestController';
+import ArrestComparisonNotice from '@/components/arrests/arrest-comparison';
+import ArrestsTable from '@/components/arrests/arrests-table';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import DynamicFieldsView from '@/components/dynamic-fields/dynamic-fields-view';
 import EvidenceSection from '@/components/evidence/evidence-section';
@@ -32,6 +35,7 @@ import { Button } from '@/components/ui/button';
 import ActivityTable from '@/components/users/activity-table';
 import { formatDateTime } from '@/lib/time';
 import { cn } from '@/lib/utils';
+import type { ArrestComparison, ArrestRow } from '@/types/arrests';
 import type { MapView } from '@/types/dashboard';
 import type {
     DuplicateRow,
@@ -51,6 +55,7 @@ type Tab =
     | 'overview'
     | 'people'
     | 'response'
+    | 'arrests'
     | 'evidence'
     | 'timeline'
     | 'duplicates'
@@ -60,6 +65,7 @@ const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
     people: 'People',
     response: 'Response',
+    arrests: 'Arrests',
     evidence: 'Evidence',
     timeline: 'Timeline',
     duplicates: 'Possible duplicates',
@@ -79,7 +85,10 @@ type Props = IncidentRecord & {
     flashpoints: IncidentFlashpoints | null;
     /** Phase 6B: null without threats.view. */
     threats: IncidentThreats | null;
-    can: WorkflowCan;
+    /** Phase 11C: the Arrests tab's rows, and the casualty comparison. */
+    arrests: Paginated<ArrestRow> | null;
+    arrestComparison: ArrestComparison | null;
+    can: WorkflowCan & { recordArrest: boolean; viewArrests: boolean };
 };
 
 /**
@@ -105,6 +114,8 @@ export default function IncidentShow({
     map,
     flashpoints,
     threats,
+    arrests,
+    arrestComparison,
     can,
 }: Props) {
     const record: IncidentRecord = {
@@ -224,6 +235,18 @@ export default function IncidentShow({
                                 <Printer /> Print
                             </a>
                         </Button>
+                        {can.recordArrest && (
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={ArrestController.create({
+                                        query: { incident: incident.ulid },
+                                    })}
+                                    data-test="arrest-made"
+                                >
+                                    <Gavel /> Arrest made
+                                </Link>
+                            </Button>
+                        )}
                         {incident.status.value !== 'draft' && (
                             <ExportReportButton
                                 type="incident"
@@ -242,6 +265,14 @@ export default function IncidentShow({
                 </div>
 
                 <WorkflowFacts incident={incident} />
+
+                {arrestComparison && (
+                    <ArrestComparisonNotice
+                        comparison={arrestComparison}
+                        incidentUlid={incident.ulid}
+                        canAmend={can.update}
+                    />
+                )}
 
                 {possibleDuplicates.length > 0 && tab !== 'duplicates' && (
                     <p
@@ -277,6 +308,7 @@ export default function IncidentShow({
                             'overview',
                             'people',
                             'response',
+                            ...(can.viewArrests ? ['arrests'] : []),
                             'evidence',
                             'timeline',
                             ...(can.verify || can.invalidate
@@ -687,6 +719,13 @@ export default function IncidentShow({
                             see.
                         </p>
                     ))}
+
+                {tab === 'arrests' && arrests && (
+                    <ArrestsTable
+                        arrests={arrests}
+                        empty="No arrests are linked to this incident, or none you may see."
+                    />
+                )}
 
                 {tab === 'timeline' && timeline && (
                     <IncidentTimeline

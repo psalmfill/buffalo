@@ -10,6 +10,7 @@ import AccessFigures from '@/components/dashboard/access-figures';
 import { StateOrganizations } from '@/components/dashboard/organization-figures';
 import { StateCoverage } from '@/components/dashboard/coverage-figures';
 import { BackToNational } from '@/components/dashboard/back-to-national';
+import { StateArrests } from '@/components/dashboard/arrest-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import { KpiTiles, PeriodSelector } from '@/components/dashboard/kpi-tiles';
 import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
@@ -31,6 +32,7 @@ export default function StateDashboard({
     period,
     kpis,
     incidents,
+    arrests,
     threatReports,
     sharedWithUs,
     state,
@@ -71,6 +73,7 @@ export default function StateDashboard({
                 {sharedWithUs && <SharedWithUs data={sharedWithUs} />}
                 {threatReports && <StateThreats data={threatReports} />}
                 {incidents && <StateIncidents data={incidents} />}
+                {arrests && <StateArrests data={arrests} />}
 
                 {(can('poi.view') || can('criminal_groups.view')) && (
                     <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">

@@ -13,6 +13,7 @@ use App\Models\ReligiousInstitution;
 use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\AccessFigures;
+use App\Support\Dashboard\ArrestFigures;
 use App\Support\Dashboard\CoverageFigures;
 use App\Support\Dashboard\DashboardKpis;
 use App\Support\Dashboard\DisseminationFigures;
@@ -70,6 +71,8 @@ final class BuildLgaDashboard
             'period' => ['days' => $days, 'options' => DashboardKpis::PERIODS],
             'kpis' => app(DashboardKpis::class)->for($user, $days),
             'incidents' => $user->can('viewAny', Incident::class) ? app(IncidentFigures::class)->forLga($user, $lga, $days) : null,
+            // Arrests in the last 30 days (Phase 11C).
+            'arrests' => app(ArrestFigures::class)->forLga($user, $lga),
             // Threat reports (Phase 6B), through their own scopes.
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forLga($lga) : null,
             // Dissemination (Phase 7A).

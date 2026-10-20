@@ -4,6 +4,7 @@ namespace App\Support\Incidents;
 
 use App\Enums\Classification;
 use App\Models\AgencyFormation;
+use App\Models\Arrest;
 use App\Models\CriminalGroup;
 use App\Models\Flashpoint;
 use App\Models\Incident;
@@ -36,6 +37,7 @@ use Illuminate\Support\Str;
  * | Casualties | never: compared side by side only |
  * | Flashpoint and threat links | add where the user may link, else left |
  * | Access requests citing the duplicate | repoint |
+ * | Arrests linked to the duplicate (Phase 11C) | repoint to the original |
  *
  * Items the user cannot see (above their clearance, or a linked record
  * outside their view) are "not_consolidated" and left in place, listed
@@ -166,6 +168,16 @@ final class Consolidation
             $items[] = ['kind' => 'threat', 'id' => (int) $row->id, 'outcome' => $linked === null ? 'add' : 'skip', 'label' => $threat->title, 'detail' => $row->relation, ...($linked === null ? [] : ['target' => (int) $linked])];
         }
 
+        // Arrests linked to the duplicate (Phase 11C): moved to the original.
+        $arrests = DB::table('arrests')->where('incident_id', $duplicate->id)->whereNull('deleted_at')->orderBy('id')->pluck('id');
+        $visibleArrests = Arrest::query()->whereKey($arrests->all())->get()->keyBy('id');
+        foreach ($arrests as $id) {
+            $arrest = $visibleArrests->get($id);
+            $items[] = $arrest instanceof Arrest
+                ? ['kind' => 'arrest', 'id' => (int) $id, 'outcome' => 'repoint', 'label' => $arrest->reference_no, 'detail' => 'Linked to the original incident instead']
+                : self::hidden('arrest', (int) $id, 'outside your view');
+        }
+
         // Access requests that cite the duplicate as their reason: repointed.
         foreach (DB::table('record_access_requests')->where('incident_id', $duplicate->id)->orderBy('id')->pluck('id') as $id) {
             $items[] = ['kind' => 'access_request', 'id' => (int) $id, 'outcome' => 'repoint', 'label' => 'Access request citing this incident', 'detail' => null];
@@ -217,6 +229,7 @@ final class Consolidation
                 ['flashpoint', 'add'] => $entry['new_id'] = $this->addLink('flashpoint_incidents', 'flashpoint_id', 'flashpoints', $item['id'], $original, $actor, ['link_note' => "Consolidated from {$from}."]),
                 ['threat', 'add'] => $entry['new_id'] = $this->addLink('threat_report_incidents', 'threat_report_id', 'threat_reports', $item['id'], $original, $actor, []),
                 ['access_request', 'repoint'] => DB::table('record_access_requests')->where('id', $item['id'])->update(['incident_id' => $original->id]),
+                ['arrest', 'repoint'] => $entry += $this->moveArrest($item['id'], $original, $actor),
                 default => null, // skip without notes, not consolidated, left
             };
 
@@ -224,6 +237,22 @@ final class Consolidation
         }
 
         return $manifest;
+    }
+
+    /**
+     * An arrest now links to the original incident (Phase 11C), with a
+     * named event on the arrest.
+     *
+     * @return array<string, mixed>
+     */
+    private function moveArrest(int $id, Incident $original, User $actor): array
+    {
+        $arrest = Arrest::query()->whereKey($id)->firstOrFail();
+        $from = $arrest->incident_id;
+        DB::table('arrests')->where('id', $id)->update(['incident_id' => $original->id, 'updated_by' => $actor->id, 'updated_at' => now()]);
+        AuditLog::event('incident_consolidated', 'Linked to the original incident when its duplicate was consolidated', $arrest, ['to' => $original->ulid], $actor);
+
+        return ['from_incident_id' => $from];
     }
 
     /**

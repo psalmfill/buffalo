@@ -626,6 +626,14 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Display:** `RichTextView` builds the page from the stored HTML element by element (no `innerHTML`); links open in a new tab with `rel="noopener noreferrer"` and external links are marked. PDFs render the sanitised HTML; spreadsheets never contain markup.
 - **Audit trail:** follow-ups and flashpoint assessments are append-only and hash-chained, so rows written before 11B are never rewritten: their `body_format` is null and they display as plain text exactly as before. Rows written since are HTML. `buffalo:audit:verify` passes before and after the migration.
 
+## Arrests (Phase 11C)
+
+- **Recording:** **Incidents → Arrests → New arrest**, or **Arrest made** on an incident page, which opens the form filled with the incident's place, location, responding agencies (first chosen) and suspects (one click each). The incident's date is a hint only. Each arrest has an agency (and optional formation of that agency), a time and its precision, a place, optional notes (rich text), a classification and one or more arrested persons. Each person is a person on record (own jurisdiction or an active grant), an unidentified person described in words, or a new person record, with at least one offence (`offence_types`, admin-editable, each mapped to a threat category). Unidentified and new persons run the cross-jurisdiction match (context `arrest_entry`). References are `ARR/<STATE>/<YEAR>/<5 digits>`, gap-free per state and year.
+- **Statuses:** per arrested person and for the arrest (which shows the most common). Changes need a comment and write an append-only status history and a named event.
+- **Suggestions only:** when an arrest is linked to an incident whose reported `arrested` count differs from the persons on its arrests, both pages say so and link to the incident's amendment. Arrested persons of interest still at large or under surveillance get a "set to detained" suggestion; others a "designate" link. Nothing changes automatically.
+- **Elsewhere:** Arrests tabs on incident, person (never under a grant), LGA and formation pages; global search (`ARR/` references and words in the notes); dashboards (LGA: last 30 days; state: by offence and agency; national grid: arrests per state); an Arrests section in the Incidents analytics tab. Arrests linked to incidents later marked invalid still count: the arrest happened.
+- **Merges and consolidation:** person merges repoint arrested persons (same arrest: offences joined on the survivor's row); consolidating a duplicate incident moves its arrests to the original.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.

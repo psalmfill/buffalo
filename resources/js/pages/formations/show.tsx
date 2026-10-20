@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import ArrestsTable from '@/components/arrests/arrests-table';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link } from '@inertiajs/react';
@@ -14,17 +15,20 @@ import { Button } from '@/components/ui/button';
 import ActivityTable from '@/components/users/activity-table';
 import ConfirmActionDialog from '@/components/users/confirm-action-dialog';
 import { cn } from '@/lib/utils';
+import type { ArrestRow } from '@/types/arrests';
 import type { FormationDetail, FormationRow } from '@/types/formations';
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
 
-type Tab = 'overview' | 'incidents' | 'history';
+type Tab = 'overview' | 'incidents' | 'arrests' | 'history';
 
 /** One agency formation: details, parent and sub-formations, map, history. */
 export default function FormationShow({
     formation,
     incidents,
     hasIncidents,
+    arrests,
+    hasArrests,
     children,
     tab,
     history,
@@ -34,6 +38,9 @@ export default function FormationShow({
     /** Phase 5D: incidents where the formation responded. */
     incidents: Paginated<IncidentListRow> | null;
     hasIncidents: boolean;
+    /** Phase 11C: arrests by the formation. */
+    arrests: Paginated<ArrestRow> | null;
+    hasArrests: boolean;
     children: FormationRow[];
     tab: Tab;
     history: Paginated<ActivityEntry> | null;
@@ -97,9 +104,12 @@ export default function FormationShow({
 
                 <nav className="flex gap-1 border-b" aria-label="Sections">
                     {(
-                        (hasIncidents
-                            ? ['overview', 'incidents', 'history']
-                            : ['overview', 'history']) as Tab[]
+                        [
+                            'overview',
+                            ...(hasIncidents ? ['incidents'] : []),
+                            ...(hasArrests ? ['arrests'] : []),
+                            'history',
+                        ] as Tab[]
                     ).map((name) => (
                         <Link
                             key={name}
@@ -119,7 +129,9 @@ export default function FormationShow({
                                 ? 'Overview'
                                 : name === 'incidents'
                                   ? 'Incidents'
-                                  : 'History'}
+                                  : name === 'arrests'
+                                    ? 'Arrests'
+                                    : 'History'}
                         </Link>
                     ))}
                 </nav>
@@ -269,6 +281,9 @@ export default function FormationShow({
 
                 {tab === 'incidents' && incidents && (
                     <IncidentsTab incidents={incidents} />
+                )}
+                {tab === 'arrests' && arrests && (
+                    <ArrestsTable arrests={arrests} />
                 )}
 
                 {tab === 'history' && history && (

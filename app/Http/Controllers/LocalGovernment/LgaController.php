@@ -16,6 +16,7 @@ use App\Http\Presenters\LgaPresenter;
 use App\Http\Presenters\OrganizationPresenter;
 use App\Http\Requests\LocalGovernment\LgaProfileRequest;
 use App\Models\AgencyFormation;
+use App\Models\Arrest;
 use App\Models\Community;
 use App\Models\CommunitySecurityNote;
 use App\Models\Flashpoint;
@@ -28,6 +29,7 @@ use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
 use App\Models\User;
 use App\Models\VulnerablePopulationStat;
+use App\Support\Arrests\ArrestLinks;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
 use App\Support\Incidents\IncidentLinks;
@@ -52,7 +54,7 @@ class LgaController extends Controller
     /**
      * Tabs of an LGA page. Phase 2C and later phases add theirs here.
      */
-    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations', 'incidents', 'flashpoints'];
+    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations', 'incidents', 'arrests', 'flashpoints'];
 
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
@@ -115,7 +117,9 @@ class LgaController extends Controller
 
         // Incidents in the LGA (Phase 5D), hidden when there are none.
         $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::lga($lga)->exists();
-        $hidden = [...($hasIncidents ? [] : ['incidents']), ...($user->can('viewAny', Flashpoint::class) ? [] : ['flashpoints'])];
+        // Arrests in the LGA (Phase 11C), likewise hidden when there are none.
+        $hasArrests = $user->can('viewAny', Arrest::class) && ArrestLinks::lga($lga)->exists();
+        $hidden = [...($hasIncidents ? [] : ['incidents']), ...($hasArrests ? [] : ['arrests']), ...($user->can('viewAny', Flashpoint::class) ? [] : ['flashpoints'])];
         $tabs = array_values(array_diff(self::TABS, $hidden));
         $tab = in_array($request->query('tab'), $tabs, true) ? $request->query('tab') : 'overview';
         $lga->loadMissing(['state', 'senatorialDistrict']);
@@ -131,6 +135,7 @@ class LgaController extends Controller
                 'rows' => IncidentLinks::rows(IncidentLinks::lga($lga)),
                 'last90ByType' => IncidentLinks::lgaSummary($lga),
             ] : null,
+            'arrests' => $tab === 'arrests' ? ArrestLinks::rows(ArrestLinks::lga($lga)) : null,
             'completeness' => LgaPresenter::completeness($profile, $communityCount),
             'communityCount' => $communityCount,
             'lastReviewed' => [

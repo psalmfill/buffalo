@@ -18,6 +18,7 @@ use App\Http\Presenters\PoliticalPresenter;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Persons\PersonRequest;
 use App\Http\Requests\Persons\PersonSearchRequest;
+use App\Models\Arrest;
 use App\Models\Community;
 use App\Models\CriminalGroup;
 use App\Models\CriminalGroupMember;
@@ -35,6 +36,7 @@ use App\Models\PoliticalOffice;
 use App\Models\RecordAccessGrant;
 use App\Models\RecordAccessRequest;
 use App\Models\User;
+use App\Support\Arrests\ArrestLinks;
 use App\Support\Audit\AuditLog;
 use App\Support\CrossJurisdiction\MatchCriteria;
 use App\Support\CrossJurisdiction\MatchResult;
@@ -76,7 +78,7 @@ use Spatie\Activitylog\Models\Activity;
 class PersonController extends Controller
 {
     /** Tabs of the person page (3B adds political offices, POI details and group memberships; Phase 5 linked incidents). */
-    public const TABS = ['profile', 'aliases', 'associations', 'photos', 'political_offices', 'poi', 'group_memberships', 'incidents', 'history'];
+    public const TABS = ['profile', 'aliases', 'associations', 'photos', 'political_offices', 'poi', 'group_memberships', 'incidents', 'arrests', 'history'];
 
     /** Search results shown at most. */
     public const RESULT_LIMIT = 50;
@@ -220,7 +222,9 @@ class PersonController extends Controller
         // Incidents involving the person (Phase 5D), hidden when there are none.
         // Never shown under a grant: only the person is grantable.
         $hasIncidents = $actor->can('viewAny', Incident::class) && IncidentLinks::person($person)->exists();
-        $tabs = $hasIncidents ? self::TABS : array_values(array_diff(self::TABS, ['incidents']));
+        // Arrests of the person (Phase 11C), likewise hidden when none and never under a grant.
+        $hasArrests = $actor->can('viewAny', Arrest::class) && ArrestLinks::person($person)->exists();
+        $tabs = array_values(array_diff(self::TABS, [...($hasIncidents ? [] : ['incidents']), ...($hasArrests ? [] : ['arrests'])]));
         $tab = in_array($request->query('tab'), $tabs, true) ? (string) $request->query('tab') : 'profile';
 
         // Every view of a person is access-logged (CLAUDE.md section 6).
@@ -239,6 +243,7 @@ class PersonController extends Controller
             'tab' => $tab,
             'tabs' => $tabs,
             'incidents' => $tab === 'incidents' ? $this->incidents($person) : null,
+            'arrests' => $tab === 'arrests' ? ArrestLinks::rows(ArrestLinks::person($person)) : null,
             'options' => PersonPresenter::options(),
             'aliases' => $tab === 'aliases' || $tab === 'profile'
                 ? $person->aliases()->orderBy('alias')->get()->map(fn (PersonAlias $alias) => PersonPresenter::alias($alias))->all()

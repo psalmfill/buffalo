@@ -9,7 +9,7 @@ use App\Support\Persons\SearchTerm;
  *
  * | Entry                         | Type        | Searched                                   |
  * |-------------------------------|-------------|--------------------------------------------|
- * | `BUF/…` or `THR/…`            | `reference` | exact reference only (incidents, threats)  |
+ * | `BUF/…`, `THR/…` or `ARR/…`   | `reference` | exact reference only (incidents, threats, arrests) |
  * | 11 digits                     | `nin`       | persons by NIN (and phone if it starts 0)  |
  * | phone-shaped                  | `phone`     | persons and organization contacts, exact   |
  * | anything else (2+ characters) | `text`      | every provider                             |
@@ -43,7 +43,7 @@ final readonly class SearchQuery
     {
         $raw = trim(preg_replace('/\s+/', ' ', $input) ?? '');
 
-        if (preg_match('#^(BUF|THR)/\S+$#i', $raw) === 1) {
+        if (preg_match('#^(BUF|THR|ARR)/\S+$#i', $raw) === 1) {
             return new self($raw, 'reference', mb_strtoupper($raw), null, null);
         }
 

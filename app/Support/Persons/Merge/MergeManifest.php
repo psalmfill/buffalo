@@ -28,6 +28,7 @@ final class MergeManifest
 {
     /** Tables whose rows a merge may change, and nothing else. */
     public const TABLES = [
+        'arrest_person_offences', 'arrest_persons',
         'communities', 'criminal_group_members', 'incident_persons', 'media', 'organization_contacts',
         'person_aliases', 'person_associations', 'person_merge_requests', 'person_roles', 'persons',
         'persons_of_interest', 'political_offices', 'record_access_grants', 'record_access_requests',

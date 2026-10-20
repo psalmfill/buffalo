@@ -4,6 +4,7 @@ import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaCon
 import AccessFigures from '@/components/dashboard/access-figures';
 import { LgaOrganizations } from '@/components/dashboard/organization-figures';
 import { LgaCoverage } from '@/components/dashboard/coverage-figures';
+import { LgaArrests } from '@/components/dashboard/arrest-figures';
 import DashboardHeader from '@/components/dashboard/dashboard-header';
 import { KpiTiles, PeriodSelector } from '@/components/dashboard/kpi-tiles';
 import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
@@ -32,6 +33,7 @@ export default function LgaDashboard({
     period,
     kpis,
     incidents,
+    arrests,
     threatReports,
     sharedWithUs,
     lga,
@@ -55,6 +57,7 @@ export default function LgaDashboard({
                 {sharedWithUs && <SharedWithUs data={sharedWithUs} />}
                 {threatReports && <LgaThreats data={threatReports} />}
                 {incidents && <LgaIncidents data={incidents} />}
+                {arrests && <LgaArrests data={arrests} />}
 
                 <section
                     className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4"

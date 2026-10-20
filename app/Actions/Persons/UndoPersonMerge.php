@@ -44,7 +44,7 @@ use Illuminate\Support\Facades\DB;
 final class UndoPersonMerge
 {
     /** Columns that tie a row to a person: they must still point where the merge left them. */
-    private const LINK_COLUMNS = ['person_id', 'associated_person_id', 'model_id', 'traditional_ruler_id', 'leader_person_id', 'merged_into_poi_id'];
+    private const LINK_COLUMNS = ['person_id', 'associated_person_id', 'model_id', 'traditional_ruler_id', 'leader_person_id', 'merged_into_poi_id', 'arrest_person_id'];
 
     public function __construct(private readonly NotificationRecipients $recipients) {}
 

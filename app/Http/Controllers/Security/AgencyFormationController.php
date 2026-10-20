@@ -12,12 +12,14 @@ use App\Http\Presenters\AgencyFormationPresenter;
 use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Security\AgencyFormationRequest;
 use App\Models\AgencyFormation;
+use App\Models\Arrest;
 use App\Models\Community;
 use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\SecurityAgency;
 use App\Models\State;
 use App\Models\User;
+use App\Support\Arrests\ArrestLinks;
 use App\Support\Dashboard\MapView;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
@@ -134,9 +136,12 @@ class AgencyFormationController extends Controller
         $user = $this->actor($request);
         // Incidents linked to it (Phase 5D): the tab is hidden when there are none.
         $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::formation($formation)->exists();
+        // Arrests by the formation (Phase 11C), likewise.
+        $hasArrests = $user->can('viewAny', Arrest::class) && ArrestLinks::formation($formation)->exists();
         $tab = match ($request->query('tab')) {
             'history' => 'history',
             'incidents' => $hasIncidents ? 'incidents' : 'overview',
+            'arrests' => $hasArrests ? 'arrests' : 'overview',
             default => 'overview',
         };
 
@@ -157,6 +162,8 @@ class AgencyFormationController extends Controller
             'tab' => $tab,
             'hasIncidents' => $hasIncidents,
             'incidents' => $tab === 'incidents' ? IncidentLinks::rows(IncidentLinks::formation($formation)) : null,
+            'hasArrests' => $hasArrests,
+            'arrests' => $tab === 'arrests' ? ArrestLinks::rows(ArrestLinks::formation($formation)) : null,
             'history' => $tab === 'history'
                 ? Activity::query()->with(['causer', 'subject'])
                     ->where('subject_type', $formation->getMorphClass())->where('subject_id', $formation->id)

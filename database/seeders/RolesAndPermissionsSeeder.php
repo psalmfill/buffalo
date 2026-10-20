@@ -288,6 +288,16 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 11C — Arrests
+            // ---------------------------------------------------------------
+            'arrests' => [
+                Permission::ArrestsView->value => self::INTELLIGENCE_ROLES,
+                Permission::ArrestsCreate->value => self::INTELLIGENCE_ROLES,
+                Permission::ArrestsManage->value => self::INTELLIGENCE_ROLES,
+                Permission::ArrestsDelete->value => self::DELETE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 6C — Operational map and blackspot suggestions (each map
             // layer also needs its module's view permission)
             // ---------------------------------------------------------------

@@ -77,6 +77,17 @@ final class PersonPolicy
     }
 
     /**
+     * Record the person as arrested on one of the actor's own arrests
+     * (Phase 11C): the same rule as incidents (own jurisdiction or an
+     * active grant; classification always applies). The link lives on the
+     * actor's arrest only.
+     */
+    public function linkToArrest(User $actor, Person $person): bool
+    {
+        return $actor->checkPermissionTo(Permission::ArrestsCreate->value) && $this->view($actor, $person);
+    }
+
+    /**
      * Duplicate candidates and merge requests (Phase 10A): every
      * intelligence role, within its own jurisdiction.
      */

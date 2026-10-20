@@ -16,6 +16,7 @@ const KIND_LABELS: Record<ConsolidationItem['kind'], string> = {
     flashpoint: 'Flashpoint link',
     threat: 'Threat report link',
     access_request: 'Access request',
+    arrest: 'Arrest',
 };
 
 const OUTCOMES: Record<

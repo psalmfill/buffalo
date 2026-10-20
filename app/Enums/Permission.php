@@ -135,6 +135,12 @@ enum Permission: string
     case ThreatsReactivate = 'threats.reactivate';
     case ThreatsDelete = 'threats.delete';
 
+    // Arrests (Phase 11C): intelligence, always also scoped and classified
+    case ArrestsView = 'arrests.view';
+    case ArrestsCreate = 'arrests.create';
+    case ArrestsManage = 'arrests.manage';
+    case ArrestsDelete = 'arrests.delete';
+
     // Operational map and blackspot suggestions (Phase 6C).
     case MapView = 'map.view';
     case BlackspotsSuggestions = 'blackspots.suggestions';

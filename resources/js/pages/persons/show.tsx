@@ -1,8 +1,10 @@
 import type { IncidentListRow } from '@/types/incidents';
+import ArrestsTable from '@/components/arrests/arrests-table';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { GitMerge, KeyRound, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import type { ArrestRow } from '@/types/arrests';
 import type { FormEvent } from 'react';
 import { useCallback, useState } from 'react';
 import GrantEndedWatcher from '@/components/access-requests/grant-ended-watcher';
@@ -60,11 +62,14 @@ type PersonTab =
     | 'poi'
     | 'group_memberships'
     | 'incidents'
+    | 'arrests'
     | 'history';
 
 type Props = {
     /** Phase 5D: incidents involving the person (own jurisdiction only). */
     incidents: Paginated<IncidentListRow> | null;
+    /** Phase 11C: arrests of the person (own jurisdiction only). */
+    arrests: Paginated<ArrestRow> | null;
     person: PersonDetail;
     photo: PersonPhoto | null;
     tab: PersonTab;
@@ -125,6 +130,7 @@ const TAB_LABELS: Record<PersonTab, string> = {
     poi: 'Person of interest',
     group_memberships: 'Group memberships',
     incidents: 'Incidents',
+    arrests: 'Arrests',
     history: 'History',
 };
 
@@ -541,6 +547,7 @@ export default function PersonShow({
     grantAssociations,
     grantMemberships,
     merges,
+    arrests,
     can,
 }: Props) {
     const [deleting, setDeleting] = useState(false);
@@ -923,6 +930,9 @@ export default function PersonShow({
                 )}
                 {tab === 'incidents' && incidents && (
                     <IncidentsTab incidents={incidents} showInvolvement />
+                )}
+                {tab === 'arrests' && arrests && (
+                    <ArrestsTable arrests={arrests} />
                 )}
 
                 {tab === 'history' && history && (
