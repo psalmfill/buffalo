@@ -3,14 +3,23 @@ import { SearchIcon } from '@/components/search/search-icons';
 import { Badge } from '@/components/ui/badge';
 import type { SearchHit } from '@/types/search';
 
-/** A global search result: icon, title, subtitle, risk and classification. */
+/** A global search result: icon (or thumbnail), title, subtitle, risk and classification. */
 export default function SearchHitRow({ hit }: { hit: SearchHit }) {
     return (
         <span className="flex min-w-0 items-start gap-3">
-            <SearchIcon
-                type={hit.type}
-                className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-            />
+            {hit.image ? (
+                <img
+                    src={hit.image}
+                    alt=""
+                    className="size-8 shrink-0 rounded border bg-white object-cover"
+                    loading="lazy"
+                />
+            ) : (
+                <SearchIcon
+                    type={hit.type}
+                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                />
+            )}
             <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-2">
                     <span className="truncate font-medium">{hit.title}</span>

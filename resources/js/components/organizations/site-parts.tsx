@@ -1,10 +1,12 @@
 import type { Geometry } from 'geojson';
 import { Link } from '@inertiajs/react';
+import { ImageIcon } from 'lucide-react';
 import OrganizationSiteController from '@/actions/App/Http/Controllers/Organizations/OrganizationSiteController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import EmptyState from '@/components/empty-state';
 import BuffaloMap from '@/components/map/BuffaloMap';
 import type { MapMarker } from '@/components/map/BuffaloMap';
+import OrganizationLogo from '@/components/organizations/organization-logo';
 import { cn } from '@/lib/utils';
 import type { Relevance, SiteRow } from '@/types/organizations';
 
@@ -63,6 +65,7 @@ export function SitesMap({
             position: [s.latitude as number, s.longitude as number],
             title: s.name,
             popup: `${s.organization.name} · ${s.site_type.label} · ${s.security_relevance.label}`,
+            image: s.cover,
             href: OrganizationSiteController.show(s.ulid).url,
             color: RELEVANCE_COLOURS[s.security_relevance.value],
         }));
@@ -113,6 +116,38 @@ export function SitesMap({
     );
 }
 
+/** A site's cover photo thumbnail (Phase 11D), or an empty frame. */
+export function SiteCover({
+    site,
+    className = 'h-10 w-14',
+}: {
+    site: Pick<SiteRow, 'name' | 'cover'>;
+    className?: string;
+}) {
+    if (!site.cover) {
+        return (
+            <span
+                className={cn(
+                    'flex items-center justify-center rounded border bg-muted text-muted-foreground',
+                    className,
+                )}
+                aria-hidden
+            >
+                <ImageIcon className="size-4" />
+            </span>
+        );
+    }
+
+    return (
+        <img
+            src={site.cover}
+            alt={`${site.name}: cover photo`}
+            className={cn('rounded border object-cover', className)}
+            loading="lazy"
+        />
+    );
+}
+
 /** A table of sites (the viewer's visible sites only). */
 export function SitesTable({
     sites,
@@ -132,6 +167,9 @@ export function SitesTable({
             <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-left">
                     <tr>
+                        <th className="w-16 px-3 py-2 font-medium">
+                            <span className="sr-only">Cover photo</span>
+                        </th>
                         <th className="px-3 py-2 font-medium">Site</th>
                         {showOrganization && (
                             <th className="px-3 py-2 font-medium">
@@ -150,6 +188,9 @@ export function SitesTable({
                     {sites.map((s) => (
                         <tr key={s.ulid}>
                             <td className="px-3 py-2">
+                                <SiteCover site={s} />
+                            </td>
+                            <td className="px-3 py-2">
                                 <Link
                                     href={OrganizationSiteController.show(
                                         s.ulid,
@@ -166,7 +207,14 @@ export function SitesTable({
                             </td>
                             {showOrganization && (
                                 <td className="px-3 py-2">
-                                    {s.organization.name}
+                                    <span className="flex items-center gap-2">
+                                        <OrganizationLogo
+                                            name={s.organization.name}
+                                            logo={s.organization.logo}
+                                            size="xs"
+                                        />
+                                        {s.organization.name}
+                                    </span>
                                 </td>
                             )}
                             <td className="px-3 py-2">{s.site_type.label}</td>

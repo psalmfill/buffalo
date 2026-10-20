@@ -1,6 +1,6 @@
 import type { FeatureCollection } from 'geojson';
 import { CONCERN_COLOURS } from '@/components/flashpoints/flashpoint-areas';
-import { SHARED_COLOUR } from '@/components/map/BuffaloMap';
+import { popupImage, SHARED_COLOUR } from '@/components/map/BuffaloMap';
 import type { GeoLayer } from '@/components/map/BuffaloMap';
 import { URGENCY_COLOURS } from '@/components/threats/threat-display';
 
@@ -140,8 +140,14 @@ export function popupElement(
     title: string,
     lines: (string | null | undefined)[],
     link?: { href: string; label: string },
+    image?: string | null,
 ): HTMLElement {
     const root = document.createElement('div');
+
+    if (image) {
+        root.appendChild(popupImage(image));
+    }
+
     const heading = document.createElement('strong');
     heading.textContent = title;
     root.appendChild(heading);
@@ -374,6 +380,8 @@ export function toGeoLayer(
                             href: str(p.href),
                             label: 'Open',
                         },
+                        // Organization sites: the cover photo (Phase 11D).
+                        str(p.image) || null,
                     ),
             };
         }

@@ -11,6 +11,7 @@ use App\Models\OrganizationSite;
 use App\Models\ThreatReport;
 use App\Support\Jurisdiction\DisseminationResolver;
 use App\Support\Jurisdiction\JurisdictionContext;
+use App\Support\Organizations\SitePhotos;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -150,7 +151,7 @@ final class PointLayers
      */
     public function sites(array $bbox, bool $all): array
     {
-        $rows = $this->within(OrganizationSite::query()->withCoordinates()->with('organization'), 'organization_sites.location', $bbox)
+        $rows = $this->within(OrganizationSite::query()->withCoordinates()->with(['organization', 'coverPhoto']), 'organization_sites.location', $bbox)
             ->when(! $all, fn (Builder $q) => $q->whereIn('organization_sites.security_relevance', [SecurityRelevance::High->value, SecurityRelevance::CriticalInfrastructure->value]))
             ->orderBy('organization_sites.name')->get();
 
@@ -160,6 +161,8 @@ final class PointLayers
             'organization' => $s->organization->name,
             'relevance' => $s->security_relevance->value,
             'relevance_label' => $s->security_relevance->label(),
+            // The cover photo's thumbnail (Phase 11D), fetched through the authorised route.
+            'image' => SitePhotos::coverThumb($s),
             'href' => "/organization-sites/{$s->ulid}",
         ]);
     }

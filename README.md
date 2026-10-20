@@ -634,6 +634,13 @@ Vitest tests live next to the code as `resources/js/**/*.test.ts` and run in Nod
 - **Elsewhere:** Arrests tabs on incident, person (never under a grant), LGA and formation pages; global search (`ARR/` references and words in the notes); dashboards (LGA: last 30 days; state: by offence and agency; national grid: arrests per state); an Arrests section in the Incidents analytics tab. Arrests linked to incidents later marked invalid still count: the arrest happened.
 - **Merges and consolidation:** person merges repoint arrested persons (same arrest: offences joined on the survivor's row); consolidating a duplicate incident moves its arrests to the original.
 
+## Organization logos and site photos (Phase 11D)
+
+- **Logos:** on the organization page, **Add logo** (users who may manage organizations). PNG, JPEG or WebP up to 2 MB, checked by content (never SVG) and scanned for malware, then re-encoded without metadata, at most 512 × 512 px, with a 96 px thumbnail. A logo belongs to the national directory entry, so every intelligence role sees it, in every state; use only public logos. Replacing or removing one soft-deletes the old media (kept in history). Logos show in the organization list, page header, site pages, pickers, search results and the LGA Organizations tab; without one, a neutral box shows the initials.
+- **Site photos:** a gallery on the site page (cover first, then in order, with a lightbox). Users who can edit the site drag in photos (JPEG, PNG or WebP up to 15 MB each, at most 30 per site: `BUFFALO_SITE_PHOTO_LIMIT`), edit captions and dates, reorder, set the cover, and delete with a reason. Each photo is scanned, then re-encoded without EXIF or GPS data and scaled to at most 2,400 px, with thumb (300 px) and preview (1,200 px) conversions on the queue. The first photo becomes the cover; deleting the cover passes it to the next photo.
+- **Access:** a photo is visible exactly when its site is (jurisdiction and the site's classification); otherwise its URLs are 404. Its place follows the site's. Views of confidential and secret sites' photos are recorded in the access log on the site and never cached. Cover thumbnails show on site rows, map popups and search results.
+- **Storage:** both live on the private `evidence` disk (backed up with it), streamed only through authorised routes; `media` rows are now soft-deletable.
+
 ## Audit and notifications
 
 - All changes are recorded in `activity_log` (with IP address and browser). Passwords, 2FA secrets, encrypted fields and setup links are never recorded. `activity_log`, `record_access_logs` and `login_histories` reject `UPDATE` and `DELETE` at the database level, and `activitylog:clean` is disabled.

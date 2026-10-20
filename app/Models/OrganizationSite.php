@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
@@ -61,6 +62,7 @@ use Illuminate\Support\Facades\DB;
  * @property-read State $state
  * @property-read Lga $lga
  * @property-read Community|null $community
+ * @property-read OrganizationSitePhoto|null $coverPhoto
  */
 class OrganizationSite extends Model implements Classified, JurisdictionScoped
 {
@@ -202,6 +204,26 @@ class OrganizationSite extends Model implements Classified, JurisdictionScoped
     public function contacts(): HasMany
     {
         return $this->hasMany(OrganizationContact::class);
+    }
+
+    /**
+     * Photos (Phase 11D), through their own scopes.
+     *
+     * @return HasMany<OrganizationSitePhoto, $this>
+     */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(OrganizationSitePhoto::class);
+    }
+
+    /**
+     * The cover photo, if one is set.
+     *
+     * @return HasOne<OrganizationSitePhoto, $this>
+     */
+    public function coverPhoto(): HasOne
+    {
+        return $this->hasOne(OrganizationSitePhoto::class)->where('organization_site_photos.is_cover', true);
     }
 
     /**

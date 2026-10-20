@@ -13,7 +13,11 @@ export type PickedEntity = {
     meta?: Record<string, string | boolean | null>;
 };
 
-type Result = PickedEntity & { secondary: string | null };
+/** `image`: an authorised thumbnail URL (Phase 11D: organization logos). */
+type Result = PickedEntity & {
+    secondary: string | null;
+    image?: string | null;
+};
 
 type Common = {
     id?: string;
@@ -249,14 +253,26 @@ export default function EntityPicker(props: Props) {
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={() => choose(result)}
                             >
-                                <span className="block font-medium">
-                                    {result.label}
-                                </span>
-                                {result.secondary && (
-                                    <span className="block text-xs text-muted-foreground">
-                                        {result.secondary}
+                                <span className="flex items-center gap-2">
+                                    {result.image && (
+                                        <img
+                                            src={result.image}
+                                            alt=""
+                                            className="size-7 shrink-0 rounded border bg-white object-contain"
+                                            loading="lazy"
+                                        />
+                                    )}
+                                    <span className="min-w-0">
+                                        <span className="block font-medium">
+                                            {result.label}
+                                        </span>
+                                        {result.secondary && (
+                                            <span className="block text-xs text-muted-foreground">
+                                                {result.secondary}
+                                            </span>
+                                        )}
                                     </span>
-                                )}
+                                </span>
                             </button>
                         </li>
                     ))}

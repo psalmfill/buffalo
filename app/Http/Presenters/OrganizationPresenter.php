@@ -14,12 +14,19 @@ use App\Models\OrganizationContact;
 use App\Models\OrganizationSector;
 use App\Models\OrganizationSite;
 use App\Models\OrganizationSiteFormation;
+use App\Models\OrganizationSitePhoto;
 use App\Models\User;
+use App\Support\Organizations\OrganizationLogos;
+use App\Support\Organizations\SitePhotos;
 
 /**
  * Organizations, sites and contacts for the browser (Phase 4B): ULIDs and
  * labels, never ids. Contact phone and email appear only in contact()
  * (whose callers log the view).
+ *
+ * Logos and cover photos (Phase 11D) are authorised URLs, present only when
+ * the caller loaded `logo` / `coverPhoto` (null otherwise, as when there is
+ * none).
  */
 final class OrganizationPresenter
 {
@@ -36,6 +43,7 @@ final class OrganizationPresenter
             'sector' => ['ulid' => $organization->sector->ulid, 'name' => $organization->sector->name],
             'status' => ['value' => $organization->status->value, 'label' => $organization->status->label()],
             'rc_number' => $organization->rc_number,
+            'logo' => OrganizationLogos::urls($organization),
             // Sites the VIEWER can see (withCount through the site scopes).
             'visible_sites' => (int) ($organization->getAttribute('sites_count') ?? 0),
         ];
@@ -64,7 +72,8 @@ final class OrganizationPresenter
         return [
             'ulid' => $site->ulid,
             'name' => $site->name,
-            'organization' => ['ulid' => $site->organization->ulid, 'name' => $site->organization->name],
+            'organization' => ['ulid' => $site->organization->ulid, 'name' => $site->organization->name, 'logo' => OrganizationLogos::urls($site->organization)],
+            'cover' => SitePhotos::coverThumb($site),
             'site_type' => ['value' => $site->site_type->value, 'label' => $site->site_type->label()],
             'security_relevance' => ['value' => $site->security_relevance->value, 'label' => $site->security_relevance->label()],
             'status' => ['value' => $site->status->value, 'label' => $site->status->label()],
@@ -125,6 +134,24 @@ final class OrganizationPresenter
             'person' => $person !== null && $viewer->can('view', $person) ? ['ulid' => $person->ulid, 'name' => $person->name] : null,
             // A person is linked that the viewer cannot see: say nothing more.
             'person_hidden' => $contact->person_id !== null && ($person === null || ! $viewer->can('view', $person)),
+        ];
+    }
+
+    /**
+     * A site photo for the gallery: captions, dates and authorised URLs.
+     *
+     * @return array<string, mixed>
+     */
+    public static function photo(OrganizationSite $site, OrganizationSitePhoto $photo): array
+    {
+        return [
+            'ulid' => $photo->ulid,
+            'caption' => $photo->caption,
+            'taken_on' => $photo->taken_on?->toDateString(),
+            'is_cover' => $photo->is_cover,
+            'uploaded_by' => $photo->uploader?->name,
+            'uploaded_at' => $photo->created_at?->toIso8601String(),
+            'urls' => SitePhotos::urls($site, $photo),
         ];
     }
 

@@ -3,8 +3,10 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
 import OrganizationSiteController from '@/actions/App/Http/Controllers/Organizations/OrganizationSiteController';
-import RichTextView from '@/components/rich-text/rich-text-view';
+import LogoManager from '@/components/organizations/logo-manager';
+import OrganizationLogo from '@/components/organizations/organization-logo';
 import { SitesMap, SitesTable } from '@/components/organizations/site-parts';
+import RichTextView from '@/components/rich-text/rich-text-view';
 import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import ActivityTable from '@/components/users/activity-table';
@@ -37,24 +39,38 @@ export default function OrganizationShow({
             <Head title={organization.name} />
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="space-y-1">
-                        <h1 className="text-xl font-semibold">
-                            {organization.name}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {organization.type.label} ·{' '}
-                            {organization.sector.name} ·{' '}
-                            {organization.status.label}
-                            {organization.rc_number
-                                ? ` · RC no. ${organization.rc_number}`
-                                : ''}
-                        </p>
-                        {organization.other_names.length > 0 && (
-                            <p className="text-sm">
-                                Also known as:{' '}
-                                {organization.other_names.join(', ')}
+                    <div className="flex items-start gap-4">
+                        <OrganizationLogo
+                            name={organization.name}
+                            logo={organization.logo}
+                            size="lg"
+                            full
+                        />
+                        <div className="space-y-1">
+                            <h1 className="text-xl font-semibold">
+                                {organization.name}
+                            </h1>
+                            <p className="text-sm text-muted-foreground">
+                                {organization.type.label} ·{' '}
+                                {organization.sector.name} ·{' '}
+                                {organization.status.label}
+                                {organization.rc_number
+                                    ? ` · RC no. ${organization.rc_number}`
+                                    : ''}
                             </p>
-                        )}
+                            {organization.other_names.length > 0 && (
+                                <p className="text-sm">
+                                    Also known as:{' '}
+                                    {organization.other_names.join(', ')}
+                                </p>
+                            )}
+                            {can.update && (
+                                <LogoManager
+                                    organizationUlid={organization.ulid}
+                                    hasLogo={organization.logo !== null}
+                                />
+                            )}
+                        </div>
                     </div>
                     <div className="flex gap-2">
                         {can.update && (

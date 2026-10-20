@@ -11,6 +11,8 @@ export type SearchHit = {
     score: number;
     exact: boolean;
     badge: string | null;
+    /** An authorised thumbnail URL (Phase 11D: logos, site cover photos). */
+    image: string | null;
 };
 
 export type QuickSection = {

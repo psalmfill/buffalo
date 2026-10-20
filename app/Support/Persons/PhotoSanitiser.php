@@ -13,6 +13,9 @@ use InvalidArgumentException;
  *
  * The type is decided by the file's content (getimagesize), never by its
  * name or the browser's claim.
+ *
+ * Also used for organization logos and site photos (Phase 11D), which pass
+ * a largest stored size: bigger images are scaled down to fit it.
  */
 final class PhotoSanitiser
 {
@@ -29,27 +32,28 @@ final class PhotoSanitiser
     /**
      * Why $path is not an acceptable photo, or null.
      */
-    public static function problem(string $path): ?string
+    public static function problem(string $path, string $noun = 'photo'): ?string
     {
         $info = @getimagesize($path);
 
         if ($info === false || ! isset(self::TYPES[$info[2]])) {
-            return 'The photo must be a JPEG, PNG or WebP image.';
+            return "The {$noun} must be a JPEG, PNG or WebP image.";
         }
 
         if ($info[0] < 1 || $info[1] < 1 || $info[0] > self::MAX_DIMENSION || $info[1] > self::MAX_DIMENSION) {
-            return 'The photo may be at most '.self::MAX_DIMENSION.' pixels wide and high.';
+            return "The {$noun} may be at most ".self::MAX_DIMENSION.' pixels wide and high.';
         }
 
         return null;
     }
 
     /**
-     * Writes a clean copy of the image at $path to a new temporary file.
+     * Writes a clean copy of the image at $path to a new temporary file,
+     * scaled down to fit $maxWidth × $maxHeight when given.
      *
      * @return array{path: string, extension: string, mime: string}
      */
-    public function sanitise(string $path): array
+    public function sanitise(string $path, ?int $maxWidth = null, ?int $maxHeight = null): array
     {
         $problem = self::problem($path);
 
@@ -79,6 +83,10 @@ final class PhotoSanitiser
             $image = self::upright($image, $path);
         }
 
+        if ($maxWidth !== null) {
+            $image = self::fit($image, $maxWidth, $maxHeight ?? $maxWidth);
+        }
+
         $target = tempnam(sys_get_temp_dir(), 'buffalo-photo-');
 
         if ($target === false) {
@@ -104,6 +112,31 @@ final class PhotoSanitiser
             'extension' => self::TYPES[$type],
             'mime' => (string) image_type_to_mime_type($type),
         ];
+    }
+
+    /**
+     * Scales the image down (never up) to fit the box, keeping its aspect
+     * ratio and transparency.
+     */
+    private static function fit(GdImage $image, int $maxWidth, int $maxHeight): GdImage
+    {
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $scale = min($maxWidth / $width, $maxHeight / $height);
+
+        if ($scale >= 1) {
+            return $image;
+        }
+
+        $scaled = imagescale($image, max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale)), IMG_BICUBIC);
+
+        if (! $scaled instanceof GdImage) {
+            return $image;
+        }
+
+        imagedestroy($image);
+
+        return $scaled;
     }
 
     /**

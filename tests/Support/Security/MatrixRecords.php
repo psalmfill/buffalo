@@ -3,6 +3,7 @@
 namespace Tests\Support\Security;
 
 use App\Actions\Evidence\StoreEvidence;
+use App\Actions\Organizations\SitePhotos\AddSitePhoto;
 use App\Actions\Persons\AddPersonPhoto;
 use App\Enums\Classification;
 use App\Enums\PoliticalOfficeType;
@@ -90,6 +91,8 @@ final class MatrixRecords
         $site = $add(OrganizationSite::factory()->in($lga)->of(Organization::factory()->create())->create($restricted));
         $add((new OrganizationContact)->forceFill(['organization_site_id' => $site->id, 'state_id' => $lga->state_id, 'lga_id' => $lga->id, 'name' => 'Matrix contact', 'position' => 'Manager']))->save();
         $add((new OrganizationSiteFormation)->forceFill(['organization_site_id' => $site->id, 'agency_formation_id' => $formation->id, 'arrangement' => 'on_call']))->save();
+        $add(app(JurisdictionContext::class)->actingAs($author, fn () => app(AddSitePhoto::class)($site, PersonFixtures::png(), 'Matrix photo', null, $author)));
+        CrossFixtures::system();
 
         /** @var Incident $incident */
         $incident = $add(Incident::factory()->in($lga)->by($author)->create([

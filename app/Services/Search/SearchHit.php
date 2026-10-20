@@ -23,10 +23,12 @@ final readonly class SearchHit
         public bool $exact = false,
         public ?CarbonInterface $at = null,
         public ?string $badge = null,
+        // An authorised thumbnail URL (Phase 11D: logos and site cover photos).
+        public ?string $image = null,
     ) {}
 
     /**
-     * @return array{type: string, ulid: string, title: string, subtitle: string, href: string, classification: array{value: string, label: string}|null, score: float, exact: bool, badge: string|null}
+     * @return array{type: string, ulid: string, title: string, subtitle: string, href: string, classification: array{value: string, label: string}|null, score: float, exact: bool, badge: string|null, image: string|null}
      */
     public function toArray(): array
     {
@@ -40,6 +42,7 @@ final readonly class SearchHit
             'score' => round(max(0.0, min(1.0, $this->score)), 3),
             'exact' => $this->exact,
             'badge' => $this->badge,
+            'image' => $this->image,
         ];
     }
 

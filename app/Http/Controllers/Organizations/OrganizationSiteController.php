@@ -16,10 +16,12 @@ use App\Models\Organization;
 use App\Models\OrganizationContact;
 use App\Models\OrganizationSite;
 use App\Models\OrganizationSiteFormation;
+use App\Models\OrganizationSitePhoto;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
+use App\Support\Organizations\SitePhotos;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -70,7 +72,7 @@ class OrganizationSiteController extends Controller
         Inertia::encryptHistory();
 
         $row = OrganizationSite::query()->withCoordinates()->whereKey($site->id)->firstOrFail();
-        $row->load(['organization.sector', 'lga', 'state', 'community', 'securityProvider.sector']);
+        $row->load(['organization.sector', 'organization.logo', 'lga', 'state', 'community', 'securityProvider.sector', 'coverPhoto']);
 
         // Contacts through their own scopes; each one shown is logged.
         $contacts = $tab === 'overview'
@@ -87,8 +89,15 @@ class OrganizationSiteController extends Controller
             ->where('organization_site_id', $site->id)
             ->get();
 
+        // Photos (Phase 11D), through their own scopes: cover first, then by order.
+        $photos = $tab === 'overview'
+            ? OrganizationSitePhoto::query()->with('uploader')->where('organization_site_id', $site->id)->galleryOrder()->get()
+            : collect();
+
         return Inertia::render('organization-sites/show', [
             'site' => OrganizationPresenter::siteDetail($row),
+            'photos' => $photos->map(fn (OrganizationSitePhoto $p) => OrganizationPresenter::photo($site, $p))->values(),
+            'photoLimit' => SitePhotos::limit(),
             'contacts' => $contacts->map(fn (OrganizationContact $c) => OrganizationPresenter::contact($c, $user))->values(),
             'formations' => $links->map(fn (OrganizationSiteFormation $l) => OrganizationPresenter::formationLink($l))->values(),
             'tab' => $tab,
@@ -141,7 +150,7 @@ class OrganizationSiteController extends Controller
     private function form(User $user, JurisdictionOptions $options, Organization $organization, ?OrganizationSite $site, mixed $lgaUlid): Response
     {
         $row = $site === null ? null : OrganizationSite::query()->withCoordinates()->whereKey($site->id)->firstOrFail();
-        $row?->load(['organization', 'lga', 'state', 'community', 'securityProvider.sector']);
+        $row?->load(['organization.logo', 'lga', 'state', 'community', 'securityProvider.sector']);
         $lgas = $site === null ? $options->lgas($user)->load('state:id,ulid,name') : collect();
         $lga = $row !== null ? $row->lga : (is_string($lgaUlid) ? $lgas->firstWhere('ulid', $lgaUlid) : ($lgas->count() === 1 ? $lgas->first() : null));
 

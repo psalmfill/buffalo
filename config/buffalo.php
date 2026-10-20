@@ -533,4 +533,19 @@ return [
         'max_html_length' => (int) env('BUFFALO_RICH_TEXT_MAX_HTML', 200000),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Organization logos and site photos (Phase 11D)
+    |--------------------------------------------------------------------------
+    | Upload sizes are in kilobytes; dimensions in pixels (the stored file is
+    | scaled down to fit). site_photo_limit counts a site's live photos.
+    */
+    'organizations' => [
+        'logo_max_kb' => (int) env('BUFFALO_LOGO_MAX_KB', 2048),
+        'logo_max_dimension' => (int) env('BUFFALO_LOGO_MAX_DIMENSION', 512),
+        'site_photo_max_kb' => (int) env('BUFFALO_SITE_PHOTO_MAX_KB', 15360),
+        'site_photo_max_dimension' => (int) env('BUFFALO_SITE_PHOTO_MAX_DIMENSION', 2400),
+        'site_photo_limit' => (int) env('BUFFALO_SITE_PHOTO_LIMIT', 30),
+    ],
+
 ];

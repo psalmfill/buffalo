@@ -218,7 +218,7 @@ class LgaController extends Controller
         $relevance = SecurityRelevance::tryFrom((string) $request->query('relevance'));
 
         return [
-            'sites' => OrganizationSite::query()->withCoordinates()->with(['organization', 'lga', 'state'])
+            'sites' => OrganizationSite::query()->withCoordinates()->with(['organization.logo', 'lga', 'state', 'coverPhoto'])
                 ->where('organization_sites.lga_id', $lga->id)
                 ->when($relevance, fn ($q) => $q->where('organization_sites.security_relevance', $relevance?->value))
                 ->orderByRaw("CASE organization_sites.security_relevance WHEN 'critical_infrastructure' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END")

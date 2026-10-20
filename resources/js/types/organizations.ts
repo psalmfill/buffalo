@@ -5,6 +5,9 @@ import type { ClassificationLevel } from '@/types/auth';
 import type { FormationRow } from '@/types/formations';
 import type { NamedRef, Option } from '@/types/local-government';
 
+/** Authorised logo URLs (Phase 11D); a new logo has new URLs. */
+export type LogoUrls = { thumb: string; full: string };
+
 export type OrganizationRow = {
     ulid: string;
     name: string;
@@ -13,6 +16,7 @@ export type OrganizationRow = {
     sector: NamedRef;
     status: Option;
     rc_number: string | null;
+    logo: LogoUrls | null;
     /** Sites the viewer can see (never a count of other sites). */
     visible_sites: number;
 };
@@ -30,7 +34,9 @@ export type Relevance = 'low' | 'medium' | 'high' | 'critical_infrastructure';
 export type SiteRow = {
     ulid: string;
     name: string;
-    organization: NamedRef;
+    organization: NamedRef & { logo: LogoUrls | null };
+    /** The cover photo's thumbnail URL (Phase 11D). */
+    cover: string | null;
     site_type: Option;
     security_relevance: { value: Relevance; label: string };
     status: Option;
@@ -50,6 +56,17 @@ export type SiteDetail = SiteRow & {
     security_provider: (NamedRef & { is_private_security: boolean }) | null;
     created_at: string | null;
     updated_at: string | null;
+};
+
+/** A site photo (Phase 11D); every URL is an authorised route. */
+export type SitePhoto = {
+    ulid: string;
+    caption: string | null;
+    taken_on: string | null;
+    is_cover: boolean;
+    uploaded_by: string | null;
+    uploaded_at: string | null;
+    urls: { thumb: string; preview: string; original: string };
 };
 
 export type ContactDetail = {

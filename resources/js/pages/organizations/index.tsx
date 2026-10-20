@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
+import OrganizationLogo from '@/components/organizations/organization-logo';
 import OrganizationSiteController from '@/actions/App/Http/Controllers/Organizations/OrganizationSiteController';
 import EmptyState from '@/components/empty-state';
 import { FilterBar, useFilters } from '@/components/filter-bar';
@@ -214,21 +215,30 @@ export default function OrganizationsIndex({
                                     {organizations.data.map((o) => (
                                         <tr key={o.ulid}>
                                             <td className="px-3 py-2">
-                                                <Link
-                                                    href={OrganizationController.show(
-                                                        o.ulid,
-                                                    )}
-                                                    className="font-medium hover:underline"
-                                                >
-                                                    {o.name}
-                                                </Link>
-                                                {o.other_names.length > 0 && (
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {o.other_names.join(
-                                                            ', ',
+                                                <div className="flex items-center gap-3">
+                                                    <OrganizationLogo
+                                                        name={o.name}
+                                                        logo={o.logo}
+                                                    />
+                                                    <div>
+                                                        <Link
+                                                            href={OrganizationController.show(
+                                                                o.ulid,
+                                                            )}
+                                                            className="font-medium hover:underline"
+                                                        >
+                                                            {o.name}
+                                                        </Link>
+                                                        {o.other_names.length >
+                                                            0 && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {o.other_names.join(
+                                                                    ', ',
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                )}
+                                                </div>
                                             </td>
                                             <td className="px-3 py-2">
                                                 {o.sector.name}

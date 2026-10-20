@@ -14,7 +14,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
 
 /**
  * An organization in the NATIONAL DIRECTORY (Phase 4B): non-sensitive
@@ -25,6 +30,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * `search_name` is a generated column (name and other names, normalised)
  * with a trigram index.
+ *
+ * Logo (Phase 11D): media collection "logo" on the private evidence disk,
+ * re-encoded without metadata (AddOrganizationLogo). At most one is live:
+ * a replaced or removed logo is soft-deleted and kept in history. Served
+ * only by OrganizationLogoController, never by URL from storage.
  *
  * @property int $id
  * @property string $ulid
@@ -41,16 +51,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read OrganizationSector $sector
+ * @property-read Media|null $logo
  */
-class Organization extends Model
+class Organization extends Model implements HasMedia
 {
     /** @use HasFactory<OrganizationFactory> */
     use HasFactory;
 
     use HasRichText;
     use HasUlidRouteKey;
+    use InteractsWithMedia;
     use LogsBuffaloActivity;
     use SoftDeletes;
+
+    public const LOGO = 'logo';
 
     protected $fillable = ['name', 'other_names', 'type', 'rc_number', 'website', 'description', 'status'];
 
@@ -126,5 +140,32 @@ class Organization extends Model
     public function sites(): HasMany
     {
         return $this->hasMany(OrganizationSite::class);
+    }
+
+    /**
+     * The current logo (at most one is live; older ones are soft-deleted).
+     *
+     * @return MorphOne<Media, $this>
+     */
+    public function logo(): MorphOne
+    {
+        return $this->morphOne(Media::class, 'model')->where('collection_name', self::LOGO);
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::LOGO)
+            ->useDisk('evidence')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+    }
+
+    public function registerMediaConversions(?BaseMedia $media = null): void
+    {
+        // Small and cheap: generated at once, so a new logo shows straight away.
+        $this->addMediaConversion('thumb')
+            ->performOnCollections(self::LOGO)
+            ->nonQueued()
+            ->keepOriginalImageFormat()
+            ->fit(Fit::Max, 96, 96);
     }
 }

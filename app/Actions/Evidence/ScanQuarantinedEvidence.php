@@ -60,7 +60,9 @@ final class ScanQuarantinedEvidence
 
         if ($result->infected) {
             $this->quarantine($evidence, $path);
-            $media->delete();
+            // Force: media is soft-deletable (Phase 11D), and a soft delete
+            // would leave the infected file on the evidence disk.
+            $media->forceDelete();
             $evidence->forceFill(['scan_status' => EvidenceScanStatus::Infected, 'scanned_at' => now()])->saveQuietly();
             $this->guard->report(UploadKind::Evidence, $evidence->ulid, (string) $result->signature, $uploader, $evidence);
 

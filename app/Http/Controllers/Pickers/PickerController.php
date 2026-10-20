@@ -17,6 +17,7 @@ use App\Models\Person;
 use App\Models\SecurityAgency;
 use App\Models\State;
 use App\Models\User;
+use App\Support\Organizations\OrganizationLogos;
 use App\Support\Persons\PersonSearch;
 use App\Support\Persons\SearchTerm;
 use App\Support\Search\Trigram;
@@ -194,7 +195,7 @@ class PickerController extends Controller
         $term = trim((string) ($data['q'] ?? ''));
         $sector = isset($data['sector']) ? OrganizationSector::query()->where('code', $data['sector'])->first() : null;
 
-        $query = Organization::query()->with('sector')
+        $query = Organization::query()->with(['sector', 'logo'])
             ->when(isset($data['sector']), fn (Builder $q) => $q->where('organizations.organization_sector_id', ($sector === null ? 0 : $sector->id)))
             ->when($data['except'] ?? null, fn (Builder $q, string $ulid) => $q->where('organizations.ulid', '<>', $ulid));
 
@@ -205,6 +206,8 @@ class PickerController extends Controller
         return $this->respond($results->map(fn (Organization $o) => [
             ...self::row($o->ulid, $o->name, "{$o->sector->name} · {$o->type->label()}"),
             'meta' => ['private_security' => $o->sector->code === 'private_security'],
+            // The logo thumbnail (Phase 11D).
+            'image' => OrganizationLogos::urls($o)['thumb'] ?? null,
         ]));
     }
 

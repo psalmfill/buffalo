@@ -62,7 +62,7 @@ class OrganizationController extends Controller
         $sector = isset($filters['sector']) ? OrganizationSector::query()->where('ulid', $filters['sector'])->first() : null;
 
         $query = Organization::query()
-            ->with('sector')
+            ->with(['sector', 'logo'])
             ->withCount('sites')
             ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('organizations.type', $type))
             ->when($sector, fn (Builder $q) => $q->where('organizations.organization_sector_id', $sector?->id))
@@ -121,7 +121,7 @@ class OrganizationController extends Controller
         $rc = isset($data['rc_number']) ? OrganizationRequest::normaliseRc((string) $data['rc_number']) : null;
 
         $matches = PersonSearch::withThresholds(PersonSearch::DUPLICATE_SIMILARITY, PersonSearch::DUPLICATE_SIMILARITY, fn () => Organization::query()
-            ->with('sector')
+            ->with(['sector', 'logo'])
             ->withCount('sites')
             ->where(function (Builder $q) use ($names, $rc): void {
                 foreach ($names as $name) {
@@ -167,9 +167,9 @@ class OrganizationController extends Controller
         $user = $this->actor($request);
         $tab = $request->query('tab') === 'history' ? 'history' : 'overview';
 
-        $organization->load('sector')->loadCount('sites');
+        $organization->load(['sector', 'logo'])->loadCount('sites');
         // Through the site scopes: only sites the viewer can see.
-        $sites = OrganizationSite::query()->withCoordinates()->with(['organization', 'lga', 'state'])
+        $sites = OrganizationSite::query()->withCoordinates()->with(['organization.logo', 'lga', 'state', 'coverPhoto'])
             ->where('organization_sites.organization_id', $organization->id)
             ->orderBy('organization_sites.name')
             ->get();

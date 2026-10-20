@@ -44,6 +44,8 @@ export type MapMarker = {
     title: string;
     /** Plain text (never HTML). */
     popup?: string;
+    /** A same-origin, authorised image URL shown in the popup (Phase 11D). */
+    image?: string | null;
     href?: string;
     /** Marker style: the default pin, or a layer-specific symbol. */
     kind?: 'default' | 'religious';
@@ -182,11 +184,29 @@ function escapeText(text: string): string {
     return span.innerHTML;
 }
 
+/** A popup thumbnail (an authorised route; the URL is set as a property). */
+export function popupImage(src: string): HTMLImageElement {
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.className = 'mb-1 h-24 w-40 rounded object-cover';
+
+    return img;
+}
+
 /** Popup content built from text nodes, so names cannot inject HTML. */
 function popupContent(
-    marker: Pick<MapMarker, 'title' | 'popup' | 'href'>,
+    marker: Pick<MapMarker, 'title' | 'popup' | 'href'> & {
+        image?: string | null;
+    },
 ): HTMLElement {
     const root = document.createElement('div');
+
+    if (marker.image) {
+        root.appendChild(popupImage(marker.image));
+    }
+
     const title = document.createElement(marker.href ? 'a' : 'strong');
     title.textContent = marker.title;
 

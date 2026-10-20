@@ -15,6 +15,8 @@ import AgencyFormationController from '@/actions/App/Http/Controllers/Security/A
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
+import OrganizationLogo from '@/components/organizations/organization-logo';
+import SitePhotoGallery from '@/components/organizations/site-photo-gallery';
 import {
     RelevanceBadge,
     SitesMap,
@@ -39,6 +41,7 @@ import type {
     FormationLink,
     OrganizationOptions,
     SiteDetail,
+    SitePhoto,
 } from '@/types/organizations';
 import type { Paginated } from '@/types/pagination';
 import type { ActivityEntry } from '@/types/users';
@@ -52,6 +55,9 @@ type Props = {
     site: SiteDetail;
     contacts: ContactDetail[];
     formations: FormationLink[];
+    /** Phase 11D: cover first, then in order (overview only). */
+    photos: SitePhoto[];
+    photoLimit: number;
     tab: Tab;
     history: Paginated<ActivityEntry> | null;
     options: OrganizationOptions;
@@ -69,6 +75,8 @@ export default function OrganizationSiteShow({
     hasIncidents,
     contacts,
     formations,
+    photos,
+    photoLimit,
     tab,
     history,
     options,
@@ -100,7 +108,12 @@ export default function OrganizationSiteShow({
                                 relevance={site.security_relevance}
                             />
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground">
+                            <OrganizationLogo
+                                name={site.organization.name}
+                                logo={site.organization.logo}
+                                size="xs"
+                            />
                             <Link
                                 href={OrganizationController.show(
                                     site.organization.ulid,
@@ -164,6 +177,17 @@ export default function OrganizationSiteShow({
                         </Link>
                     ))}
                 </nav>
+
+                {tab === 'overview' && (
+                    <SitePhotoGallery
+                        siteUlid={site.ulid}
+                        siteName={site.name}
+                        photos={photos}
+                        limit={photoLimit}
+                        canManage={can.update}
+                        logged={site.classification.value !== 'restricted'}
+                    />
+                )}
 
                 {tab === 'overview' && (
                     <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">

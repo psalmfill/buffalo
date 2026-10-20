@@ -9,13 +9,16 @@ use App\Models\OrganizationSite;
 use App\Models\User;
 use App\Services\Search\SearchHit;
 use App\Services\Search\SearchQuery;
+use App\Support\Organizations\OrganizationLogos;
+use App\Support\Organizations\SitePhotos;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Organizations:
  * - text: directory names (national, `<%` on organizations.search_name)
  *   and site names (jurisdiction-scoped and classified, `<%` on
- *   organization_sites.search_name);
+ *   organization_sites.search_name), with the logo or the site's cover
+ *   thumbnail (Phase 11D);
  * - phone: organization contacts whose phone matches exactly (blind index,
  *   scoped, and each checked with `view`). The hit names the organization
  *   and site only, never the contact; opening the organization's lookup
@@ -55,7 +58,7 @@ final class OrganizationProvider extends BaseProvider
         $organizations = $this->organizations($query)
             ->select('organizations.*')
             ->selectRaw('word_similarity(buffalo_search_text(?), organizations.search_name) AS search_score', [$query->raw])
-            ->with('sector')
+            ->with(['sector', 'logo'])
             ->orderByDesc('search_score')->orderBy('organizations.name')
             ->limit($take)->get()
             ->map(fn (Organization $o) => new SearchHit(
@@ -66,11 +69,12 @@ final class OrganizationProvider extends BaseProvider
                 '/organizations/'.$o->ulid,
                 null,
                 self::score($o->getAttribute('search_score')),
+                image: OrganizationLogos::urls($o)['thumb'] ?? null,
             ));
         $sites = $this->sites($query)
             ->select('organization_sites.*')
             ->selectRaw('word_similarity(buffalo_search_text(?), organization_sites.search_name) AS search_score', [$query->raw])
-            ->with(['organization', 'lga'])
+            ->with(['organization', 'lga', 'coverPhoto'])
             ->tap(fn (Builder $q) => self::preferStates($q, $query, 'organization_sites.state_id'))
             ->orderByDesc('search_score')->orderBy('organization_sites.name')
             ->limit($take)->get()
@@ -82,6 +86,7 @@ final class OrganizationProvider extends BaseProvider
                 '/organizations/'.$s->organization->ulid,
                 $s->classificationLevel(),
                 self::score($s->getAttribute('search_score')),
+                image: SitePhotos::coverThumb($s),
             ));
 
         return array_slice(SearchHit::rank([...$organizations->all(), ...$sites->all()]), $offset, $limit);
