@@ -9,7 +9,7 @@ Phase 11 delivered the changes requested after the client's review, in five step
 | 11B | `e1b8b10` | Sanitised rich text for long narrative fields |
 | 11C | `f221c01` | Arrests module with offence types and person links |
 | 11D | `e929c68` | Organization logos and site photos |
-| 11E | (this step) | Flashpoint documents, exports for every list, printable records |
+| 11E | `795916c` (plus this summary) | Flashpoint documents, exports for every list, printable records |
 
 ## Role types (11A.1)
 
