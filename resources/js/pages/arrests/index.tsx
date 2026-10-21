@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Plus } from 'lucide-react';
 import ArrestController from '@/actions/App/Http/Controllers/Arrests/ArrestController';
 import ArrestsTable from '@/components/arrests/arrests-table';
@@ -108,13 +109,19 @@ export default function ArrestsIndex({
                         title="Arrests"
                         description="Who was arrested, by which agency, for what and when."
                     />
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={ArrestController.create()}>
-                                <Plus /> New arrest
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="arrests"
+                            filters={{ ...filters }}
+                        />
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={ArrestController.create()}>
+                                    <Plus /> New arrest
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>

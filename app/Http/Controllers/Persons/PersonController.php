@@ -41,6 +41,7 @@ use App\Support\Audit\AuditLog;
 use App\Support\CrossJurisdiction\MatchCriteria;
 use App\Support\CrossJurisdiction\MatchResult;
 use App\Support\CrossJurisdiction\PersonMatchService;
+use App\Support\Exports\Lists\Exporters\PersonsExporter;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\AccessRequestParties;
 use App\Support\Jurisdiction\GrantAccessResolver;
@@ -393,14 +394,9 @@ class PersonController extends Controller
         $term = SearchTerm::parse($filters['q']);
         $filtered = $state !== null || $zone !== null || $lga !== null || $filters['role'] !== '' || $filters['gender'] !== '' || $filters['classification'] !== '';
 
-        $query = Person::query()
-            ->with(['lga', 'state', 'roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)])
-            ->when($state, fn (Builder $q) => $q->where('persons.state_id', $state?->id))
-            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'persons.state_id', $zone))
-            ->when($lga, fn (Builder $q) => $q->where('persons.lga_id', $lga?->id))
-            ->when($filters['role'], fn (Builder $q, string $role) => $q->whereHas('roles', fn (Builder $r) => $r->where('is_active', true)->whereHas('type', fn (Builder $t) => $t->where('code', $role))))
-            ->when($filters['gender'], fn (Builder $q, string $gender) => $q->where('persons.gender', $gender))
-            ->when($filters['classification'], fn (Builder $q, string $level) => $q->where('persons.classification', $level));
+        // The same filters as the (sensitive) persons export (Phase 11E).
+        $query = app(PersonsExporter::class)->filtered($actor, array_filter($filters))
+            ->with(['lga', 'state', 'roles', 'media' => fn ($q) => $q->where('collection_name', Person::PHOTOS)]);
 
         [$mode, $limit] = match (true) {
             $term->isEmpty() && ! $filtered => ['recent', self::RECENT_LIMIT],

@@ -14,6 +14,7 @@ use App\Models\IncidentEvidence;
 use App\Models\ReportRun;
 use App\Models\State;
 use App\Models\User;
+use App\Support\Exports\Lists\ListExporters;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -46,6 +47,8 @@ class ExportReviewController extends Controller
             'classification' => ['nullable', 'string', 'in:restricted,confidential,secret'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d'],
+            // Phase 11E: exports of the sensitive lists only.
+            'sensitive' => ['nullable', 'in:1'],
         ]);
         $states = $options->states($viewer);
 
@@ -65,8 +68,11 @@ class ExportReviewController extends Controller
                 'what' => self::what($r),
                 'classification' => $r->classification === null ? 'Aggregate figures' : Classification::from((string) $r->classification)->label(),
                 'rows' => $r->row_count === null ? null : (int) $r->row_count,
+                // Sensitive list exports (Phase 11E) are highlighted, with the stated reason.
+                'sensitive' => (bool) $r->is_sensitive,
+                'reason' => $r->is_sensitive ? $r->reason : null,
             ]),
-            'filters' => array_merge(['user' => '', 'state' => '', 'kind' => '', 'classification' => '', 'from' => '', 'to' => ''], array_filter($filters)),
+            'filters' => array_merge(['user' => '', 'state' => '', 'kind' => '', 'classification' => '', 'from' => '', 'to' => '', 'sensitive' => ''], array_filter($filters)),
             'states' => $states->sortBy('name')->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values(),
         ]);
     }
@@ -104,10 +110,12 @@ class ExportReviewController extends Controller
             ->when($filters['classification'] ?? null, fn (Builder $q, string $level) => $q->whereRaw('COALESCE(rr.classification, e.classification, i.classification) = ?', [$level]))
             ->when($filters['from'] ?? null, fn (Builder $q, string $from) => $q->where('l.created_at', '>=', CarbonImmutable::parse($from, $tz)->startOfDay()))
             ->when($filters['to'] ?? null, fn (Builder $q, string $to) => $q->where('l.created_at', '<', CarbonImmutable::parse($to, $tz)->addDay()->startOfDay()))
+            ->when(isset($filters['sensitive']), fn (Builder $q) => $q->where('rr.is_sensitive', true))
             ->select([
                 'l.id', 'l.created_at', 'l.action', 'l.subject_type', 'l.context',
                 'u.name as officer', 'r.name as role', 's.name as state',
-                'rr.ulid as report_ulid', 'rr.report_type', 'rr.row_count', 'i.reference_no as incident_reference', 'ei.reference_no as evidence_incident_reference',
+                'rr.ulid as report_ulid', 'rr.report_type', 'rr.row_count', 'rr.is_sensitive', 'rr.reason', DB::raw("rr.parameters->>'list' AS list_key"),
+                'i.reference_no as incident_reference', 'ei.reference_no as evidence_incident_reference',
                 DB::raw('COALESCE(rr.classification, e.classification, i.classification) AS classification'),
             ]);
     }
@@ -115,6 +123,7 @@ class ExportReviewController extends Controller
     private static function what(\stdClass $r): string
     {
         return match (true) {
+            $r->report_ulid !== null && $r->list_key !== null => 'List export: '.(ListExporters::find((string) $r->list_key)?->label() ?? (string) $r->list_key).' · RPT-'.mb_strtoupper((string) $r->report_ulid),
             $r->report_ulid !== null => (ReportType::tryFrom((string) $r->report_type)?->label() ?? 'Report').' · RPT-'.mb_strtoupper((string) $r->report_ulid),
             $r->evidence_incident_reference !== null => 'Evidence original · '.$r->evidence_incident_reference,
             $r->incident_reference !== null => 'Incident print · '.$r->incident_reference,

@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Threats;
 use App\Actions\CommunityInformation\DeleteWithReason;
 use App\Actions\Threats\CreateThreatReport;
 use App\Actions\Threats\UpdateThreatReport;
-use App\Enums\ThreatCredibility;
 use App\Enums\ThreatStatus;
-use App\Enums\ThreatUrgency;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\DisseminationPresenter;
@@ -21,19 +19,17 @@ use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\State;
 use App\Models\ThreatReport;
-use App\Models\ThreatType;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Exports\Lists\Exporters\ThreatReportsExporter;
 use App\Support\Jurisdiction\DisseminationResolver;
 use App\Support\Jurisdiction\JurisdictionGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\PlaceFilter;
 use App\Support\Threats\ThreatLinks;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -46,43 +42,20 @@ class ThreatReportController extends Controller
 {
     private const TABS = ['overview', 'links', 'timeline', 'history'];
 
-    public function index(Request $request, JurisdictionOptions $options, DisseminationResolver $disseminations): Response
+    public function index(Request $request, JurisdictionOptions $options, DisseminationResolver $disseminations, ThreatReportsExporter $exporter): Response
     {
         $this->authorize('viewAny', ThreatReport::class);
         $user = $this->actor($request);
         $states = $options->states($user);
 
-        $filters = $request->validate([
-            // "any" shows every status; the default is active only.
-            'status' => ['nullable', Rule::in([...array_map(fn (ThreatStatus $s) => $s->value, ThreatStatus::cases()), 'any'])],
-            'threat_type' => ['nullable', 'string', 'size:26'],
-            'credibility' => ['nullable', Rule::enum(ThreatCredibility::class)],
-            'urgency' => ['nullable', Rule::enum(ThreatUrgency::class)],
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'zone' => PlaceFilter::zoneRule($user),
-            'lga' => ['nullable', 'string', 'size:26'],
-            'expiring' => ['nullable', Rule::in(['1'])],
-            // Records shared with the user by another jurisdiction (Phase 7A).
-            'shared' => ['nullable', Rule::in(['1'])],
-        ]);
+        $filters = $exporter->filters($request->query(), $user);
         $status = $filters['status'] ?? ThreatStatus::Active->value;
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
-        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
         $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
-        $threat = isset($filters['threat_type']) ? ThreatType::query()->where('ulid', $filters['threat_type'])->first() : null;
 
-        $query = fn (): Builder => ThreatReport::query()
-            ->when($status !== 'any', fn (Builder $q) => $q->where('threat_reports.status', $status))
-            ->when($threat, fn (Builder $q) => $q->where('threat_reports.threat_type_id', $threat?->id))
-            ->when($filters['credibility'] ?? null, fn (Builder $q, string $v) => $q->where('threat_reports.credibility', $v))
-            ->when($filters['urgency'] ?? null, fn (Builder $q, string $v) => $q->where('threat_reports.urgency', $v))
-            ->when($state, fn (Builder $q) => $q->where('threat_reports.state_id', $state?->id))
-            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'threat_reports.state_id', $zone))
-            ->when($lga, fn (Builder $q) => $q->where('threat_reports.lga_id', $lga?->id))
-            ->when(isset($filters['expiring']), fn (Builder $q) => $q->active()
-                ->where('threat_reports.expires_at', '<=', CarbonImmutable::now()->addHours((int) config('buffalo.threats.expiring_soon_hours'))))
-            ->when(isset($filters['shared']), fn (Builder $q) => $disseminations->sharedOnly($q, $user));
+        // The same filtered query as the export (Phase 11E).
+        $query = fn (): Builder => $exporter->filtered($user, $filters);
 
         $threats = $query()->withCoordinates()->with(['threatType', 'lga', 'state'])->byUrgency()->paginate(25)->withQueryString();
         $points = $query()->withCoordinates()->with(['threatType', 'lga', 'state'])->whereNotNull('threat_reports.location')

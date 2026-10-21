@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth'])->group(function () {
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:reports')->name('reports.store');
-    Route::post('reports/estimate', [ReportController::class, 'estimate'])->middleware('throttle:reports')->name('reports.estimate');
     Route::get('reports/runs/{run}/download', [ReportController::class, 'download'])->name('reports.download');
 
     Route::get('reports/schedules', [ReportScheduleController::class, 'index'])->name('reports.schedules.index');

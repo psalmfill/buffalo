@@ -19,9 +19,12 @@ use Illuminate\Support\Facades\DB;
  * Export quotas and unusual-volume alerts (Phase 8B.3).
  *
  * Daily quotas per user (Africa/Lagos day), from `buffalo.exports`:
- * - `rows`: rows in incident list exports requested today;
+ * - `rows`: rows in list exports requested today (the incident list, and
+ *   every list exporter since Phase 11E);
  * - `report_runs`: reports requested today (scheduled runs do not count);
- * - `evidence_downloads`: evidence originals downloaded today.
+ * - `evidence_downloads`: evidence originals downloaded today;
+ * - `sensitive_exports` (Phase 11E): exports of the sensitive lists
+ *   requested today, limited separately (buffalo.exports.daily_sensitive_exports).
  * Counts come from report_runs and record_access_logs (the audit trail),
  * so they cannot be reset by the user. Exceeding a quota blocks further
  * exports of that kind until midnight; viewing records is unaffected.
@@ -40,7 +43,7 @@ final class ExportControls
     /**
      * Today's usage.
      *
-     * @return array{rows: int, report_runs: int, evidence_downloads: int, secret_exports: int}
+     * @return array{rows: int, report_runs: int, evidence_downloads: int, secret_exports: int, sensitive_exports: int}
      */
     public function usage(User $user): array
     {
@@ -49,7 +52,7 @@ final class ExportControls
         $logs = fn () => DB::table('record_access_logs')->where('record_access_logs.user_id', $user->id)->where('record_access_logs.created_at', '>=', $since);
 
         return [
-            'rows' => (int) (clone $runs)->where('report_type', ReportType::IncidentList->value)->where('status', '<>', 'failed')->sum(DB::raw('COALESCE(row_count, 0)')),
+            'rows' => (int) (clone $runs)->whereIn('report_type', [ReportType::IncidentList->value, ReportType::ListExport->value])->where('status', '<>', 'failed')->sum(DB::raw('COALESCE(row_count, 0)')),
             'report_runs' => (clone $runs)->count(),
             'evidence_downloads' => $logs()->where('subject_type', (new IncidentEvidence)->getMorphClass())->where('action', AccessAction::Download->value)->count(),
             'secret_exports' => $logs()->whereIn('action', [AccessAction::Export->value, AccessAction::Download->value])
@@ -59,6 +62,8 @@ final class ExportControls
                     ->orWhere(fn ($e) => $e->where('subject_type', (new IncidentEvidence)->getMorphClass())
                         ->whereIn('subject_id', DB::table('incident_evidence')->where('classification', Classification::Secret->value)->select('id'))))
                 ->count(),
+            // Failed runs count too: the limit is on requests, which alert at once.
+            'sensitive_exports' => (clone $runs)->where('is_sensitive', true)->count(),
         ];
     }
 
@@ -88,6 +93,20 @@ final class ExportControls
 
         if ($rows !== null && $quotas['rows'] < $usage['rows'] + $rows) {
             throw new ExportQuotaExceeded('This export would take you past today\'s limit of '.number_format($quotas['rows']).' exported rows ('.number_format($usage['rows']).' used). It resets at midnight.');
+        }
+    }
+
+    /**
+     * Before a sensitive list is exported (Phase 11E).
+     *
+     * @throws ExportQuotaExceeded
+     */
+    public function assertCanExportSensitive(User $user): void
+    {
+        $limit = (int) config('buffalo.exports.daily_sensitive_exports');
+
+        if ($this->usage($user)['sensitive_exports'] >= $limit) {
+            throw new ExportQuotaExceeded("You have reached today's limit of {$limit} sensitive list exports. It resets at midnight.");
         }
     }
 
@@ -143,7 +162,7 @@ final class ExportControls
     }
 
     /**
-     * @param  array{rows: int, report_runs: int, evidence_downloads: int, secret_exports: int}  $usage
+     * @param  array{rows: int, report_runs: int, evidence_downloads: int, secret_exports: int, sensitive_exports: int}  $usage
      */
     private function alert(User $user, string $rule, array $usage): void
     {

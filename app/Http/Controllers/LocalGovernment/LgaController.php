@@ -32,6 +32,8 @@ use App\Models\VulnerablePopulationStat;
 use App\Support\Arrests\ArrestLinks;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
+use App\Support\Exports\Lists\Exporters\LgasExporter;
+use App\Support\Exports\Lists\Exporters\OrganizationSitesExporter;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\ProfileCompleteness;
@@ -59,7 +61,7 @@ class LgaController extends Controller
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
 
-    public function index(Request $request, JurisdictionOptions $options): Response|RedirectResponse
+    public function index(Request $request, JurisdictionOptions $options, LgasExporter $exporter): Response|RedirectResponse
     {
         $this->authorize('viewAny', Lga::class);
         $user = $this->actor($request);
@@ -71,24 +73,12 @@ class LgaController extends Controller
 
         $states = $options->states($user);
 
-        $filters = $request->validate([
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'district' => ['nullable', 'string', 'size:26'],
-            'search' => ['nullable', 'string', 'max:100'],
-        ]);
-
+        $filters = $exporter->filters($request->query(), $user);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
 
-        $lgas = $options->lgaQuery($user)
-            ->active()
+        // The same query as the export (Phase 11E).
+        $lgas = $exporter->query($user, $filters)
             ->with(['state', 'senatorialDistrict'])
-            ->when($state, fn (Builder $query) => $query->where('lgas.state_id', $state?->id))
-            ->when($filters['district'] ?? null, fn (Builder $query, string $district) => $query->whereHas('senatorialDistrict', fn (Builder $q) => $q->where('ulid', $district)))
-            ->when($filters['search'] ?? null, fn (Builder $query, string $search) => $query->where('lgas.name', 'ilike', '%'.addcslashes($search, '%_\\').'%'))
-            ->join('states', 'states.id', '=', 'lgas.state_id')
-            ->orderBy('states.name')
-            ->orderBy('lgas.name')
-            ->select('lgas.*')
             ->paginate(25)
             ->withQueryString();
 
@@ -218,11 +208,9 @@ class LgaController extends Controller
         $relevance = SecurityRelevance::tryFrom((string) $request->query('relevance'));
 
         return [
-            'sites' => OrganizationSite::query()->withCoordinates()->with(['organization.logo', 'lga', 'state', 'coverPhoto'])
-                ->where('organization_sites.lga_id', $lga->id)
-                ->when($relevance, fn ($q) => $q->where('organization_sites.security_relevance', $relevance?->value))
-                ->orderByRaw("CASE organization_sites.security_relevance WHEN 'critical_infrastructure' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END")
-                ->orderBy('organization_sites.name')
+            // The same query as the export (Phase 11E).
+            'sites' => app(OrganizationSitesExporter::class)->query($this->actor($request), array_filter(['lga' => $lga->ulid, 'relevance' => $relevance?->value]))
+                ->with(['organization.logo', 'lga', 'state', 'coverPhoto'])
                 ->get()
                 ->map(fn (OrganizationSite $s) => OrganizationPresenter::site($s))
                 ->values(),

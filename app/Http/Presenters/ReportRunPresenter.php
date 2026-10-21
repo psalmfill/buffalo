@@ -5,13 +5,19 @@ namespace App\Http\Presenters;
 use App\Enums\ReportType;
 use App\Enums\SchedulePauseReason;
 use App\Models\CoverageReport;
+use App\Models\CriminalGroup;
+use App\Models\Flashpoint;
 use App\Models\Incident;
 use App\Models\Lga;
+use App\Models\OrganizationSite;
+use App\Models\Person;
 use App\Models\ReportRun;
 use App\Models\ReportSchedule;
 use App\Models\User;
 use App\Services\Analytics\Analytics;
 use App\Services\Reports\Builders\Places;
+use App\Services\Reports\ReportParameters;
+use App\Support\Exports\Lists\ListExporters;
 use Carbon\CarbonImmutable;
 
 /**
@@ -86,6 +92,28 @@ final class ReportRunPresenter
             ReportType::LgaProfile => (Lga::query()->where('ulid', (string) ($p['lga'] ?? ''))->value('name') ?? 'An').' LGA',
             ReportType::Coverage => ($r = CoverageReport::query()->with('lga')->where('ulid', (string) ($p['report'] ?? ''))->first()) === null ? 'A coverage report' : $r->lga->name.' LGA · '.$r->periodLabel(),
             ReportType::Analytics => (app(Analytics::class)->area($user, (string) ($p['tab'] ?? ''))?->label() ?? 'Analytics'),
+            ReportType::ListExport => (ListExporters::find((string) ($p['list'] ?? ''))?->label() ?? 'A list')
+                .(count((array) ($p['filters'] ?? [])) === 0 ? ' · no filters' : ' · '.count((array) $p['filters']).' filter(s) applied'),
+            ReportType::Flashpoint, ReportType::OrganizationSite, ReportType::Arrest, ReportType::ThreatReport,
+            ReportType::CriminalGroup, ReportType::Person => self::record($type, $p),
+        };
+    }
+
+    /**
+     * A single record's name, through the viewer's scopes (generic when it
+     * is no longer visible).
+     *
+     * @param  array<string, mixed>  $p
+     */
+    private static function record(ReportType $type, array $p): string
+    {
+        $class = ReportParameters::recordClass($type);
+        $record = $class === null ? null : $class::query()->where('ulid', (string) ($p[(string) $type->recordParameter()] ?? ''))->first();
+
+        return match (true) {
+            $record === null => 'A record no longer visible to you',
+            $record instanceof Flashpoint, $record instanceof OrganizationSite, $record instanceof CriminalGroup, $record instanceof Person => (string) $record->getAttribute('name'),
+            default => (string) $record->getAttribute('reference_no'),
         };
     }
 }

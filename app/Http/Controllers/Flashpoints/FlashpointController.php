@@ -5,9 +5,6 @@ namespace App\Http\Controllers\Flashpoints;
 use App\Actions\Blackspots\AcceptBlackspotSuggestion;
 use App\Actions\CommunityInformation\DeleteWithReason;
 use App\Actions\Flashpoints\SaveFlashpoint;
-use App\Enums\ConcernLevel;
-use App\Enums\FlashpointKind;
-use App\Enums\FlashpointStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\DisseminationPresenter;
@@ -26,6 +23,7 @@ use App\Models\ThreatReport;
 use App\Models\ThreatType;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Exports\Lists\Exporters\FlashpointsExporter;
 use App\Support\Flashpoints\FlashpointLinks;
 use App\Support\Jurisdiction\DisseminatedLinks;
 use App\Support\Jurisdiction\DisseminationResolver;
@@ -33,12 +31,10 @@ use App\Support\Jurisdiction\JurisdictionGate;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\PlaceFilter;
 use App\Support\Threats\ThreatLinks;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -55,44 +51,19 @@ class FlashpointController extends Controller
     /** Suggestion windows offered on the Incidents tab (the default is configured). */
     private const SUGGESTION_MONTHS = [3, 6, 12, 24];
 
-    public function index(Request $request, JurisdictionOptions $options, DisseminationResolver $disseminations): Response
+    public function index(Request $request, JurisdictionOptions $options, DisseminationResolver $disseminations, FlashpointsExporter $exporter): Response
     {
         $this->authorize('viewAny', Flashpoint::class);
         $user = $this->actor($request);
         $states = $options->states($user);
 
-        $filters = $request->validate([
-            'q' => ['nullable', 'string', 'max:100'],
-            'kind' => ['nullable', Rule::enum(FlashpointKind::class)],
-            'concern' => ['nullable', Rule::enum(ConcernLevel::class)],
-            'status' => ['nullable', Rule::enum(FlashpointStatus::class)],
-            'threat_type' => ['nullable', 'string', 'size:26'],
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'zone' => PlaceFilter::zoneRule($user),
-            'lga' => ['nullable', 'string', 'size:26'],
-            'overdue' => ['nullable', Rule::in(['1'])],
-            // Records shared with the user by another jurisdiction (Phase 7A).
-            'shared' => ['nullable', Rule::in(['1'])],
-        ]);
+        $filters = $exporter->filters($request->query(), $user);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
-        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
         $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
-        $threat = isset($filters['threat_type']) ? ThreatType::query()->where('ulid', $filters['threat_type'])->first() : null;
 
-        $query = fn (): Builder => Flashpoint::query()
-            ->when($filters['kind'] ?? null, fn (Builder $q, string $v) => $q->where('flashpoints.kind', $v))
-            ->when($filters['concern'] ?? null, fn (Builder $q, string $v) => $q->where('flashpoints.concern_level', $v))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $v) => $q->where('flashpoints.status', $v))
-            ->when($threat, fn (Builder $q) => $q->where('flashpoints.threat_type_id', $threat?->id))
-            ->when($state, fn (Builder $q) => $q->where('flashpoints.state_id', $state?->id))
-            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'flashpoints.state_id', $zone))
-            ->when($lga, fn (Builder $q) => $q->where('flashpoints.lga_id', $lga?->id))
-            ->when(isset($filters['overdue']), fn (Builder $q) => $q
-                ->where('flashpoints.status', '!=', FlashpointStatus::Resolved->value)
-                ->where('flashpoints.review_due_at', '<', CarbonImmutable::today()->toDateString()))
-            ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->search($term))
-            ->when(isset($filters['shared']), fn (Builder $q) => $disseminations->sharedOnly($q, $user));
+        // The same filtered query as the flashpoint register (Phase 11E).
+        $query = fn (): Builder => $exporter->filtered($user, $filters);
 
         $flashpoints = $query()
             ->withCoordinates()

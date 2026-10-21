@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
 import DisseminationController from '@/actions/App/Http/Controllers/Disseminations/DisseminationController';
@@ -57,6 +58,9 @@ export default function DisseminationsIndex({
                     title="Shared threats & flashpoints"
                     description="Threat reports and flashpoints shared across state and LGA borders. Shared records are read-only for recipients and end when revoked or expired."
                 />
+                {(tab === 'received' || tab === 'sent') && (
+                    <ExportListButton list="disseminations" filters={{ tab }} />
+                )}
 
                 <nav className="flex gap-1 border-b" aria-label="Sections">
                     {tabs.map((name) => (

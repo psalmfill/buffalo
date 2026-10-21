@@ -22,13 +22,12 @@ use App\Models\VulnerablePopulationStat;
 use App\Models\Ward;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
+use App\Support\Exports\Lists\Exporters\CommunitiesExporter;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
-use App\Support\Search\Trigram;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -40,29 +39,19 @@ use Spatie\Activitylog\Models\Activity;
  */
 class CommunityController extends Controller
 {
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, CommunitiesExporter $exporter): Response
     {
         $this->authorize('viewAny', Community::class);
         $user = $this->actor($request);
 
         $states = $options->states($user);
-        $filters = $request->validate([
-            'q' => ['nullable', 'string', 'max:100'],
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'lga' => ['nullable', 'string', 'size:26'],
-            'type' => ['nullable', 'string', Rule::in(array_column(CommunityPresenter::typeOptions(), 'value'))],
-        ]);
-
+        $filters = $exporter->filters($request->query(), $user);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
         $lgas = $options->lgas($user, $state);
 
-        $results = Trigram::withWordSimilarity(Community::SEARCH_SIMILARITY, fn () => Community::query()
+        // The same query as the export (Phase 11E).
+        $results = $exporter->around(fn () => $exporter->query($user, $filters)
             ->with(['lga', 'state', 'ward'])
-            ->withCoordinates()
-            ->when($state, fn (Builder $query) => $query->where('communities.state_id', $state?->id))
-            ->when($filters['lga'] ?? null, fn (Builder $query, string $lga) => $query->whereHas('lga', fn (Builder $q) => $q->where('ulid', $lga)))
-            ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('communities.type', $type))
-            ->when($filters['q'] ?? null, fn (Builder $query, string $q) => $query->search($q), fn (Builder $query) => $query->orderBy('communities.name'))
             ->paginate(25)
             ->withQueryString());
 

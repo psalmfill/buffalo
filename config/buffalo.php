@@ -370,6 +370,13 @@ return [
         'daily_evidence_downloads' => (int) env('BUFFALO_EXPORT_DAILY_EVIDENCE_DOWNLOADS', 100),
         'alert_fraction' => (float) env('BUFFALO_EXPORT_ALERT_FRACTION', 0.5),
         'secret_alert_count' => (int) env('BUFFALO_EXPORT_SECRET_ALERT_COUNT', 5),
+        // Phase 11E: the sensitive lists (persons, persons of interest,
+        // criminal group members, organization contacts).
+        'sensitive_max_rows' => (int) env('BUFFALO_EXPORT_SENSITIVE_MAX_ROWS', 1000),
+        'daily_sensitive_exports' => (int) env('BUFFALO_EXPORT_DAILY_SENSITIVE', 3),
+        'sensitive_reason_min' => 20,
+        // PDF tables of a list (spreadsheets go up to reports.max_rows).
+        'pdf_max_rows' => (int) env('BUFFALO_EXPORT_PDF_MAX_ROWS', 2000),
     ],
 
     /*

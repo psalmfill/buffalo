@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Organizations;
 
 use App\Actions\Organizations\DeleteOrganization;
 use App\Actions\Organizations\SaveOrganization;
-use App\Enums\OrganizationStatus;
-use App\Enums\OrganizationType;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\OrganizationPresenter;
@@ -13,10 +11,11 @@ use App\Http\Requests\LocalGovernment\DeleteRecordRequest;
 use App\Http\Requests\Organizations\OrganizationRequest;
 use App\Models\Organization;
 use App\Models\OrganizationContact;
-use App\Models\OrganizationSector;
 use App\Models\OrganizationSite;
 use App\Models\State;
 use App\Models\User;
+use App\Support\Exports\Lists\Exporters\OrganizationsExporter;
+use App\Support\Exports\Lists\Exporters\OrganizationSitesExporter;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\PlaceFilter;
 use App\Support\Persons\PersonSearch;
@@ -25,7 +24,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -38,42 +36,20 @@ use Spatie\Activitylog\Models\Activity;
  */
 class OrganizationController extends Controller
 {
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, OrganizationsExporter $exporter): Response
     {
         $this->authorize('viewAny', Organization::class);
         $user = $this->actor($request);
         $states = $options->states($user);
 
-        $filters = $request->validate([
-            'q' => ['nullable', 'string', 'max:255'],
-            'type' => ['nullable', Rule::enum(OrganizationType::class)],
-            'sector' => ['nullable', 'string', 'size:26'],
-            'status' => ['nullable', Rule::enum(OrganizationStatus::class)],
-            'in_my_area' => ['nullable', Rule::in(['1'])],
-            // Organizations with a site (visible to the user) in a state or
-            // zone (Phase 11A.2, the state lens).
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'zone' => PlaceFilter::zoneRule($user),
-        ]);
-        $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
-        $zone = PlaceFilter::zone($filters['zone'] ?? null);
+        $filters = $exporter->filters($request->query(), $user);
         $term = trim((string) ($filters['q'] ?? ''));
         $lookup = self::lookupKind($term);
-        $sector = isset($filters['sector']) ? OrganizationSector::query()->where('ulid', $filters['sector'])->first() : null;
 
-        $query = Organization::query()
+        // The same query as the export (Phase 11E); a contact lookup lists contacts instead.
+        $organizations = $exporter->around(fn () => $exporter->filtered($user, $filters)
             ->with(['sector', 'logo'])
-            ->withCount('sites')
-            ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('organizations.type', $type))
-            ->when($sector, fn (Builder $q) => $q->where('organizations.organization_sector_id', $sector?->id))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('organizations.status', $status))
-            ->when(isset($filters['in_my_area']), fn (Builder $q) => $q->whereHas('sites'))
-            ->when($state, fn (Builder $q) => $q->whereHas('sites', fn (Builder $s) => $s->where('organization_sites.state_id', $state?->id)))
-            ->when($zone, fn (Builder $q) => $q->whereHas('sites', fn (Builder $s) => PlaceFilter::apply($s, 'organization_sites.state_id', $zone)));
-
-        $organizations = $term !== '' && $lookup === null
-            ? PersonSearch::withThresholds(PersonSearch::SIMILARITY, PersonSearch::WORD_SIMILARITY, fn () => $query->search($term)->paginate(25)->withQueryString())
-            : $query->orderBy('organizations.name')->paginate(25)->withQueryString();
+            ->paginate(25)->withQueryString());
 
         return Inertia::render('organizations/index', [
             'organizations' => $organizations->through(fn (Organization $o) => OrganizationPresenter::row($o)),
@@ -169,9 +145,8 @@ class OrganizationController extends Controller
 
         $organization->load(['sector', 'logo'])->loadCount('sites');
         // Through the site scopes: only sites the viewer can see.
-        $sites = OrganizationSite::query()->withCoordinates()->with(['organization.logo', 'lga', 'state', 'coverPhoto'])
-            ->where('organization_sites.organization_id', $organization->id)
-            ->orderBy('organization_sites.name')
+        $sites = app(OrganizationSitesExporter::class)->query($user, ['organization' => $organization->ulid])
+            ->with(['organization.logo', 'lga', 'state', 'coverPhoto'])
             ->get();
 
         return Inertia::render('organizations/show', [

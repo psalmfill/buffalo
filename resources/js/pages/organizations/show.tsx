@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
@@ -141,17 +142,26 @@ export default function OrganizationShow({
                                 <h2 className="text-sm font-semibold">
                                     Sites you can view ({sites.length})
                                 </h2>
-                                {can.addSite && (
-                                    <Button size="sm" asChild>
-                                        <Link
-                                            href={OrganizationSiteController.create(
-                                                organization.ulid,
-                                            )}
-                                        >
-                                            <Plus /> Add site
-                                        </Link>
-                                    </Button>
-                                )}
+                                <div className="flex flex-wrap gap-2">
+                                    <ExportListButton
+                                        list="organization_sites"
+                                        filters={{
+                                            organization: organization.ulid,
+                                        }}
+                                        label="Export sites"
+                                    />
+                                    {can.addSite && (
+                                        <Button size="sm" asChild>
+                                            <Link
+                                                href={OrganizationSiteController.create(
+                                                    organization.ulid,
+                                                )}
+                                            >
+                                                <Plus /> Add site
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Only sites within your jurisdiction and

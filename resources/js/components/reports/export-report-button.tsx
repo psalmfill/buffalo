@@ -36,9 +36,9 @@ function appendQuery(
 }
 
 /**
- * Opens /reports pre-filled for this page (Phase 7D): the incident list
- * with its current filters, one incident, an LGA, a coverage report or an
- * analytics view. Shown only with the matching permission; the server
+ * Opens /reports pre-filled for this page (Phase 7D): one incident, an
+ * LGA, a coverage report or an analytics view (list exports use
+ * ExportListButton since Phase 11E). Shown only with the matching permission; the server
  * authorises the report again.
  */
 export default function ExportReportButton({
@@ -52,13 +52,7 @@ export default function ExportReportButton({
 }) {
     const { can } = useAuth();
 
-    if (
-        !can(
-            type === 'incident_list'
-                ? 'reports.export_data'
-                : 'reports.generate',
-        )
-    ) {
+    if (!can('reports.generate')) {
         return null;
     }
 

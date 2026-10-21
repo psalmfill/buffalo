@@ -3,15 +3,24 @@
 namespace App\Services\Reports;
 
 use App\Enums\ReportType;
+use App\Models\Arrest;
 use App\Models\CoverageReport;
+use App\Models\CriminalGroup;
+use App\Models\Flashpoint;
 use App\Models\Incident;
 use App\Models\Lga;
+use App\Models\OrganizationSite;
+use App\Models\Person;
+use App\Models\ReportRun;
+use App\Models\ThreatReport;
 use App\Models\User;
 use App\Services\Analytics\Analytics;
 use App\Services\Analytics\AnalyticsFilters;
+use App\Support\Exports\Lists\ListExporters;
 use App\Support\Incidents\IncidentFilters;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -30,6 +39,9 @@ use Illuminate\Validation\ValidationException;
  * | lga_profile   | lga (ULID)                                                      |
  * | coverage      | report (ULID)                                                   |
  * | analytics     | tab, filters (AnalyticsFilters values)                          |
+ * | list          | list (exporter key), filters (the page's), columns (allowed set) |
+ * | flashpoint, organization_site, arrest, threat_report, criminal_group,  |
+ * | person        | the record's ULID (flashpoint, site, arrest, threat, group, person) |
  */
 final class ReportParameters
 {
@@ -46,11 +58,71 @@ final class ReportParameters
             ReportType::Weekly => [...$this->place($input, $user), 'end' => $this->date($input['end'] ?? null, CarbonImmutable::yesterday((string) config('app.timezone')))],
             ReportType::Monthly => [...$this->place($input, $user), 'month' => $this->month($input['month'] ?? null)],
             ReportType::IncidentList => ['filters' => IncidentFilters::from((array) ($input['filters'] ?? []))->values],
-            ReportType::Incident => ['incident' => $this->record(Incident::class, $input['incident'] ?? null, $user, 'incident')],
             ReportType::LgaProfile => ['lga' => $this->lga($input['lga'] ?? null, $user)],
-            ReportType::Coverage => ['report' => $this->record(CoverageReport::class, $input['report'] ?? null, $user, 'report')],
             ReportType::Analytics => $this->analytics($input, $user),
+            ReportType::ListExport => $this->listExport($input, $user),
+            ReportType::Incident, ReportType::Coverage, ReportType::Flashpoint, ReportType::OrganizationSite, ReportType::Arrest,
+            ReportType::ThreatReport, ReportType::CriminalGroup, ReportType::Person => $this->single($type, $input, $user),
         };
+    }
+
+    /** The model of each single-record type. */
+    public static function recordClass(ReportType $type): ?string
+    {
+        return match ($type) {
+            ReportType::Incident => Incident::class,
+            ReportType::Coverage => CoverageReport::class,
+            ReportType::Flashpoint => Flashpoint::class,
+            ReportType::OrganizationSite => OrganizationSite::class,
+            ReportType::Arrest => Arrest::class,
+            ReportType::ThreatReport => ThreatReport::class,
+            ReportType::CriminalGroup => CriminalGroup::class,
+            ReportType::Person => Person::class,
+            default => null,
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, string>
+     */
+    private function single(ReportType $type, array $input, User $user): array
+    {
+        $key = (string) $type->recordParameter();
+        /** @var class-string<Model> $class */
+        $class = (string) self::recordClass($type);
+
+        return [$key => $this->record($class, $input[$key] ?? null, $user, $key)];
+    }
+
+    /**
+     * A list export (Phase 11E): the exporter, the page's filters (its own
+     * validation rules) and the chosen columns (from its allowed set).
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function listExport(array $input, User $user): array
+    {
+        $exporter = ListExporters::find((string) ($input['list'] ?? ''));
+
+        if ($exporter === null || ! $user->can('exportList', [ReportRun::class, $exporter])) {
+            throw ValidationException::withMessages(['list' => 'Choose a list you may export.']);
+        }
+
+        $filters = $exporter->filters((array) ($input['filters'] ?? []), $user);
+        $allowed = array_keys($exporter->columnMap());
+        $columns = array_values(array_unique(array_filter((array) ($input['columns'] ?? []), 'is_string')));
+
+        if (array_diff($columns, $allowed) !== []) {
+            throw ValidationException::withMessages(['columns' => 'Choose columns offered for this list.']);
+        }
+
+        return [
+            'list' => $exporter->key(),
+            'filters' => $filters,
+            'columns' => $columns === [] ? $exporter->defaultColumns() : array_values(array_intersect($allowed, $columns)),
+        ];
     }
 
     /**
@@ -102,7 +174,7 @@ final class ReportParameters
     }
 
     /**
-     * @param  class-string<Incident|CoverageReport>  $class
+     * @param  class-string<Model>  $class
      */
     private function record(string $class, mixed $ulid, User $user, string $field): string
     {
@@ -112,7 +184,7 @@ final class ReportParameters
             throw ValidationException::withMessages([$field => 'Choose a record you can see.']);
         }
 
-        return $record->ulid;
+        return (string) $record->getAttribute('ulid');
     }
 
     private function lga(mixed $ulid, User $user): string

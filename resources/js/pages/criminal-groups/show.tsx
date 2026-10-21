@@ -1,4 +1,6 @@
 import type { IncidentListRow } from '@/types/incidents';
+import PrintRecordButton from '@/components/reports/print-record-button';
+import ExportListButton from '@/components/exports/export-list-button';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -550,6 +552,11 @@ export default function CriminalGroupShow({
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        <PrintRecordButton
+                            type="criminal_group"
+                            parameter="group"
+                            ulid={group.ulid}
+                        />
                         {can.update && (
                             <Button variant="outline" asChild>
                                 <Link
@@ -656,6 +663,16 @@ export default function CriminalGroupShow({
                         states={states}
                         canUpdate={can.update}
                     />
+                )}
+                {tab === 'members' && members && (
+                    <div className="flex justify-end">
+                        <ExportListButton
+                            list="criminal_group_members"
+                            filters={{ group: group.ulid }}
+                            sensitive
+                            label="Export members"
+                        />
+                    </div>
                 )}
                 {tab === 'members' && members && (
                     <MembersPanel

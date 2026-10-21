@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import ThreatReportController from '@/actions/App/Http/Controllers/Threats/ThreatReportController';
@@ -100,13 +101,19 @@ export default function ThreatsIndex({
                         title="Threat reports"
                         description="Early warnings of what may be about to happen, most urgent first."
                     />
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={ThreatReportController.create()}>
-                                <Plus /> Record threat report
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="threats"
+                            filters={{ ...filters }}
+                        />
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={ThreatReportController.create()}>
+                                    <Plus /> Record threat report
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>

@@ -1,4 +1,6 @@
 import type { IncidentListRow } from '@/types/incidents';
+import PrintRecordButton from '@/components/reports/print-record-button';
+import ExportListButton from '@/components/exports/export-list-button';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -127,6 +129,11 @@ export default function OrganizationSiteShow({
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        <PrintRecordButton
+                            type="organization_site"
+                            parameter="site"
+                            ulid={site.ulid}
+                        />
                         {can.update && (
                             <Button variant="outline" asChild>
                                 <Link
@@ -331,17 +338,26 @@ export default function OrganizationSiteShow({
                                     <h2 className="text-sm font-semibold">
                                         Contacts
                                     </h2>
-                                    {can.update && editingContact === null && (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() =>
-                                                setEditingContact('new')
-                                            }
-                                        >
-                                            <Plus /> Add contact
-                                        </Button>
-                                    )}
+                                    <div className="flex flex-wrap gap-2">
+                                        <ExportListButton
+                                            list="organization_contacts"
+                                            filters={{ site: site.ulid }}
+                                            sensitive
+                                            label="Export contacts"
+                                        />
+                                        {can.update &&
+                                            editingContact === null && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setEditingContact('new')
+                                                    }
+                                                >
+                                                    <Plus /> Add contact
+                                                </Button>
+                                            )}
+                                    </div>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                     Viewing contacts is recorded in the access

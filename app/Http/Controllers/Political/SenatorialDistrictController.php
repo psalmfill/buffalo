@@ -8,6 +8,7 @@ use App\Models\Lga;
 use App\Models\PoliticalOffice;
 use App\Models\SenatorialDistrict;
 use App\Models\User;
+use App\Support\Exports\Lists\Exporters\SenatorialDistrictsExporter;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Political\Leadership;
 use Illuminate\Http\Request;
@@ -22,20 +23,15 @@ use Inertia\Response;
  */
 class SenatorialDistrictController extends Controller
 {
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, SenatorialDistrictsExporter $exporter): Response
     {
         $this->authorize('viewAny', Lga::class);
         /** @var User $user */
         $user = $request->user();
 
-        $districts = $options->districtQuery($user)
+        // The same query as the export (Phase 11E).
+        $districts = $exporter->query($user, [])
             ->with('state')
-            ->join('states', 'states.id', '=', 'senatorial_districts.state_id')
-            ->select('senatorial_districts.*')
-            // After select(), which would otherwise drop the count.
-            ->withCount(['lgas' => fn ($q) => $q->where('is_active', true)])
-            ->orderBy('states.name')
-            ->orderBy('senatorial_districts.name')
             ->get();
 
         $senators = $user->can('viewAny', PoliticalOffice::class)

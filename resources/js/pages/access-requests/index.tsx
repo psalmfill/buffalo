@@ -1,4 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { AlertTriangle, Plus } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -577,6 +578,18 @@ function OversightPanel({ data }: { data: Oversight }) {
 
     return (
         <div className="space-y-8">
+            <div className="flex flex-wrap gap-2">
+                <ExportListButton
+                    list="access_requests"
+                    filters={{ ...filters }}
+                    label="Export requests"
+                />
+                <ExportListButton
+                    list="access_grants"
+                    filters={{ ...filters }}
+                    label="Export grants"
+                />
+            </div>
             <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="grid gap-2">
                     <Label htmlFor="o-state">Owning state</Label>

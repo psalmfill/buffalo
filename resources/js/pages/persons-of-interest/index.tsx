@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
 import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOfInterest/PersonOfInterestController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
@@ -71,10 +72,17 @@ export default function PersonsOfInterestIndex({
         <>
             <Head title="Persons of interest" />
             <div className="space-y-6 p-4">
-                <Heading
-                    title="Persons of interest"
-                    description="Highest risk first, then most recently sighted. Designate a person from their person page."
-                />
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <Heading
+                        title="Persons of interest"
+                        description="Highest risk first, then most recently sighted. Designate a person from their person page."
+                    />
+                    <ExportListButton
+                        list="persons_of_interest"
+                        filters={{ ...filters }}
+                        sensitive
+                    />
+                </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>
                     {select('risk', 'Risk level', options.riskLevels, 'Any')}

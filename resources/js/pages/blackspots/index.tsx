@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
@@ -78,28 +79,36 @@ export default function BlackspotSuggestions({
                         title="Suggested blackspots"
                         description={`Places where at least ${settings.min_points} incidents happened within about ${settings.eps_meters} m of each other in the last ${settings.days} days, clearly more than chance, and no flashpoint covers yet. Refreshed nightly.`}
                     />
-                    {can.refresh && (
-                        <Button
-                            variant="outline"
-                            disabled={refreshing}
-                            onClick={() =>
-                                router.post(
-                                    BlackspotSuggestionController.refresh().url,
-                                    {},
-                                    {
-                                        preserveScroll: true,
-                                        onStart: () => setRefreshing(true),
-                                        onFinish: () => setRefreshing(false),
-                                    },
-                                )
-                            }
-                        >
-                            <RefreshCw
-                                className={refreshing ? 'animate-spin' : ''}
-                            />
-                            Refresh now
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="blackspot_suggestions"
+                            filters={{}}
+                        />
+                        {can.refresh && (
+                            <Button
+                                variant="outline"
+                                disabled={refreshing}
+                                onClick={() =>
+                                    router.post(
+                                        BlackspotSuggestionController.refresh()
+                                            .url,
+                                        {},
+                                        {
+                                            preserveScroll: true,
+                                            onStart: () => setRefreshing(true),
+                                            onFinish: () =>
+                                                setRefreshing(false),
+                                        },
+                                    )
+                                }
+                            >
+                                <RefreshCw
+                                    className={refreshing ? 'animate-spin' : ''}
+                                />
+                                Refresh now
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {suggestions.length > 0 && (

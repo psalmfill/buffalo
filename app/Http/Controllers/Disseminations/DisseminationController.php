@@ -21,14 +21,13 @@ use App\Models\RecordDissemination;
 use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Auth\StepUp;
+use App\Support\Exports\Lists\Exporters\DisseminationsExporter;
 use App\Support\Jurisdiction\Contracts\Disseminable;
 use App\Support\Jurisdiction\DisseminationSubjects;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -42,7 +41,7 @@ class DisseminationController extends Controller
 {
     private const TABS = ['received', 'sent', 'requests'];
 
-    public function index(Request $request, DisseminationPresenter $presenter): Response
+    public function index(Request $request, DisseminationPresenter $presenter, DisseminationsExporter $exporter): Response
     {
         $this->authorize('viewAny', RecordDissemination::class);
         $user = $this->actor($request);
@@ -52,15 +51,9 @@ class DisseminationController extends Controller
 
         return Inertia::render('disseminations/index', [
             'tab' => $tab,
-            'received' => $tab === 'received' ? $this->withSubjects(
-                RecordDissemination::query()->receivedBy($user)
-                    ->orderByRaw('CASE WHEN revoked_at IS NULL AND expires_at > now() THEN 0 ELSE 1 END')
-                    ->orderByRaw('acknowledged_at IS NOT NULL')
-                    ->orderByDesc('disseminated_at')
-                    ->limit(200)->get(),
-                $user, $presenter, received: true,
-            ) : null,
-            'sent' => $tab === 'sent' ? $this->withSubjects($this->sentQuery($user)->orderByDesc('disseminated_at')->limit(200)->get(), $user, $presenter, received: false) : null,
+            // The same queries as the export (Phase 11E).
+            'received' => $tab === 'received' ? $this->withSubjects($exporter->query($user, ['tab' => 'received'])->limit(200)->get(), $user, $presenter, received: true) : null,
+            'sent' => $tab === 'sent' ? $this->withSubjects($exporter->query($user, ['tab' => 'sent'])->limit(200)->get(), $user, $presenter, received: false) : null,
             'requests' => $tab === 'requests' ? $this->requestRows($user, $presenter) : null,
             'can' => ['requests' => $canRequests],
         ]);
@@ -189,27 +182,6 @@ class DisseminationController extends Controller
         abort_if($subject === null, 404);
 
         return $subject;
-    }
-
-    /**
-     * Disseminations made by the viewer's jurisdiction: of records they own,
-     * or forwarded by their state.
-     *
-     * @return Builder<RecordDissemination>
-     */
-    private function sentQuery(User $user): Builder
-    {
-        $owned = fn (string $class) => $class::query()->ownJurisdiction($user)->select($class === ThreatReport::class ? 'threat_reports.id' : 'flashpoints.id');
-
-        return RecordDissemination::query()->where(function (Builder $q) use ($owned, $user): void {
-            $q->where(fn (Builder $t) => $t->where('subject_type', 'threat_report')->whereIn('subject_id', $owned(ThreatReport::class)))
-                ->orWhere(fn (Builder $f) => $f->where('subject_type', 'flashpoint')->whereIn('subject_id', $owned(Flashpoint::class)))
-                ->orWhere('disseminated_by', $user->id);
-
-            if (in_array($user->getRole(), [Role::StateDirector, Role::DeputyStateDirector], true)) {
-                $q->orWhereIn('parent_dissemination_id', DB::table('record_disseminations')->where('target_state_id', $user->state_id)->select('id'));
-            }
-        });
     }
 
     /**

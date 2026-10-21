@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import ExportListButton from '@/components/exports/export-list-button';
 import ArrestsTable from '@/components/arrests/arrests-table';
 import type { ArrestRow } from '@/types/arrests';
 import type { Paginated } from '@/types/pagination';
@@ -126,6 +127,15 @@ const TAB_LABELS: Record<Tab, string> = {
 
 export default function LgaShow(props: Props) {
     const { lga, tab, tabs, completeness } = props;
+    // The tab's current filters, sent with its export.
+    const tabFilters: Record<string, string> =
+        tab === 'religious_institutions'
+            ? { ...(props.religiousInstitutions?.filters ?? {}) }
+            : tab === 'security_notes'
+              ? { ...(props.securityNotes?.filters ?? {}) }
+              : tab === 'organizations'
+                ? { relevance: props.organizations?.relevance ?? '' }
+                : {};
 
     return (
         <>
@@ -211,6 +221,14 @@ export default function LgaShow(props: Props) {
                         data={props.communities}
                         can={props.can}
                     />
+                )}
+                {TAB_EXPORTS[tab] && (
+                    <div className="flex justify-end">
+                        <ExportListButton
+                            list={TAB_EXPORTS[tab]}
+                            filters={{ lga: lga.ulid, ...tabFilters }}
+                        />
+                    </div>
                 )}
                 {tab === 'religious_institutions' &&
                     props.religiousInstitutions && (
@@ -302,6 +320,15 @@ export default function LgaShow(props: Props) {
         </>
     );
 }
+
+/** Tabs that list records, and their exporters (Phase 11E). */
+const TAB_EXPORTS: Partial<Record<Tab, string>> = {
+    religious_institutions: 'religious_institutions',
+    vulnerable_population: 'vulnerable_population',
+    security_notes: 'security_notes',
+    organizations: 'organization_sites',
+    leadership: 'political_offices',
+};
 
 function tabUrl(ulid: string, tab: Tab): string {
     return LgaController.show(ulid, { query: { tab } }).url;

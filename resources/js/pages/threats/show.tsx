@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import PrintRecordButton from '@/components/reports/print-record-button';
 import { useEcho } from '@laravel/echo-react';
 import { CalendarClock, Pencil, RotateCcw, Trash2, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -133,6 +134,11 @@ export default function ThreatShow(props: Props) {
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <PrintRecordButton
+                            type="threat_report"
+                            parameter="threat"
+                            ulid={threat.ulid}
+                        />
                         {can.update && active && (
                             <>
                                 {options.settableStatuses.map((s) => (

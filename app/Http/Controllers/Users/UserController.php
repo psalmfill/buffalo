@@ -28,9 +28,8 @@ use App\Models\State;
 use App\Models\User;
 use App\Support\Auth\MailConfiguration;
 use App\Support\Auth\StepUp;
+use App\Support\Exports\Lists\Exporters\UsersExporter;
 use App\Support\Jurisdiction\JurisdictionOptions;
-use App\Support\Users\UserStatusFilter;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,42 +47,22 @@ class UserController extends Controller
 {
     public const PER_PAGE = 25;
 
-    private const SORTABLE = ['name', 'email', 'service_number', 'rank', 'last_login_at', 'created_at'];
-
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, UsersExporter $exporter): Response
     {
         $this->authorize('viewAny', User::class);
 
-        $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
-            'role' => ['nullable', Rule::enum(Role::class)],
-            'state' => ['nullable', 'string', 'max:26'],
-            'status' => ['nullable', Rule::in(UserStatusFilter::STATUSES)],
-            'sort' => ['nullable', Rule::in(self::SORTABLE)],
-            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
-        ]);
-
+        $actor = $this->actor($request);
+        $filters = $exporter->filters($request->query(), $actor);
         $sort = $filters['sort'] ?? 'name';
         $direction = $filters['direction'] ?? 'asc';
 
-        $users = User::query()
+        // The same query as the export (Phase 11E).
+        $users = $exporter->query($actor, $filters)
             ->with(['roles', 'state', 'lga', 'zones'])
-            ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
-                $term = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
-                $query->where(fn (Builder $q) => $q->where('name', 'ilike', $term)
-                    ->orWhere('email', 'ilike', $term)
-                    ->orWhere('service_number', 'ilike', $term));
-            })
-            ->when($filters['role'] ?? null, fn (Builder $query, string $role) => $query->role($role))
-            ->when($filters['state'] ?? null, fn (Builder $query, string $state) => $query->whereIn('state_id', State::query()->where('ulid', $state)->select('id')))
-            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => UserStatusFilter::apply($query, $status))
-            ->orderBy($sort, $direction)
-            ->orderBy('id')
             ->paginate(self::PER_PAGE)
             ->withQueryString()
             ->through(fn (User $user) => UserPresenter::row($user));
 
-        $actor = $this->actor($request);
         $states = $actor->checkPermissionTo(Permission::UsersManage->value) || $actor->jurisdiction_level === JurisdictionLevel::National
             ? State::query()->active()->orderBy('name')->get()
             : $options->states($actor);

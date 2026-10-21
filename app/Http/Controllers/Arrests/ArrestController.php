@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Arrests;
 
 use App\Actions\Arrests\SaveArrest;
 use App\Actions\CommunityInformation\DeleteWithReason;
-use App\Enums\ArrestStatus;
 use App\Enums\Gender;
 use App\Enums\IncidentStatus;
 use App\Enums\PersonInvolvement;
@@ -20,19 +19,15 @@ use App\Models\Incident;
 use App\Models\IncidentAgency;
 use App\Models\IncidentPerson;
 use App\Models\Lga;
-use App\Models\OffenceType;
 use App\Models\RecordAccessRequest;
-use App\Models\SecurityAgency;
 use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Exports\Lists\Exporters\ArrestsExporter;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\PlaceFilter;
-use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -45,50 +40,19 @@ class ArrestController extends Controller
 {
     private const TABS = ['overview', 'timeline', 'history'];
 
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, ArrestsExporter $exporter): Response
     {
         $this->authorize('viewAny', Arrest::class);
         $user = $this->actor($request);
         $states = $options->states($user);
 
-        $filters = $request->validate([
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-            'agency' => ['nullable', 'string', 'size:26'],
-            'formation' => ['nullable', 'string', 'size:26'],
-            'offence' => ['nullable', 'string', 'size:26'],
-            'status' => ['nullable', Rule::enum(ArrestStatus::class)],
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'zone' => PlaceFilter::zoneRule($user),
-            'lga' => ['nullable', 'string', 'size:26'],
-            'linked' => ['nullable', Rule::in(['yes', 'no'])],
-            'poi' => ['nullable', Rule::in(['yes', 'no'])],
-        ]);
+        $filters = $exporter->filters($request->query(), $user);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
-        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
-        $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
-        $tz = (string) config('app.timezone');
-        $poiPersons = fn ($q) => $q->select('arrest_persons.arrest_id')->from('arrest_persons')
-            ->join('persons_of_interest', 'persons_of_interest.person_id', '=', 'arrest_persons.person_id')
-            ->whereNull('arrest_persons.deleted_at')->whereNull('persons_of_interest.deleted_at');
 
-        $arrests = Arrest::query()
+        // The same query as the export (Phase 11E).
+        $arrests = $exporter->query($user, $filters)
             ->with(['agency', 'lga', 'incident', 'persons.offences.offenceType'])
-            ->when($filters['from'] ?? null, fn (Builder $q, string $v) => $q->where('arrests.arrested_at', '>=', CarbonImmutable::createFromFormat('Y-m-d', $v, $tz)?->startOfDay()))
-            ->when($filters['to'] ?? null, fn (Builder $q, string $v) => $q->where('arrests.arrested_at', '<', CarbonImmutable::createFromFormat('Y-m-d', $v, $tz)?->addDay()->startOfDay()))
-            ->when($filters['agency'] ?? null, fn (Builder $q, string $v) => $q->whereIn('arrests.security_agency_id', SecurityAgency::query()->where('ulid', $v)->select('id')))
-            ->when($filters['formation'] ?? null, fn (Builder $q, string $v) => $q->whereIn('arrests.agency_formation_id', AgencyFormation::query()->where('ulid', $v)->select('agency_formations.id')))
-            ->when($filters['offence'] ?? null, fn (Builder $q, string $v) => $q->whereHas('persons.offences', fn (Builder $o) => $o->whereIn('offence_type_id', OffenceType::query()->where('ulid', $v)->select('id'))))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $v) => $q->where('arrests.status', $v))
-            ->when($state, fn (Builder $q) => $q->where('arrests.state_id', $state?->id))
-            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'arrests.state_id', $zone))
-            ->when($lga, fn (Builder $q) => $q->where('arrests.lga_id', $lga?->id))
-            ->when(($filters['linked'] ?? null) === 'yes', fn (Builder $q) => $q->whereNotNull('arrests.incident_id'))
-            ->when(($filters['linked'] ?? null) === 'no', fn (Builder $q) => $q->whereNull('arrests.incident_id'))
-            ->when(($filters['poi'] ?? null) === 'yes', fn (Builder $q) => $q->whereIn('arrests.id', $poiPersons))
-            ->when(($filters['poi'] ?? null) === 'no', fn (Builder $q) => $q->whereNotIn('arrests.id', $poiPersons))
-            ->orderByDesc('arrests.arrested_at')->orderByDesc('arrests.id')
             ->paginate(25)->withQueryString();
 
         return Inertia::render('arrests/index', [

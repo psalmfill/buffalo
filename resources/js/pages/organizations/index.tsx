@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Plus } from 'lucide-react';
 import OrganizationController from '@/actions/App/Http/Controllers/Organizations/OrganizationController';
 import OrganizationLogo from '@/components/organizations/organization-logo';
@@ -89,13 +90,19 @@ export default function OrganizationsIndex({
                         title="Organizations"
                         description="The national directory of companies and organizations. Sites and contacts are shown only within your jurisdiction."
                     />
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={OrganizationController.create()}>
-                                <Plus /> Add organization
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="organizations"
+                            filters={{ ...filters }}
+                        />
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={OrganizationController.create()}>
+                                    <Plus /> Add organization
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>

@@ -146,19 +146,19 @@ test('secret report downloads need step-up; others do not', function () {
     CrossFixtures::signIn($sd)->get("/reports/runs/{$secret->ulid}/download")->assertOk();
 });
 
-test('incident list exports above the threshold need step-up instead of a confirmation', function () {
+test('list exports above the threshold (the incident list among them) need step-up instead of a confirmation', function () {
     config(['buffalo.reports.confirm_rows' => 1, 'buffalo.reports.queue_connection' => 'sync']);
     Storage::fake('reports');
     $sd = $this->world->users['state_director'];
     foreach (range(1, 2) as $i) {
         Incident::factory()->in($this->world->lgas['A1a'])->create(['status' => 'verified', 'reference_no' => "BUF/T/T/2026/00000{$i}", 'submitted_at' => now()]);
     }
-    $payload = ['type' => 'incident_list', 'format' => 'csv', 'parameters' => ['filters' => []]];
+    $payload = ['list' => 'incidents', 'format' => 'csv', 'filters' => []];
 
-    freshSession($sd)->withHeaders(['X-Inertia' => 'true'])->post('/reports', $payload)->assertStatus(428)->assertJson(['step_up' => true]);
+    freshSession($sd)->withHeaders(['X-Inertia' => 'true'])->post('/exports', $payload)->assertStatus(428)->assertJson(['step_up' => true]);
     expect(ReportRun::query()->count())->toBe(0);
 
-    CrossFixtures::signIn($sd)->post('/reports', $payload)->assertRedirect();
+    CrossFixtures::signIn($sd)->post('/exports', $payload)->assertRedirect();
     expect(ReportRun::query()->count())->toBe(1);
 });
 

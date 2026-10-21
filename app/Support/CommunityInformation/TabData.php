@@ -9,7 +9,10 @@ use App\Models\CommunitySecurityNote;
 use App\Models\Lga;
 use App\Models\Religion;
 use App\Models\ReligiousInstitution;
+use App\Models\User;
 use App\Models\VulnerablePopulationStat;
+use App\Support\Exports\Lists\Exporters\ReligiousInstitutionsExporter;
+use App\Support\Exports\Lists\Exporters\SecurityNotesExporter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -41,13 +44,13 @@ final class TabData
             ->where('religious_institutions.lga_id', $lga->id)
             ->when($community, fn (Builder $query) => $query->where('religious_institutions.community_id', $community?->id));
 
-        $list = $base()
+        // The same query as the export (Phase 11E).
+        $list = app(ReligiousInstitutionsExporter::class)->query(self::user($request), [
+            ...array_filter($filters),
+            'lga' => $lga->ulid,
+            'community' => $community->ulid ?? ($filters['community'] ?? null),
+        ])
             ->with(['religion', 'denomination', 'community', 'leader'])
-            ->withCoordinates()
-            ->when($filters['religion'] ?? null, fn (Builder $query, string $religion) => $query->whereHas('religion', fn (Builder $q) => $q->where('ulid', $religion)))
-            ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('religious_institutions.type', $type))
-            ->when(! $community ? ($filters['community'] ?? null) : null, fn (Builder $query, string $ulid) => $query->whereHas('community', fn (Builder $q) => $q->where('ulid', $ulid)))
-            ->orderBy('religious_institutions.name')
             ->paginate(25, pageName: 'institutions_page')
             ->withQueryString();
 
@@ -184,14 +187,9 @@ final class TabData
             'category' => ['nullable', 'string', Rule::in(array_column($options['noteCategories'], 'value'))],
         ]);
 
-        $notes = CommunitySecurityNote::query()
+        // The same query as the export (Phase 11E).
+        $notes = app(SecurityNotesExporter::class)->query(self::user($request), [...array_filter($filters), 'lga' => $lga->ulid, 'community' => $community?->ulid])
             ->with('community')
-            ->where('community_security_notes.lga_id', $lga->id)
-            ->when($community, fn (Builder $query) => $query->where('community_security_notes.community_id', $community?->id))
-            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('community_security_notes.status', $status))
-            ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('community_security_notes.category', $category))
-            ->orderByRaw("CASE community_security_notes.status WHEN 'active' THEN 0 WHEN 'monitoring' THEN 1 ELSE 2 END")
-            ->orderByDesc('community_security_notes.observed_at')
             ->paginate(25, pageName: 'notes_page')
             ->withQueryString();
 
@@ -199,5 +197,11 @@ final class TabData
             'list' => $notes->through(fn (CommunitySecurityNote $note) => CommunityInformationPresenter::note($note)),
             'filters' => ['status' => $filters['status'] ?? '', 'category' => $filters['category'] ?? ''],
         ];
+    }
+
+    private static function user(Request $request): User
+    {
+        /** @var User */
+        return $request->user();
     }
 }

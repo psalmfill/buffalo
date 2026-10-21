@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Security;
 
 use App\Actions\CommunityInformation\DeleteWithReason;
 use App\Actions\Security\SaveAgencyFormation;
-use App\Enums\FormationStatus;
-use App\Enums\FormationType;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\ActivityPresenter;
 use App\Http\Presenters\AgencyFormationPresenter;
@@ -21,13 +19,13 @@ use App\Models\State;
 use App\Models\User;
 use App\Support\Arrests\ArrestLinks;
 use App\Support\Dashboard\MapView;
+use App\Support\Exports\Lists\Exporters\FormationsExporter;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\PlaceFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -41,37 +39,18 @@ class AgencyFormationController extends Controller
     /** Map markers shown on the list page (the filtered set, with a location). */
     private const MAP_LIMIT = 1000;
 
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, FormationsExporter $exporter): Response
     {
         $this->authorize('viewAny', AgencyFormation::class);
         $user = $this->actor($request);
         $states = $options->states($user);
 
-        $filters = $request->validate([
-            'q' => ['nullable', 'string', 'max:100'],
-            'agency' => ['nullable', 'string', 'size:26'],
-            'type' => ['nullable', Rule::enum(FormationType::class)],
-            'status' => ['nullable', Rule::enum(FormationStatus::class)],
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'zone' => PlaceFilter::zoneRule($user),
-            'lga' => ['nullable', 'string', 'size:26'],
-            'temporary' => ['nullable', Rule::in(['yes', 'no'])],
-        ]);
+        $filters = $exporter->filters($request->query(), $user);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
-        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
-        $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
-        $agency = isset($filters['agency']) ? SecurityAgency::query()->where('ulid', $filters['agency'])->first() : null;
 
-        $query = fn (): Builder => AgencyFormation::query()
-            ->when($agency, fn (Builder $q) => $q->where('agency_formations.security_agency_id', $agency?->id))
-            ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('agency_formations.formation_type', $type))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('agency_formations.status', $status))
-            ->when($state, fn (Builder $q) => $q->where('agency_formations.state_id', $state?->id))
-            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'agency_formations.state_id', $zone))
-            ->when($lga, fn (Builder $q) => $q->where('agency_formations.lga_id', $lga?->id))
-            ->when($filters['temporary'] ?? null, fn (Builder $q, string $temporary) => $q->where('agency_formations.is_temporary', $temporary === 'yes'))
-            ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->search($term));
+        // The same filtered query as the export (Phase 11E).
+        $query = fn (): Builder => $exporter->filtered($user, $filters);
 
         $formations = $query()
             ->withCoordinates()

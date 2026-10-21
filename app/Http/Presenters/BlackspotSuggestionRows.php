@@ -42,6 +42,31 @@ final class BlackspotSuggestionRows
     }
 
     /**
+     * The suggestions the viewer may see: each with its count of incidents
+     * visible to them (`visible_incidents`), hidden below min_points,
+     * busiest first. Shared by the page and the export (Phase 11E).
+     *
+     * @param  Builder<BlackspotSuggestion>  $query  scoped
+     * @return Builder<BlackspotSuggestion>
+     */
+    public static function visible(Builder $query): Builder
+    {
+        $counts = Incident::query()
+            ->whereNotIn('incidents.status', [IncidentStatus::Draft->value, IncidentStatus::Invalid->value])
+            ->join('blackspot_suggestion_incidents AS m', 'm.incident_id', '=', 'incidents.id')
+            ->groupBy('m.blackspot_suggestion_id')
+            ->selectRaw('m.blackspot_suggestion_id AS suggestion, count(*) AS n')
+            ->toBase();
+
+        return $query->withCoordinates()
+            ->joinSub($counts, 'visible_counts', 'visible_counts.suggestion', '=', 'blackspot_suggestions.id')
+            ->where('visible_counts.n', '>=', (int) config('buffalo.blackspots.min_points'))
+            ->addSelect(DB::raw('visible_counts.n AS visible_incidents'))
+            ->orderByDesc('visible_counts.n')
+            ->orderBy('blackspot_suggestions.id');
+    }
+
+    /**
      * Open suggestions the viewer may see, with their visible counts.
      *
      * @param  Builder<BlackspotSuggestion>  $query  scoped
@@ -49,13 +74,7 @@ final class BlackspotSuggestionRows
      */
     public static function rows(Builder $query): array
     {
-        $suggestions = $query->withCoordinates()->with(['lga', 'state', 'dominantType'])->get();
-        $counts = self::visibleCounts(array_values(array_map('intval', $suggestions->pluck('id')->all())));
-        $min = (int) config('buffalo.blackspots.min_points');
-
-        return array_values($suggestions
-            ->filter(fn (BlackspotSuggestion $s) => ($counts[$s->id] ?? 0) >= $min)
-            ->sortByDesc(fn (BlackspotSuggestion $s) => $counts[$s->id] ?? 0)
+        return array_values(self::visible($query)->with(['lga', 'state', 'dominantType'])->get()
             ->map(fn (BlackspotSuggestion $s) => [
                 'ulid' => $s->ulid,
                 'lga' => ['ulid' => $s->lga->ulid, 'name' => $s->lga->name],
@@ -63,7 +82,7 @@ final class BlackspotSuggestionRows
                 'latitude' => $s->latitude,
                 'longitude' => $s->longitude,
                 'radius_meters' => $s->radius_meters,
-                'incident_count' => $counts[$s->id] ?? 0,
+                'incident_count' => (int) $s->getAttribute('visible_incidents'),
                 'dominant_type' => $s->dominantType?->name,
                 'category' => $s->category,
                 'first_occurred_at' => $s->first_occurred_at->toIso8601String(),

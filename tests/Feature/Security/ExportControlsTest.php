@@ -76,12 +76,12 @@ test('the daily report quota blocks further reports; scheduled runs do not count
     expect(requestSitrep($this->sd)->exists)->toBeTrue();
 });
 
-test('the daily row quota counts incident list exports', function () {
+test('the daily row quota counts list exports (the incident list among them)', function () {
     config(['buffalo.exports.daily_rows' => 3]);
     foreach (range(1, 2) as $i) {
         Incident::factory()->in($this->world->lgas['A1a'])->create(['status' => 'verified', 'reference_no' => "BUF/T/T/2026/00010{$i}", 'submitted_at' => now()]);
     }
-    $export = fn () => app(JurisdictionContext::class)->actingAs($this->sd, fn () => app(RequestReport::class)($this->sd, ReportType::IncidentList, ReportFormat::Csv, ['filters' => []], stepUpConfirmed: true));
+    $export = fn () => app(JurisdictionContext::class)->actingAs($this->sd, fn () => app(RequestReport::class)($this->sd, ReportType::ListExport, ReportFormat::Csv, ['list' => 'incidents', 'filters' => []], stepUpConfirmed: true));
 
     expect($export()->row_count)->toBe(2)
         ->and(fn () => $export())->toThrow(ExportQuotaExceeded::class, 'past today\'s limit of 3 exported rows (2 used)');

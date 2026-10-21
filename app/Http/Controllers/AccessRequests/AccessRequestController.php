@@ -26,18 +26,18 @@ use App\Models\RecordMatchEvent;
 use App\Models\State;
 use App\Models\User;
 use App\Support\Auth\StepUp;
+use App\Support\Exports\Lists\Exporters\AccessGrantsExporter;
+use App\Support\Exports\Lists\Exporters\AccessRequestsExporter;
 use App\Support\Jurisdiction\AccessRequestApprovers;
 use App\Support\Jurisdiction\AccessRequestParties;
 use App\Support\Jurisdiction\JurisdictionOptions;
-use App\Support\Jurisdiction\JurisdictionRules;
-use App\Support\Jurisdiction\RestrictionType;
+use App\Support\Jurisdiction\OversightReach;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -373,25 +373,16 @@ class AccessRequestController extends Controller
     private function oversight(Request $request, User $user, JurisdictionOptions $options): array
     {
         $states = $options->states($user);
-        $filters = $request->validate([
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'officer' => ['nullable', 'string', 'size:26'],
-            'status' => ['nullable', Rule::enum(AccessRequestStatus::class)],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
-        ]);
+        $requestsList = app(AccessRequestsExporter::class);
+        $filters = $requestsList->filters($request->query(), $user);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
         $officer = isset($filters['officer']) ? AccessRequestParties::byUlid((string) $filters['officer']) : null;
-        $from = isset($filters['from']) ? CarbonImmutable::parse($filters['from'])->startOfDay() : CarbonImmutable::now()->subDays(30)->startOfDay();
-        $to = isset($filters['to']) ? CarbonImmutable::parse($filters['to'])->endOfDay() : CarbonImmutable::now()->endOfDay();
+        [$from, $to] = AccessRequestsExporter::period($filters);
 
-        $requests = $this->inReach($user, RecordAccessRequest::query())
+        // The same queries as the oversight exports (Phase 11E).
+        $requests = $requestsList->query($user, $filters)
             ->with(['owningState', 'requesterState', 'requesterLga', 'matchEvent', 'grant'])
-            ->when($state, fn (Builder $q) => $q->where('owning_state_id', $state?->id))
-            ->when($officer, fn (Builder $q) => $q->where('requester_id', $officer?->id))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status))
-            ->whereBetween('created_at', [$from, $to])
-            ->latest('id')->paginate(self::OVERSIGHT_PAGE, ['*'], 'requests_page')->withQueryString();
+            ->paginate(self::OVERSIGHT_PAGE, ['*'], 'requests_page')->withQueryString();
 
         $events = $this->inReach($user, RecordMatchEvent::query())
             ->with(['owningState'])
@@ -400,11 +391,8 @@ class AccessRequestController extends Controller
             ->whereBetween('created_at', [$from, $to])
             ->latest('id')->paginate(self::OVERSIGHT_PAGE, ['*'], 'events_page')->withQueryString();
 
-        $grants = RecordAccessGrant::query()->with(['request.owningState', 'request.requesterState', 'request.requesterLga'])
-            ->whereHas('request', fn (Builder $q) => $this->inReach($user, $q)->when($state, fn (Builder $w) => $w->where('owning_state_id', $state?->id)))
-            ->when($officer, fn (Builder $q) => $q->where('user_id', $officer?->id))
-            ->whereBetween('created_at', [$from, $to])
-            ->latest('id')->paginate(self::OVERSIGHT_PAGE, ['*'], 'grants_page')->withQueryString();
+        $grants = app(AccessGrantsExporter::class)->query($user, $filters)->with(['request.owningState', 'request.requesterState', 'request.requesterLga'])
+            ->paginate(self::OVERSIGHT_PAGE, ['*'], 'grants_page')->withQueryString();
         AccessRequestParties::attach([...$requests->items(), ...$events->items(), ...$grants->items()]);
 
         $soft = (int) config('buffalo.cross_jurisdiction.soft_daily_limit', 20);
@@ -510,14 +498,7 @@ class AccessRequestController extends Controller
      */
     private function inReach(User $user, Builder $query): Builder
     {
-        $restriction = app(JurisdictionRules::class)->restrictionFor($user, visibleToSuperAdmin: false);
-
-        return match (true) {
-            ! $user->checkPermissionTo(Permission::AccessRequestsOversee->value) => $query->whereRaw('1 = 0'),
-            $restriction->type === RestrictionType::Everything => $query,
-            $restriction->type === RestrictionType::States => $query->whereIn($query->getModel()->qualifyColumn('owning_state_id'), $restriction->stateIds),
-            default => $query->whereRaw('1 = 0'),
-        };
+        return OversightReach::apply($user, $query);
     }
 
     private function actor(Request $request): User

@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Plus } from 'lucide-react';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
@@ -87,13 +88,19 @@ export default function CoverageReportsIndex({
                         title="Coverage reports"
                         description="Each LGA's statement, per period, of which agencies are deployed where, what they cover and where the gaps are."
                     />
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={CoverageReportController.create()}>
-                                <Plus /> New report
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="coverage_reports"
+                            filters={{ ...filters }}
+                        />
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={CoverageReportController.create()}>
+                                    <Plus /> New report
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>

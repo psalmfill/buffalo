@@ -158,6 +158,10 @@ enum Permission: string
 
     // Reports and exports (Phase 7D).
     case ReportsGenerate = 'reports.generate';
-    case ReportsExportData = 'reports.export_data';
     case ReportsSchedule = 'reports.schedule';
+
+    // List exports (Phase 11E): every list page (reports.export_data, the
+    // incident list export, folded in); the sensitive lists need the second.
+    case ExportsLists = 'exports.lists';
+    case ExportsSensitive = 'exports.sensitive';
 }

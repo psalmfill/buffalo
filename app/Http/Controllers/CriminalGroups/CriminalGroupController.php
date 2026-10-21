@@ -18,13 +18,12 @@ use App\Models\Lga;
 use App\Models\Person;
 use App\Models\State;
 use App\Models\User;
+use App\Support\Exports\Lists\Exporters\CriminalGroupsExporter;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
-use App\Support\Search\Trigram;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -38,30 +37,18 @@ class CriminalGroupController extends Controller
 {
     public const TABS = ['overview', 'areas', 'members', 'incidents', 'history'];
 
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, CriminalGroupsExporter $exporter): Response
     {
         $this->authorize('viewAny', CriminalGroup::class);
         $user = $this->actor($request);
         $lgas = $options->lgas($user);
         $groupOptions = CriminalGroupPresenter::options();
 
-        $filters = $request->validate([
-            'q' => ['nullable', 'string', 'max:100'],
-            'type' => ['nullable', 'string', Rule::in(array_column($groupOptions['types'], 'value'))],
-            'status' => ['nullable', 'string', Rule::in(array_column($groupOptions['statuses'], 'value'))],
-            'classification' => ['nullable', 'string', Rule::in(array_column($groupOptions['classifications'], 'value'))],
-            'lga' => ['nullable', 'string', Rule::in($lgas->pluck('ulid'))],
-        ]);
-        $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
+        $filters = $exporter->filters($request->query(), $user);
 
-        $groups = Trigram::withWordSimilarity(CriminalGroup::SEARCH_SIMILARITY, fn () => CriminalGroup::query()
+        // The same query as the export (Phase 11E).
+        $groups = $exporter->around(fn () => $exporter->query($user, $filters)
             ->with(['lga', 'state'])
-            ->withCount(['members as visible_members_count' => fn (Builder $q) => $q->whereHas('person')])
-            ->when($filters['type'] ?? null, fn (Builder $q, string $type) => $q->where('criminal_groups.type', $type))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('criminal_groups.status', $status))
-            ->when($filters['classification'] ?? null, fn (Builder $q, string $level) => $q->where('criminal_groups.classification', $level))
-            ->when($lga, fn (Builder $q) => $q->where('criminal_groups.lga_id', $lga?->id))
-            ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->search($term), fn (Builder $q) => $q->orderBy('criminal_groups.name'))
             ->paginate(25)
             ->withQueryString());
 

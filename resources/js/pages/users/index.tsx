@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { ArrowDown, ArrowUp, Plus, Send, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -99,25 +100,32 @@ export default function UsersIndex({
                                 : 'Users within your jurisdiction (read-only)'
                         }
                     />
-                    {can.create && (
-                        <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" asChild>
-                                <Link href={OnboardingController.index()}>
-                                    <Send /> Onboarding
-                                </Link>
-                            </Button>
-                            <Button variant="outline" asChild>
-                                <Link href={UserImportController.create()}>
-                                    <Upload /> Import
-                                </Link>
-                            </Button>
-                            <Button asChild>
-                                <Link href={UserController.create()}>
-                                    <Plus /> New user
-                                </Link>
-                            </Button>
-                        </div>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="users"
+                            filters={{ ...filters }}
+                            superAdminList
+                        />
+                        {can.create && (
+                            <div className="flex flex-wrap gap-2">
+                                <Button variant="outline" asChild>
+                                    <Link href={OnboardingController.index()}>
+                                        <Send /> Onboarding
+                                    </Link>
+                                </Button>
+                                <Button variant="outline" asChild>
+                                    <Link href={UserImportController.create()}>
+                                        <Upload /> Import
+                                    </Link>
+                                </Button>
+                                <Button asChild>
+                                    <Link href={UserController.create()}>
+                                        <Plus /> New user
+                                    </Link>
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-4">

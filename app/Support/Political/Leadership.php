@@ -14,6 +14,7 @@ use App\Models\PersonRoleType;
 use App\Models\PoliticalOffice;
 use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
+use App\Support\Exports\Lists\Exporters\PoliticalOfficesExporter;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -55,12 +56,9 @@ final class Leadership
      */
     public function forLga(Lga $lga): array
     {
-        $offices = PoliticalOffice::query()
-            ->current()
+        // The same query as the export (Phase 11E).
+        $offices = PoliticalOfficesExporter::currentForLga($lga)
             ->with(self::OFFICE_RELATIONS)
-            ->where('lga_id', $lga->id)
-            ->whereIn('office', [PoliticalOfficeType::LgaChairman->value, PoliticalOfficeType::LgaViceChairman->value, PoliticalOfficeType::Councillor->value])
-            ->orderBy('started_on')
             ->get();
 
         $present = fn (PoliticalOfficeType $type) => $offices->filter(fn (PoliticalOffice $o) => $o->office === $type)

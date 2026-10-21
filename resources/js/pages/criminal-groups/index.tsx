@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Plus } from 'lucide-react';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
@@ -73,13 +74,19 @@ export default function CriminalGroupsIndex({
                         title="Criminal groups"
                         description="Groups based within your jurisdiction. Groups based elsewhere are not listed, even if they operate here."
                     />
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={CriminalGroupController.create()}>
-                                <Plus /> Add group
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="criminal_groups"
+                            filters={{ ...filters }}
+                        />
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={CriminalGroupController.create()}>
+                                    <Plus /> Add group
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>

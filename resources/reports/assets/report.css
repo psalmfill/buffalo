@@ -41,3 +41,14 @@ main { position: relative; z-index: 1; }
 .rich table { margin: 4pt 0; }
 .rich td p, .rich th p, .rich li p { margin: 0; }
 .rich a { color: #1d4ed8; }
+/* List exports as PDF tables (Phase 11E): many columns, small type. */
+table.list { font-size: 7.5pt; }
+table.list th, table.list td { padding: 2pt 3pt; }
+/* Location sketches (Phase 11E): inline SVG drawn on the server. */
+.sketch-frame { break-inside: avoid; margin: 4pt 0; }
+.sketch-frame svg { width: 100%; height: auto; max-height: 300pt; }
+/* Site photos (Phase 11E): files sent with the request. */
+.photos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6pt; }
+.photos figure { margin: 0; break-inside: avoid; }
+.photos img { width: 100%; max-height: 170pt; object-fit: cover; border: 1px solid #e2e8f0; }
+.photos figcaption { font-size: 8pt; color: #475569; }

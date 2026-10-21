@@ -1,4 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import PrintRecordButton from '@/components/reports/print-record-button';
 import { ClipboardCheck, Link2, Pencil, Trash2, Unlink } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
@@ -148,6 +149,11 @@ export default function FlashpointShow(props: Props) {
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        <PrintRecordButton
+                            type="flashpoint"
+                            parameter="flashpoint"
+                            ulid={flashpoint.ulid}
+                        />
                         {can.assess && (
                             <Button asChild>
                                 <Link

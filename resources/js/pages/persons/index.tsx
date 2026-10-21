@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -136,13 +137,20 @@ export default function PersonsIndex({
                         title="Persons"
                         description="Search persons within your jurisdiction by name, NIN or phone number."
                     />
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={PersonController.create()}>
-                                <Plus /> Add person
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="persons"
+                            filters={{ ...filters }}
+                            sensitive
+                        />
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={PersonController.create()}>
+                                    <Plus /> Add person
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <form

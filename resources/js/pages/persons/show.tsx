@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import PrintRecordButton from '@/components/reports/print-record-button';
 import ArrestsTable from '@/components/arrests/arrests-table';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
@@ -648,6 +649,11 @@ export default function PersonShow({
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <PrintRecordButton
+                            type="person"
+                            parameter="person"
+                            ulid={person.ulid}
+                        />
                         {can.requestMerge && (
                             <Button
                                 variant="outline"

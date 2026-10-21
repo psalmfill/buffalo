@@ -119,7 +119,7 @@ final class AccessRequestPresenter
         ];
     }
 
-    private static function place(RecordAccessRequest $request): string
+    public static function place(RecordAccessRequest $request): string
     {
         return $request->requesterLga !== null
             ? "{$request->requesterLga->name} LGA, {$request->requesterState?->name} State"

@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Upload } from 'lucide-react';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import CommunityImportController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityImportController';
@@ -46,13 +47,19 @@ export default function CommunitiesIndex({
                         title="Communities"
                         description="Search communities across your jurisdiction. The search tolerates misspellings and matches other names."
                     />
-                    {can.import && (
-                        <Button variant="outline" asChild>
-                            <Link href={CommunityImportController.create()}>
-                                <Upload /> Import CSV
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="communities"
+                            filters={{ ...filters }}
+                        />
+                        {can.import && (
+                            <Button variant="outline" asChild>
+                                <Link href={CommunityImportController.create()}>
+                                    <Upload /> Import CSV
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>

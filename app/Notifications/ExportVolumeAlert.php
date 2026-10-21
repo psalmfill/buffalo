@@ -14,7 +14,7 @@ use App\Models\User;
 final class ExportVolumeAlert extends BuffaloNotification
 {
     /**
-     * @param  array{rows: int, report_runs: int, evidence_downloads: int, secret_exports: int}  $usage
+     * @param  array{rows: int, report_runs: int, evidence_downloads: int, secret_exports: int, sensitive_exports?: int}  $usage
      * @param  array{rows: int, report_runs: int, evidence_downloads: int}  $quotas
      */
     public function __construct(

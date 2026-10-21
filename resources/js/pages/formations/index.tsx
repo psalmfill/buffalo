@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Plus } from 'lucide-react';
 import FormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
 import ClassificationBadge from '@/components/community-information/classification-badge';
@@ -93,13 +94,19 @@ export default function FormationsIndex({
                         title="Agency formations"
                         description="Commands, divisions, stations, bases and checkpoints of security agencies within your jurisdiction."
                     />
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={FormationController.create()}>
-                                <Plus /> Add formation
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="formations"
+                            filters={{ ...filters }}
+                        />
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={FormationController.create()}>
+                                    <Plus /> Add formation
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>

@@ -1,4 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import PrintRecordButton from '@/components/reports/print-record-button';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import { useState } from 'react';
@@ -204,6 +205,11 @@ export default function ArrestShow(props: Props) {
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <PrintRecordButton
+                            type="arrest"
+                            parameter="arrest"
+                            ulid={arrest.ulid}
+                        />
                         {can.update && (
                             <>
                                 <Button

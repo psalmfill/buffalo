@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
 import EmptyState from '@/components/empty-state';
 import { FilterBar, useFilters } from '@/components/filter-bar';
@@ -29,10 +30,13 @@ export default function LgasIndex({ lgas, filters, states, districts }: Props) {
         <>
             <Head title="LGAs" />
             <div className="space-y-6 p-4">
-                <Heading
-                    title="LGAs"
-                    description="Local Government Areas in your jurisdiction, with their profile completeness."
-                />
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <Heading
+                        title="LGAs"
+                        description="Local Government Areas in your jurisdiction, with their profile completeness."
+                    />
+                    <ExportListButton list="lgas" filters={{ ...filters }} />
+                </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>
                     <div className="grid gap-2 md:col-span-2">

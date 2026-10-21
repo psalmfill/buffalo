@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
 import ExportReviewController from '@/actions/App/Http/Controllers/Audit/ExportReviewController';
 import EmptyState from '@/components/empty-state';
 import { FilterBar, useFilters } from '@/components/filter-bar';
@@ -8,6 +9,7 @@ import Pagination from '@/components/pagination';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDateTime } from '@/lib/time';
+import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types/pagination';
 
 type Filters = {
@@ -17,6 +19,7 @@ type Filters = {
     classification: string;
     from: string;
     to: string;
+    sensitive: string;
 };
 
 type Entry = {
@@ -28,6 +31,9 @@ type Entry = {
     what: string;
     classification: string;
     rows: number | null;
+    /** An export of a sensitive list (Phase 11E), with the stated reason. */
+    sensitive: boolean;
+    reason: string | null;
 };
 
 type Props = {
@@ -132,6 +138,19 @@ export default function ExportsReview({ entries, filters, states }: Props) {
                             onChange={(e) => set('to', e.target.value)}
                         />
                     </div>
+                    <div className="grid gap-1">
+                        <Label htmlFor="sensitive">Sensitive lists</Label>
+                        <NativeSelect
+                            id="sensitive"
+                            value={values.sensitive}
+                            onChange={(e) => set('sensitive', e.target.value)}
+                        >
+                            <option value="">All exports</option>
+                            <option value="1">
+                                Sensitive list exports only
+                            </option>
+                        </NativeSelect>
+                    </div>
                 </FilterBar>
 
                 {entries.data.length === 0 ? (
@@ -158,7 +177,17 @@ export default function ExportsReview({ entries, filters, states }: Props) {
                             </thead>
                             <tbody>
                                 {entries.data.map((e, i) => (
-                                    <tr key={i} className="border-t align-top">
+                                    <tr
+                                        key={i}
+                                        className={cn(
+                                            'border-t align-top',
+                                            e.sensitive &&
+                                                'bg-amber-50 dark:bg-amber-950/40',
+                                        )}
+                                        data-sensitive={
+                                            e.sensitive ? 'true' : undefined
+                                        }
+                                    >
                                         <td className="px-3 py-2 whitespace-nowrap">
                                             {formatDateTime(e.at)}
                                         </td>
@@ -175,7 +204,22 @@ export default function ExportsReview({ entries, filters, states }: Props) {
                                         <td className="px-3 py-2">
                                             {e.action}
                                         </td>
-                                        <td className="px-3 py-2">{e.what}</td>
+                                        <td className="px-3 py-2">
+                                            {e.sensitive && (
+                                                <Badge
+                                                    variant="destructive"
+                                                    className="mb-1"
+                                                >
+                                                    Sensitive list
+                                                </Badge>
+                                            )}
+                                            <div>{e.what}</div>
+                                            {e.reason && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    Reason: {e.reason}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="px-3 py-2">
                                             {e.classification}
                                         </td>

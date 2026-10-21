@@ -8,8 +8,6 @@ use App\Actions\Security\ReviewCoverageReport;
 use App\Actions\Security\SaveCoverageReport;
 use App\Actions\Security\SubmitCoverageReport;
 use App\Enums\CoveragePeriodType;
-use App\Enums\CoverageRating;
-use App\Enums\CoverageReportStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\AgencyFormationPresenter;
 use App\Http\Presenters\CoverageReportPresenter;
@@ -21,15 +19,14 @@ use App\Models\Lga;
 use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Exports\Lists\Exporters\CoverageReportsExporter;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\PlaceFilter;
 use App\Support\Security\CoverageAnalysis;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,38 +38,19 @@ use Inertia\Response;
  */
 class CoverageReportController extends Controller
 {
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, CoverageReportsExporter $exporter): Response
     {
         $this->authorize('viewAny', CoverageReport::class);
         $user = $this->actor($request);
         $states = $options->states($user);
 
-        $filters = $request->validate([
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'zone' => PlaceFilter::zoneRule($user),
-            'lga' => ['nullable', 'string', 'size:26'],
-            'period_type' => ['nullable', Rule::enum(CoveragePeriodType::class)],
-            'period' => ['nullable', 'date_format:Y-m-d'],
-            'status' => ['nullable', Rule::enum(CoverageReportStatus::class)],
-            'rating' => ['nullable', Rule::enum(CoverageRating::class)],
-        ]);
+        $filters = $exporter->filters($request->query(), $user);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
-        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
-        $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
 
-        $reports = CoverageReport::query()
+        // The same query as the export (Phase 11E).
+        $reports = $exporter->query($user, $filters)
             ->with(['lga', 'state'])
-            ->when($state, fn (Builder $q) => $q->where('coverage_reports.state_id', $state?->id))
-            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'coverage_reports.state_id', $zone))
-            ->when($lga, fn (Builder $q) => $q->where('coverage_reports.lga_id', $lga?->id))
-            ->when($filters['period_type'] ?? null, fn (Builder $q, string $type) => $q->where('coverage_reports.period_type', $type))
-            // A date within the period.
-            ->when($filters['period'] ?? null, fn (Builder $q, string $date) => $q->where('coverage_reports.period_start', '<=', $date)->where('coverage_reports.period_end', '>=', $date))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('coverage_reports.status', $status))
-            ->when($filters['rating'] ?? null, fn (Builder $q, string $rating) => $q->where('coverage_reports.overall_rating', $rating))
-            ->orderByDesc('coverage_reports.period_start')
-            ->orderBy('coverage_reports.id')
             ->paginate(25)
             ->withQueryString();
 

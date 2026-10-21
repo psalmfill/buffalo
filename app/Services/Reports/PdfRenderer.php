@@ -21,8 +21,9 @@ final class PdfRenderer
     /**
      * @param  view-string  $view
      * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $files  images the view references by name (sent with the request; Phase 11E site photos)
      */
-    public function render(string $view, array $data, string $title, ReportRun $run, User $user, LevelTracker $levels): ReportOutput
+    public function render(string $view, array $data, string $title, ReportRun $run, User $user, LevelTracker $levels, array $files = []): ReportOutput
     {
         $markings = ReportMarkings::for($run, $user, $levels->level());
         $shared = ['markings' => $markings, 'title' => $title, 'run' => $run];
@@ -31,6 +32,7 @@ final class PdfRenderer
             view($view, [...$data, ...$shared])->render(),
             view('reports.header', $shared)->render(),
             view('reports.footer', $shared)->render(),
+            $files,
         );
 
         $path = tempnam(sys_get_temp_dir(), 'buffalo-report-');

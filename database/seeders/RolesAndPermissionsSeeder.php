@@ -333,13 +333,26 @@ class RolesAndPermissionsSeeder extends Seeder
             // ---------------------------------------------------------------
             'reports' => [
                 Permission::ReportsGenerate->value => self::INTELLIGENCE_ROLES,
-                Permission::ReportsExportData->value => [
+                Permission::ReportsSchedule->value => self::INTELLIGENCE_ROLES,
+            ],
+
+            // ---------------------------------------------------------------
+            // Phase 11E — List exports. Each list also needs its module's view
+            // permission; super admins export the users list only
+            // (ListExporter::forSuperAdmin). The sensitive lists (persons,
+            // persons of interest, group members, organization contacts) are
+            // for SD, DG and DDG, with step-up and a reason every time.
+            // ---------------------------------------------------------------
+            'exports' => [
+                Permission::ExportsLists->value => [
+                    Role::SuperAdmin,
+                    ...self::INTELLIGENCE_ROLES,
+                ],
+                Permission::ExportsSensitive->value => [
                     Role::DirectorGeneral,
                     Role::DeputyDirectorGeneral,
                     Role::StateDirector,
-                    Role::DeputyStateDirector,
                 ],
-                Permission::ReportsSchedule->value => self::INTELLIGENCE_ROLES,
             ],
 
             // ---------------------------------------------------------------
@@ -390,6 +403,14 @@ class RolesAndPermissionsSeeder extends Seeder
             foreach (Permission::cases() as $permission) {
                 SpatiePermission::findOrCreate($permission->value, self::GUARD);
             }
+
+            // Permissions no longer in the enum (e.g. reports.export_data,
+            // folded into exports.lists in Phase 11E) are removed, with
+            // their role assignments.
+            SpatiePermission::query()->where('guard_name', self::GUARD)
+                ->whereNotIn('name', array_map(fn (Permission $p) => $p->value, Permission::cases()))
+                ->get()
+                ->each(fn (SpatiePermission $stale) => $stale->delete());
 
             foreach (self::permissionsByRole() as $role => $permissions) {
                 SpatieRole::findOrCreate($role, self::GUARD)->syncPermissions($permissions);

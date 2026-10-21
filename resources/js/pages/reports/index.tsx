@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
 import { Download } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import ReportController from '@/actions/App/Http/Controllers/Reports/ReportController';
 import ReportScheduleController from '@/actions/App/Http/Controllers/Reports/ReportScheduleController';
 import EmptyState from '@/components/empty-state';
@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCurrentUser } from '@/hooks/use-auth';
-import { postJson } from '@/lib/http';
 import { formatDateTime } from '@/lib/time';
 import { cn } from '@/lib/utils';
 import type {
@@ -37,15 +36,12 @@ type Props = {
     canSchedule: boolean;
 };
 
-type Estimate = { rows: number; step_up: boolean; over_limit: boolean };
-
-const DESCRIPTIONS: Record<ReportTypeValue, string> = {
+/** Types requested from this page (record PDFs and list exports start on their pages). */
+const DESCRIPTIONS: Partial<Record<ReportTypeValue, string>> = {
     sitrep: 'The last 24 hours in your jurisdiction: new incidents, escalations, urgent threats, flashpoints, disseminations received and work awaiting action.',
     weekly: 'A week compared with the week before: key figures, trends, top places, notable incidents, threat outcomes, flashpoint changes and coverage.',
     monthly:
         'A month compared with the previous month and the same month last year.',
-    incident_list:
-        'A spreadsheet of incidents matching filters chosen on the incident list. No person names, descriptions or evidence.',
     incident: 'One incident in its print layout.',
     lga_profile:
         'One LGA: profile, communities, security presence, current public office holders, flashpoints and recent incidents.',
@@ -107,14 +103,10 @@ export default function ReportsIndex({
     const [parameters, setParameters] = useState<ReportParameters>(
         prefill?.parameters ?? {},
     );
-    const [fetchedEstimate, setEstimate] = useState<Estimate | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [busy, setBusy] = useState(false);
 
     const record = prefill?.type === type ? (prefill.record ?? null) : null;
-    const filterCount = Object.keys(
-        (parameters.filters as Record<string, unknown> | undefined) ?? {},
-    ).length;
 
     useEcho<{ run: string; status: string }>(
         `users.${userUlid}`,
@@ -134,35 +126,11 @@ export default function ReportsIndex({
     const set = (values: ReportParameters) =>
         setParameters((p) => ({ ...p, ...values }));
 
-    // Incident list exports: the row count before generating.
-    const filtersKey = JSON.stringify(parameters.filters ?? {});
-    useEffect(() => {
-        if (type !== 'incident_list') {
-            return;
-        }
-
-        let cancelled = false;
-        postJson<Estimate>(ReportController.estimate.url(), {
-            parameters: { filters: JSON.parse(filtersKey) },
-        })
-            .then((e) => !cancelled && setEstimate(e))
-            .catch(() => !cancelled && setEstimate(null));
-
-        return () => {
-            cancelled = true;
-        };
-    }, [type, filtersKey]);
-
-    const estimate = type === 'incident_list' ? fetchedEstimate : null;
-
     const needsRecord =
         (type === 'incident' || type === 'coverage') && record === null;
     const needsLga =
         type === 'lga_profile' && !(parameters.lga as string | undefined);
-    const blocked =
-        needsRecord ||
-        needsLga ||
-        (type === 'incident_list' && estimate?.over_limit === true);
+    const blocked = needsRecord || needsLga;
 
     const generate = () => {
         if (!type) {
@@ -355,56 +323,6 @@ export default function ReportsIndex({
                                                 ? `Filters from analytics: ${record.label.split(' · ').slice(1).join(' · ')}.`
                                                 : 'Last 30 days. Use “Export PDF” on the analytics page to keep its filters.'}
                                         </p>
-                                    </div>
-                                )}
-
-                                {type === 'incident_list' && (
-                                    <div
-                                        className="flex flex-col gap-2 text-sm"
-                                        data-test="incident-list-estimate"
-                                    >
-                                        <p>
-                                            {filterCount === 0
-                                                ? 'All incidents in your jurisdiction (drafts and invalid reports excluded).'
-                                                : `${filterCount} filter(s) from the incident list.`}{' '}
-                                            <span className="text-muted-foreground">
-                                                To change them, filter the
-                                                incident list and choose{' '}
-                                                <em>Export</em>.
-                                            </span>
-                                        </p>
-                                        {estimate && (
-                                            <p
-                                                className={cn(
-                                                    estimate.over_limit &&
-                                                        'text-destructive',
-                                                )}
-                                            >
-                                                {estimate.rows.toLocaleString(
-                                                    'en-NG',
-                                                )}{' '}
-                                                rows
-                                                {estimate.over_limit &&
-                                                    ` — over the limit of ${limits.max_rows.toLocaleString('en-NG')}. Narrow the filters.`}
-                                            </p>
-                                        )}
-                                        {estimate?.step_up &&
-                                            !estimate.over_limit && (
-                                                <p
-                                                    className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3"
-                                                    data-test="step-up-notice"
-                                                >
-                                                    This export has{' '}
-                                                    {estimate.rows.toLocaleString(
-                                                        'en-NG',
-                                                    )}{' '}
-                                                    rows. You will be asked for
-                                                    the code from your
-                                                    authenticator app, and the
-                                                    export is logged in your
-                                                    name.
-                                                </p>
-                                            )}
                                     </div>
                                 )}
 

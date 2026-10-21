@@ -20,12 +20,11 @@ use App\Models\PersonOfInterest;
 use App\Models\State;
 use App\Models\User;
 use App\Support\Dashboard\MapView;
+use App\Support\Exports\Lists\Exporters\PersonsOfInterestExporter;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\PlaceFilter;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -39,39 +38,20 @@ use Inertia\Response;
  */
 class PersonOfInterestController extends Controller
 {
-    public function index(Request $request, JurisdictionOptions $options): Response
+    public function index(Request $request, JurisdictionOptions $options, PersonsOfInterestExporter $exporter): Response
     {
         $this->authorize('viewAny', PersonOfInterest::class);
         $user = $this->actor($request);
         $states = $options->states($user);
         $filterOptions = PoiPresenter::options();
 
-        $filters = $request->validate([
-            'risk' => ['nullable', 'string', Rule::in(array_column($filterOptions['riskLevels'], 'value'))],
-            'status' => ['nullable', 'string', Rule::in(array_column($filterOptions['statuses'], 'value'))],
-            'offence' => ['nullable', 'string', 'max:50'],
-            // State and zone (Phase 11A.2, the state lens).
-            'state' => ['nullable', 'string', Rule::in($states->pluck('ulid'))],
-            'zone' => PlaceFilter::zoneRule($user),
-            'lga' => ['nullable', 'string', 'size:26'],
-            'overdue' => ['nullable', 'in:1'],
-        ]);
-
+        $filters = $exporter->filters($request->query(), $user);
         $state = isset($filters['state']) ? $states->firstWhere('ulid', $filters['state']) : null;
-        $zone = PlaceFilter::zone($filters['zone'] ?? null);
         $lgas = $options->lgas($user, $state);
-        $lga = isset($filters['lga']) ? $lgas->firstWhere('ulid', $filters['lga']) : null;
 
-        $results = PersonOfInterest::query()
+        // The same query as the (sensitive) export (Phase 11E).
+        $results = $exporter->query($user, $filters)
             ->with(['person.lga', 'person.roles', 'person.media' => fn ($q) => $q->where('collection_name', Person::PHOTOS), 'lga'])
-            ->when($filters['risk'] ?? null, fn (Builder $q, string $risk) => $q->where('persons_of_interest.risk_level', $risk))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('persons_of_interest.status', $status))
-            ->when($filters['offence'] ?? null, fn (Builder $q, string $code) => $q->whereJsonContains('persons_of_interest.offence_categories', $code))
-            ->when($state, fn (Builder $q) => $q->where('persons_of_interest.state_id', $state?->id))
-            ->tap(fn (Builder $q) => PlaceFilter::apply($q, 'persons_of_interest.state_id', $zone))
-            ->when($lga, fn (Builder $q) => $q->where('persons_of_interest.lga_id', $lga?->id))
-            ->when(isset($filters['overdue']), fn (Builder $q) => $q->reviewOverdue())
-            ->byPriority()
             ->paginate(25)
             ->withQueryString();
 

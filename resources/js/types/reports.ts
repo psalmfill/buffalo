@@ -6,7 +6,15 @@ export type ReportTypeValue =
     | 'incident'
     | 'lga_profile'
     | 'coverage'
-    | 'analytics';
+    | 'analytics'
+    // Phase 11E: list exports and single-record PDFs, started on their pages.
+    | 'list'
+    | 'flashpoint'
+    | 'organization_site'
+    | 'arrest'
+    | 'threat_report'
+    | 'criminal_group'
+    | 'person';
 
 export type ReportFormatValue = 'pdf' | 'xlsx' | 'csv';
 

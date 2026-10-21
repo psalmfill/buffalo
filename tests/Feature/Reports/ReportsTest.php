@@ -124,12 +124,15 @@ function reportRows(ReportRun $run): array
 |--------------------------------------------------------------------------
 */
 
-test('report types per role: monthly and incident list exports are for DG, DDG, SD and DSD; super admin has none', function () {
-    $all = array_map(fn (ReportType $t) => $t->value, ReportType::cases());
-    $lga = ['sitrep', 'weekly', 'incident', 'lga_profile', 'coverage', 'analytics'];
+test('report types per role: monthly summaries for DG, DDG, SD and DSD; super admins export lists only', function () {
+    // Phase 11E: the incident list moved into the list exporters (type "list"),
+    // and single-record PDFs gained new types; the old incident_list type is
+    // kept for earlier runs only and is never generated.
+    $all = array_values(array_diff(array_map(fn (ReportType $t) => $t->value, ReportType::cases()), ['incident_list']));
+    $lga = array_values(array_diff($all, ['monthly']));
     $expected = [
         'director_general' => $all, 'ddg_national' => $all, 'state_director' => $all, 'deputy_state_director' => $all,
-        'lga_chief' => $lga, 'super_admin' => [], 'inactive_dg' => [],
+        'lga_chief' => $lga, 'super_admin' => ['list'], 'inactive_dg' => [],
     ];
 
     foreach ($expected as $role => $types) {
@@ -138,11 +141,14 @@ test('report types per role: monthly and incident list exports are for DG, DDG, 
         expect($allowed)->toBe($types, $role);
     }
 
-    CrossFixtures::signIn($this->admin)->get('/reports')->assertForbidden();
+    // The reports page offers only the types it can set up; record PDFs and
+    // list exports start on their own pages.
+    CrossFixtures::signIn($this->admin)->get('/reports')->assertOk()
+        ->assertInertia(fn ($page) => $page->where('types', []));
     CrossFixtures::signIn($this->chief)->post('/reports', ['type' => 'incident_list', 'format' => 'csv'])->assertForbidden();
     CrossFixtures::signIn($this->chief)->post('/reports', ['type' => 'monthly', 'format' => 'pdf'])->assertForbidden();
     CrossFixtures::signIn($this->chief)->get('/reports')->assertOk()
-        ->assertInertia(fn ($page) => $page->component('reports/index')->where('types', fn ($types) => collect($types)->pluck('value')->all() === $lga));
+        ->assertInertia(fn ($page) => $page->component('reports/index')->where('types', fn ($types) => collect($types)->pluck('value')->all() === ['sitrep', 'weekly', 'incident', 'lga_profile', 'coverage', 'analytics']));
 });
 
 /*
@@ -242,13 +248,13 @@ test('weekly and monthly summaries render charts within the requester\'s scopes'
 |--------------------------------------------------------------------------
 */
 
-test('incident list exports: scoped rows, markings first, no person names, formulas neutralised', function () {
+test('incident list exports (now a list exporter): scoped rows, markings first, no person names, formulas neutralised', function () {
     DB::table('incidents')->where('id', $this->own->id)->update(['title' => '=HYPERLINK("http://evil.test","x")']);
     $person = CrossFixtures::person($this->world->lgas['A1a'], ['first_name' => 'Zebulon', 'last_name' => 'Quartermain', 'other_names' => null]);
     IncidentPerson::query()->forceCreate(['incident_id' => $this->own->id, 'state_id' => $this->own->state_id, 'lga_id' => $this->own->lga_id, 'person_id' => $person->id, 'involvement' => 'suspect']);
 
     foreach ([ReportFormat::Xlsx, ReportFormat::Csv] as $format) {
-        $run = generateReport($this->dsd, ReportType::IncidentList, ['filters' => []], $format);
+        $run = generateReport($this->dsd, ReportType::ListExport, ['list' => 'incidents', 'filters' => []], $format);
         $rows = reportRows($run);
         $flat = implode(' ', array_map(fn ($r) => implode(' ', array_map('strval', $r)), $rows));
 
@@ -268,16 +274,18 @@ test('incident list exports: scoped rows, markings first, no person names, formu
 
 test('incident list exports are capped and need step-up above the threshold', function () {
     config(['buffalo.reports.confirm_rows' => 1, 'buffalo.reports.max_rows' => 3]);
+    $list = ['list' => 'incidents', 'filters' => []];
 
-    expect(fn () => generateReport($this->sd, ReportType::IncidentList, ['filters' => []], ReportFormat::Csv))
+    expect(fn () => generateReport($this->sd, ReportType::ListExport, $list, ReportFormat::Csv))
         ->toThrow(StepUpRequired::class);
-    expect(generateReport($this->sd, ReportType::IncidentList, ['filters' => []], ReportFormat::Csv, stepUp: true)->row_count)->toBe(3);
+    expect(generateReport($this->sd, ReportType::ListExport, $list, ReportFormat::Csv, stepUp: true)->row_count)->toBe(3);
 
-    expect(fn () => generateReport($this->dg, ReportType::IncidentList, ['filters' => []], ReportFormat::Csv, stepUp: true))
+    expect(fn () => generateReport($this->dg, ReportType::ListExport, $list, ReportFormat::Csv, stepUp: true))
         ->toThrow(ValidationException::class, 'limited to 3');
 
-    CrossFixtures::signIn($this->dg)->postJson('/reports/estimate', ['parameters' => ['filters' => []]])
-        ->assertOk()->assertExactJson(['rows' => 4, 'step_up' => true, 'over_limit' => true]);
+    CrossFixtures::signIn($this->dg)->postJson('/exports/incidents/preview', ['filters' => []])
+        ->assertOk()->assertJsonPath('rows', 4)->assertJsonPath('step_up', true)
+        ->assertJsonPath('formats.0', ['value' => 'xlsx', 'limit' => 3, 'over_limit' => true]);
 });
 
 /*

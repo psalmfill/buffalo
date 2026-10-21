@@ -100,8 +100,9 @@ export const PERMISSIONS = [
     'analytics.view',
     'analytics.export',
     'reports.generate',
-    'reports.export_data',
     'reports.schedule',
+    'exports.lists',
+    'exports.sensitive',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

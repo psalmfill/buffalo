@@ -18,12 +18,9 @@ use App\Models\User;
 use App\Services\Analytics\Analytics;
 use App\Services\Analytics\AnalyticsArea;
 use App\Services\Analytics\AnalyticsFilters;
-use App\Services\Reports\ReportParameters;
 use App\Support\Auth\StepUp;
 use App\Support\Exports\ExportControls;
-use App\Support\Incidents\IncidentFilters;
 use App\Support\Jurisdiction\JurisdictionOptions;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -45,7 +42,8 @@ class ReportController extends Controller
     {
         $this->authorize('viewAny', ReportRun::class);
         $user = $this->actor($request);
-        $types = array_values(array_filter(ReportType::cases(), fn (ReportType $t) => $user->can('generate', [ReportRun::class, $t])));
+        // Record PDFs and list exports are requested from their own pages (Phase 11E).
+        $types = array_values(array_filter(ReportType::cases(), fn (ReportType $t) => $t->offeredOnReportsPage() && $user->can('generate', [ReportRun::class, $t])));
         $states = $options->states($user);
 
         return Inertia::render('reports/index', [
@@ -78,22 +76,6 @@ class ReportController extends Controller
 
         return redirect()->route('reports.index', ['run' => $run->ulid])
             ->with('toast', ['type' => 'success', 'message' => $type->label().' requested. It will appear in My reports when ready.']);
-    }
-
-    /** Rows an incident list export would contain (before generating). */
-    public function estimate(Request $request, ReportParameters $parameters): JsonResponse
-    {
-        $this->authorize('generate', [ReportRun::class, ReportType::IncidentList]);
-        $user = $this->actor($request);
-        $values = $parameters->validate(ReportType::IncidentList, (array) $request->input('parameters', []), $user);
-        $rows = RequestReport::estimate($user, $values);
-
-        return response()->json([
-            'rows' => $rows,
-            // Above the threshold, generating asks for a TOTP code (step-up).
-            'step_up' => $rows > (int) config('buffalo.reports.confirm_rows'),
-            'over_limit' => $rows > (int) config('buffalo.reports.max_rows'),
-        ]);
     }
 
     public function download(Request $request, ReportRun $run): StreamedResponse
@@ -151,7 +133,6 @@ class ReportController extends Controller
         $query = $request->query();
 
         return match ($type) {
-            ReportType::IncidentList => ['type' => $type->value, 'parameters' => ['filters' => IncidentFilters::from((array) ($query['filters'] ?? []))->values]],
             ReportType::Incident => $this->record($type, 'incident', Incident::query()->where('ulid', (string) ($query['incident'] ?? ''))->first(), $user,
                 fn (Incident $i) => ($i->reference_no ?? 'Draft').' — '.$i->title),
             ReportType::Coverage => $this->record($type, 'report', CoverageReport::query()->with('lga')->where('ulid', (string) ($query['report'] ?? ''))->first(), $user,

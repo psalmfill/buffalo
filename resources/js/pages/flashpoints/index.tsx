@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
@@ -111,13 +112,19 @@ export default function FlashpointsIndex({
                         title="Flashpoints and blackspots"
                         description="Flashpoints are places where tension could erupt into violence; blackspots are places where incidents repeatedly happen."
                     />
-                    {can.create && (
-                        <Button asChild>
-                            <Link href={FlashpointController.create()}>
-                                <Plus /> Record flashpoint
-                            </Link>
-                        </Button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <ExportListButton
+                            list="flashpoints"
+                            filters={{ ...filters }}
+                        />
+                        {can.create && (
+                            <Button asChild>
+                                <Link href={FlashpointController.create()}>
+                                    <Plus /> Record flashpoint
+                                </Link>
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 <FilterBar onApply={() => apply()} onReset={reset}>

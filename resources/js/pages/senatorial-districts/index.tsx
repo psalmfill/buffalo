@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import ExportListButton from '@/components/exports/export-list-button';
 import SenatorialDistrictController from '@/actions/App/Http/Controllers/Political/SenatorialDistrictController';
 import EmptyState from '@/components/empty-state';
 import Heading from '@/components/heading';
@@ -23,10 +24,16 @@ export default function SenatorialDistrictsIndex({
         <>
             <Head title="Senatorial districts" />
             <div className="space-y-6 p-4">
-                <Heading
-                    title="Senatorial districts"
-                    description="Districts within your jurisdiction, their LGAs and current senators."
-                />
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <Heading
+                        title="Senatorial districts"
+                        description="Districts within your jurisdiction, their LGAs and current senators."
+                    />
+                    <ExportListButton
+                        list="senatorial_districts"
+                        filters={{}}
+                    />
+                </div>
                 <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full text-sm">
                         <thead className="bg-muted/50 text-left">
