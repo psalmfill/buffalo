@@ -22,6 +22,7 @@ BUFFALO is a Security Management and Intelligence Reporting system for Nigeria. 
 | Charts | Chart.js (MIT) through BUFFALO's own small React wrappers (no `react-chartjs-2`) |
 | PDF rendering | Gotenberg (MIT) container on the internal Docker network, with all outbound URLs denied (Phase 7D) |
 | Spreadsheet export | OpenSpout (MIT), streaming XLSX and CSV (Phase 7D) |
+| Rich text | Tiptap (MIT core extensions only; no Tiptap Pro or cloud features) for editing; `symfony/html-sanitizer` (MIT) on the server (Phase 11B) |
 | Database backups | pgBackRest (MIT): encrypted full/differential backups with WAL archiving for point-in-time recovery (Phase 8C) |
 | File backups | restic (BSD-2-Clause): encrypted, deduplicated backups of the evidence volume (Phase 8C) |
 | Malware scanning | ClamAV (GPL-2.0) as a separate service container, like PostGIS; never linked into application code; signatures updated offline-capable (Phase 8B) |
@@ -183,7 +184,7 @@ Classification narrows access **within** a user's jurisdiction; it never widens 
 - Map aggregation: hexagon cells computed arithmetically on PostGIS's grid (the same arithmetic drives the incident list's `hex` filter); JIT off for aggregation queries; the cache scope signature includes the user ID below `secret` clearance (creator rule). Reuse `LayerCache` for heavy aggregates; never share cached results across scope signatures.
 - Blackspot suggestions: DBSCAN plus a Poisson significance test (Bonferroni), counts recomputed per viewer, hidden below `min_points` visible incidents.
 - Reuse `IncidentFilters` / `MapFilters` for every incident-based list, analytic and export.
-- **Exports and reports:** every exported or printed file carries classification markings and a "generated for [name] at [time]" line, is logged in `record_access_logs` (action `export`), and is built only through the requesting user's own scopes. Persons and persons of interest are never exported in bulk; the only names allowed in bulk documents are current public office holders (political offices) in LGA profiles. Cells in XLSX/CSV exports are neutralised against formula injection. Report files are never attached to emails. Report files are stored on a private disk and expire.
+- **Exports and reports:** every exported or printed file carries classification markings and a "generated for [name] at [time]" line, is logged in `record_access_logs` (action `export`), and is built only through the requesting user's own scopes. **Sensitive lists** (persons, persons of interest, criminal group members, organization contacts) may be exported only under the Phase 11E controls: SD, DG or DDG; step-up and a stated reason every time; at most 1,000 rows; encrypted fields (NIN, phone, address, date of birth, contact phone and email) and photos never included; an immediate alert to the DG and covering DDGs. Every other list may be exported by anyone who can see it. Free-text descriptions stay out of incident list exports, and current public office holders remain the only names in LGA profiles. Cells in XLSX/CSV exports are neutralised against formula injection. Report files are never attached to emails. Report files are stored on a private disk and expire.
 - Any file that contains coordinates of records (such as the boundary post-import report) is treated as classified and kept on a private disk.
 - Dissemination: `CombinedAccessResolver` composes person grants and disseminations. Recipients are SD/DSD of a target state and chiefs of target LGAs; they never see History. Counts, pickers and analytics use `ownJurisdiction($user)`, so shared records are never counted as the recipient's own.
 - Global search: one provider per module on its own scoped query, a 300 ms budget per provider, incident ranking over the 1,000 most recent visible matches, `search_logs` store a query hash only. Global search never calls `PersonMatchService`.
@@ -210,6 +211,16 @@ Classification narrows access **within** a user's jurisdiction; it never widens 
   - Any new table referencing `persons` must be registered in `PersonReferenceRegistry` with a merge and undo rule (enforced by `PersonReferenceRegistryTest`).
   - Any new incident child table must be added to `App\Support\Incidents\Consolidation` with a consolidation rule (not enforced by a test; check it in review).
   - The incident lock also refuses moving rows off a closed or invalid incident; the only exception is the transaction-local `buffalo.person_merge` setting used by person merge and undo.
+- **Phase 11 (post-review changes):**
+  - **Rich text:** long narrative fields store sanitised HTML (an allow-list of tags: paragraphs, headings h3–h4, bold, italic, underline, lists, blockquote, links, simple tables; no images, styles, scripts or iframes), sanitised **on the server** on every save, whatever the client sent. A plain-text copy is kept for search vectors, exports, notifications and character limits. Rows in append-only or hash-chained tables are never rewritten: they carry a `body_format` (`text` or `html`) so old rows display as before, and `buffalo:audit:verify` must still pass after every migration.
+  - **Person role types** are an admin-editable lookup; the five original types are system types whose codes cannot change, because code depends on them.
+  - **Arrests** are a module of their own (reference `ARR/<STATE>/<YEAR>/<5 digits>`), optionally linked to an incident; arrested persons are person references and must be in `PersonReferenceRegistry`.
+  - **State lens:** national users may focus every page on one state (or zone). It is a default filter only, never a change of scope.
+  - **Theme colours** are configurable by super admins with contrast checks; severity and classification colours keep their fixed meanings and are not configurable.
+  - **Every list view** has an exporter registered (enforced by a test), producing files through the 7D report pipeline with markings, quotas and logging.
+  - As built: 25 list exporters (`ListExporterCoverageTest`); `reports.export_data` was removed and folded into `exports.lists`; `exports.sensitive` is SD, DG and DDG only. Media is soft-deletable; infected evidence is force-deleted.
+  - Approved licences (dev-only, via `jsdom`): BlueOak-1.0.0, CC0-1.0, MIT-0.
+  - Person PDFs carry no photo (deliberate; revisit only if the client asks). Site photos above 6,000 px on a side are refused.
 
 ## 10a. Tooling notes (from Phase 0)
 
