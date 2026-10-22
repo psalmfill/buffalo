@@ -14,8 +14,11 @@ use App\Support\Geo\BoundaryAttribution;
 use App\Support\Lens\StateLens;
 use App\Support\SystemBanner;
 use App\Support\Uat\Uat;
+use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -27,6 +30,24 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    /**
+     * Controllers flash a toast with redirect()->with('toast', [...]).
+     * Inertia 3 only sends its own flash data to the page (the client's
+     * "flash" event, use-flash-toast.ts), so a session toast is handed on
+     * as Inertia flash data for the page this request renders. Found by
+     * the Phase 11 browser check: before this, those toasts never showed.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $toast = $request->hasSession() ? $request->session()->get('toast') : null;
+
+        if (is_array($toast) && isset($toast['type'], $toast['message'])) {
+            Inertia::flash('toast', ['type' => (string) $toast['type'], 'message' => (string) $toast['message']]);
+        }
+
+        return parent::handle($request, $next);
+    }
 
     /**
      * Determines the current asset version.

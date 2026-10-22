@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { richTextExtensions } from '@/components/rich-text/extensions';
 import RichTextView from '@/components/rich-text/rich-text-view';
-import { isEmptyRichText, plainText } from '@/lib/rich-text';
+import { cleanPastedHtml, isEmptyRichText, plainText } from '@/lib/rich-text';
 
 const ALLOWED_TAGS = new Set([
     'div',
@@ -144,6 +144,23 @@ describe('the editor schema (Phase 11B)', () => {
         );
         expect(html).not.toMatch(
             /style=|class=|<img|<font|<span|<code|<s>|<h1|<pre|<hr|javascript:|color|Calibri/,
+        );
+    });
+});
+
+describe('cleanPastedHtml (Phase 11 browser check)', () => {
+    it('drops handlers, styles and active or embedded elements, keeping the formatting', () => {
+        const cleaned = cleanPastedHtml(
+            '<p class="MsoNormal" style="margin:0" onclick="x()"><b>Bold</b> <span style="color:red">red</span></p>' +
+                '<ul><li>One</li></ul><script>x()</script><img src="https://example.invalid/x.png" onerror="x()">' +
+                '<a href="javascript:x()">bad link</a> <a href="https://example.test/ok">good link</a><iframe src="https://example.invalid"></iframe>',
+        );
+
+        expect(cleaned).toContain('<b>Bold</b>');
+        expect(cleaned).toContain('<li>One</li>');
+        expect(cleaned).toContain('href="https://example.test/ok"');
+        expect(cleaned).not.toMatch(
+            /onclick|onerror|style=|<script|<img|<iframe|javascript:/,
         );
     });
 });

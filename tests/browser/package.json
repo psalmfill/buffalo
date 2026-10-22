@@ -1,0 +1,12 @@
+{
+    "name": "buffalo-browser-check",
+    "private": true,
+    "description": "Scripted browser check of the UAT environment (make browser-check). Dev and test only; never shipped.",
+    "type": "module",
+    "scripts": {
+        "check": "playwright test"
+    },
+    "devDependencies": {
+        "@playwright/test": "1.64.0"
+    }
+}

@@ -15,7 +15,7 @@ NODE    := $(COMPOSE) run --rm --no-deps vite
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell artisan test lint fix fresh logs tiles release uat-up uat-down uat-credentials images restore-drill security-scan clamav-import-signatures wayfinder ci
+.PHONY: help setup up down shell artisan test lint fix fresh logs tiles release uat-up uat-down uat-credentials browser-check images restore-drill security-scan clamav-import-signatures wayfinder ci
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -83,6 +83,9 @@ uat-down: ## Stop the UAT environment or demo (PURGE=1 also deletes its volumes;
 uat-credentials: ## New passwords and TOTP secrets for the UAT accounts (printed once)
 	docker compose --env-file .uat/buffalo.env run --rm -T tools php artisan buffalo:uat:seed --reset-credentials
 
+browser-check: ## Phase 11 browser check (Playwright): target=local (default, make up) or target=uat (make uat-up)
+	TARGET="$(target)" ./scripts/uat/browser-check.sh $(args)
+
 release: ## Signed release: make release VERSION=x.y.z RELEASE_KEY=/path/outside/repo [SINCE=ref]
 	VERSION=$(VERSION) RELEASE_KEY=$(RELEASE_KEY) SINCE=$(SINCE) ./scripts/release.sh
 
@@ -116,6 +119,8 @@ ci: images ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
 		buffalo-app:ci bash -c '\
 			mkdir -p /tmp/ci && \
 			tar -C /src --exclude=./node_modules --exclude=./vendor --exclude=./.env \
-				--exclude=./public/build --exclude=./public/hot --exclude=./.git -cf - . \
+				--exclude=./public/build --exclude=./public/hot --exclude=./.git \
+				--exclude=./tests/browser/node_modules --exclude=./tests/browser/test-results \
+				--exclude=./.uat --exclude=./.local-check -cf - . \
 				| tar -C /tmp/ci -xf - && \
 			cd /tmp/ci && scripts/ci.sh'

@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import ExportListButton from '@/components/exports/export-list-button';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link } from '@inertiajs/react';
@@ -221,6 +222,24 @@ export default function CommunityShow({
                     </div>
                 )}
 
+                {(tab === 'religious_institutions' ||
+                    tab === 'vulnerable_population' ||
+                    tab === 'security_notes') && (
+                    <div className="flex justify-end">
+                        <ExportListButton
+                            list={tab}
+                            filters={{
+                                lga: community.lga.ulid,
+                                community: community.ulid,
+                                ...(tab === 'religious_institutions'
+                                    ? (religiousInstitutions?.filters ?? {})
+                                    : tab === 'security_notes'
+                                      ? (securityNotes?.filters ?? {})
+                                      : {}),
+                            }}
+                        />
+                    </div>
+                )}
                 {tab === 'religious_institutions' && religiousInstitutions && (
                     <ReligiousInstitutionsPanel
                         lgaUlid={community.lga.ulid}

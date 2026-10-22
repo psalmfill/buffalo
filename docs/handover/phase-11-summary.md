@@ -98,11 +98,10 @@ Logos and site photos use the existing `organizations.view` and `organizations.m
 
 ## Open issues
 
-- **Browser checks:** none of Phase 11's new screens were tried by hand. Signing in to the dev stack needs a TOTP account. That covers the state grid and lens, the theme page, the rich text editor, the arrest form, the photo gallery and logo upload, the Export dialog and the Print buttons. Server behaviour is covered by tests (1,914 Pest tests at the end of 11E); the frontend passes `tsc`, ESLint and Vitest. A UAT pass on these screens is recommended.
+- **Browser checks:** done after 11E with `make browser-check` (Playwright 1.64.0, Apache-2.0, dev only). All 23 checks pass with no console errors, failed requests or CSP violations. Eight problems were found and fixed. Results and screenshots: `docs/uat/results/phase-11/`.
 - **Licences:** jsdom's transitive dev dependencies (BlueOak-1.0.0, CC0-1.0, MIT-0) await your approval (11B).
 - **Release signing key:** the committed key is still the TEST key; the owner must generate the real one (Phase 9).
 - **Phone photos above 6,000 px on a side** (48–50 MP full resolution) are refused; 12 MP photos are fine (11D).
 - **Person PDFs carry no photo** (11E decision 6); ask if one is wanted.
-- **The community page's tabs** (institutions, figures, notes) have no Export button yet; the exporters accept a `community` filter.
 - **Location sketches** have no outline where no LGA boundary has been imported.
 - The **dev database** has a cosmetic stray space in some `_text` copies converted before an 11B refinement; production is unaffected.

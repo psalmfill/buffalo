@@ -28,3 +28,5 @@ docs
 !docs/manuals
 compose*.yml
 Makefile
+.uat
+.local-check

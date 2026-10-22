@@ -44,6 +44,17 @@ final class StepUp
         $request->session()->put(self::SESSION_KEY, now()->getTimestamp());
     }
 
+    /**
+     * Uses up the current confirmation (Phase 11E sensitive list exports:
+     * a fresh code for every export, not one per 15 minutes).
+     */
+    public static function consume(Request $request): void
+    {
+        if ($request->hasSession()) {
+            $request->session()->forget(self::SESSION_KEY);
+        }
+    }
+
     /** When the current confirmation expires, if any. */
     public static function expiresAt(Request $request): ?int
     {

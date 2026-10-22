@@ -1,5 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import type { CSSProperties } from 'react';
+import { useEffect } from 'react';
 import ThemeController from '@/actions/App/Http/Controllers/System/ThemeController';
 import AnalyticsChart from '@/components/charts/analytics-chart';
 import BarChart from '@/components/charts/bar-chart';
@@ -19,6 +20,8 @@ type Props = {
     minimums: { text: number; graphic: number };
     kpiTypes: string[];
     fixed: FixedColourGroup[];
+    /** The theme stylesheet as the layout serves it (validated #rrggbb values only). */
+    css: string;
 };
 
 const MODES: ThemeMode[] = ['light', 'dark'];
@@ -221,8 +224,21 @@ export default function ThemePage({
     minimums,
     kpiTypes,
     fixed,
+    css,
 }: Props) {
     const form = useForm<ThemeColours>(theme);
+
+    // After a save or reset the page is not reloaded: apply the saved
+    // stylesheet to the layout's theme <style> (it keeps its CSP nonce).
+    useEffect(() => {
+        const style = document.querySelector<HTMLStyleElement>(
+            'style[data-theme="buffalo"]',
+        );
+
+        if (style && style.textContent !== css) {
+            style.textContent = css;
+        }
+    }, [css]);
     const errors = form.errors as Record<string, string | undefined>;
     const data = form.data;
 

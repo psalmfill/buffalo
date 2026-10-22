@@ -49,3 +49,11 @@ yarn-error.log
 /dist
 /.uat
 __pycache__/
+
+# Browser check (make browser-check): dev-only Playwright and its run artefacts
+/tests/browser/node_modules
+/tests/browser/test-results
+/tests/browser/playwright-report
+
+# Browser check against the local stack: test credentials (never committed)
+/.local-check

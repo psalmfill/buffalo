@@ -81,7 +81,7 @@ class SeedUatCommand extends Command
 
                 return self::FAILURE;
             }
-            $this->printCredentials($this->issueCredentials(User::query()->orderBy('id')->get()));
+            $this->printCredentials(self::issueCredentials(User::query()->orderBy('id')->get()));
 
             return self::SUCCESS;
         }
@@ -103,17 +103,7 @@ class SeedUatCommand extends Command
         State::query()->whereIn('code', self::LIVE_STATES)->get()
             ->each(fn (State $state) => $state->forceFill(['is_live' => true, 'went_live_at' => now()])->save());
 
-        /** @var Collection<int, User> $users */
-        $users = new Collection;
-        foreach (self::ACCOUNTS as $local => [$role, $stateCode, $lgaIndex, $name]) {
-            $state = $stateCode === null ? null : State::query()->where('code', $stateCode)->firstOrFail();
-            $lga = $lgaIndex === null || $state === null ? null : Lga::query()->where('state_id', $state->id)->orderBy('code')->skip($lgaIndex)->firstOrFail();
-
-            $users->push($createUser(
-                ['name' => $name, 'email' => "{$local}@".Uat::DOMAIN],
-                new UserJurisdiction($role, $state, $lga),
-            ));
-        }
+        $users = self::ensureAccounts($createUser);
 
         // Incidents first: once boundaries exist, a trigger rejects points
         // outside their LGA, and demo points are spread around a centre.
@@ -131,10 +121,38 @@ class SeedUatCommand extends Command
             'classification' => 'restricted',
         ], [], $kanoChief);
 
-        $this->printCredentials($this->issueCredentials($users));
+        $this->printCredentials(self::issueCredentials($users));
         $this->components->warn('UAT data only. Record the credentials now: they are not shown again (use --reset-credentials for new ones).');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The UAT accounts (created when missing), in ACCOUNTS order.
+     *
+     * @return Collection<int, User>
+     */
+    public static function ensureAccounts(CreateUser $createUser): Collection
+    {
+        /** @var Collection<int, User> $users */
+        $users = new Collection;
+        foreach (self::ACCOUNTS as $local => [$role, $stateCode, $lgaIndex, $name]) {
+            $email = "{$local}@".Uat::DOMAIN;
+            $existing = User::query()->where('email', $email)->first();
+
+            if ($existing !== null) {
+                $users->push($existing);
+
+                continue;
+            }
+
+            $state = $stateCode === null ? null : State::query()->where('code', $stateCode)->firstOrFail();
+            $lga = $lgaIndex === null || $state === null ? null : Lga::query()->where('state_id', $state->id)->orderBy('code')->skip($lgaIndex)->firstOrFail();
+
+            $users->push($createUser(['name' => $name, 'email' => $email], new UserJurisdiction($role, $state, $lga)));
+        }
+
+        return $users;
     }
 
     /**
@@ -143,7 +161,7 @@ class SeedUatCommand extends Command
      * @param  Collection<int, User>  $users
      * @return list<array{0: string, 1: string, 2: string, 3: string, 4: string}>
      */
-    private function issueCredentials(Collection $users): array
+    public static function issueCredentials(Collection $users): array
     {
         $google2fa = app(Google2FA::class);
         $rows = [];

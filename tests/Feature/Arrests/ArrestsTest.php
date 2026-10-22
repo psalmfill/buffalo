@@ -10,6 +10,7 @@ use App\Models\Arrest;
 use App\Models\ArrestPerson;
 use App\Models\ArrestPersonOffence;
 use App\Models\ArrestStatusHistory;
+use App\Models\Incident;
 use App\Models\IncidentAgency;
 use App\Models\IncidentPerson;
 use App\Models\OffenceType;
@@ -160,6 +161,21 @@ test('Arrest made pre-fills the form from the incident; the incident date is onl
         ->where('prefill.suspects', fn ($s) => collect($s)->map(fn ($x) => $x['person']['label'] ?? $x['unidentified_description'])->all() === ['Bello Suspect', 'Short man with a scar'])
         ->where('prefill.occurred_at', fn ($at) => is_string($at))
         ->where('arrest', null));
+});
+
+test('Arrest made offers the incident\'s point only when it lies inside the LGA boundary', function () {
+    // Phase 11 browser check: incidents recorded before a boundary import may lie outside it.
+    $incident = W::at(W::draft($this->lga, $this->chief, ['location' => Incident::pointFrom(9.05, 7.49)]), IncidentStatus::Verified);
+    CrossFixtures::system();
+    $prefill = fn () => CrossFixtures::signIn($this->sd)->get("/arrests/create?incident={$incident->ulid}")->viewData('page')['props']['prefill'];
+
+    expect(round((float) $prefill()['latitude'], 2))->toBe(9.05);
+
+    DB::statement("UPDATE lgas SET boundary = ST_GeogFromText('MULTIPOLYGON(((3 6, 3.1 6, 3.1 6.1, 3 6.1, 3 6)))') WHERE id = ?", [$this->lga->id]);
+
+    expect($prefill()['latitude'])->toBeNull()
+        ->and($prefill()['longitude'])->toBeNull()
+        ->and($prefill()['lga'])->toBe($this->lga->ulid);
 });
 
 test('the acceptance scenario: two suspects arrested on a kidnapping incident; counts compared, never changed', function () {

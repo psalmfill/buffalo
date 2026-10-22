@@ -77,6 +77,11 @@ class ListExportController extends Controller
             'reason' => $data['reason'] ?? null,
         ], stepUpConfirmed: StepUp::isRecent($request));
 
+        // Sensitive lists need a fresh code for every export, not one per 15 minutes.
+        if ($exporter->sensitive()) {
+            StepUp::consume($request);
+        }
+
         return redirect()->route('reports.index', ['run' => $run->ulid])
             ->with('toast', ['type' => 'success', 'message' => "{$exporter->label()} export requested. It will appear in My reports when ready."]);
     }

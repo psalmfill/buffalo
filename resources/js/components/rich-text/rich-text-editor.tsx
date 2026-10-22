@@ -22,7 +22,7 @@ import {
 import type { ReactNode } from 'react';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { richTextExtensions } from '@/components/rich-text/extensions';
-import { isEmptyRichText, plainText } from '@/lib/rich-text';
+import { cleanPastedHtml, isEmptyRichText, plainText } from '@/lib/rich-text';
 import { cn } from '@/lib/utils';
 
 /** The CSP nonce for the editor's injected base styles (Phase 8B.1). */
@@ -368,6 +368,8 @@ export default function RichTextEditor({
         extensions: richTextExtensions(placeholder),
         content: value ?? '',
         editorProps: {
+            // Pasted markup is cleaned in an inert document first.
+            transformPastedHTML: cleanPastedHtml,
             attributes: {
                 ...(id ? { id } : {}),
                 role: 'textbox',

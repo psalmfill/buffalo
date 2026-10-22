@@ -142,6 +142,8 @@ test('each technical item fails on its own', function (Closure $break, string $k
     'boot checks' => [fn ($t) => $t->boot->failing = ['buffalo:secrets:check'], 'boot_checks'],
     'tls unreadable' => [fn ($t) => $t->tls->expiry = null, 'tls'],
     'tls expiring' => [fn ($t) => $t->tls->expiry = now()->addDays(20)->toImmutable(), 'tls'],
+    // Phase 11 browser check: a UAT left with the example origin refused live updates.
+    'live updates refuse the site' => [fn ($t) => config(['app.url' => 'https://buffalo.agency.gov.ng', 'reverb.apps.apps.0.allowed_origins' => ['buffalo.example.gov.ng']]), 'realtime_origin'],
     'demo incidents' => [function ($t) {
         $lga = Lga::query()->firstOrFail();
         Incident::factory()->create([

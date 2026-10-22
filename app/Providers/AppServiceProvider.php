@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Console\Commands\DisabledCipherSweetGenerateKeyCommand;
 use App\Console\Commands\DisabledCleanActivitylogCommand;
+use App\Console\DemoCommands\BrowserCheckFixturesCommand;
 use App\Console\DemoCommands\GenerateDemoBoundaries;
 use App\Console\DemoCommands\SeedDemoIncidents;
 use App\Console\DemoCommands\SeedUatCommand;
@@ -158,7 +159,7 @@ class AppServiceProvider extends ServiceProvider
         // Synthetic data generators exist only where they may run (Phase
         // 9B.1): never listed in a production deployment.
         if ($this->app->runningInConsole() && $this->app->environment(DemoData::REGISTERED_ENVIRONMENTS)) {
-            $this->commands([GenerateDemoBoundaries::class, SeedDemoIncidents::class, SeedUatCommand::class]);
+            $this->commands([GenerateDemoBoundaries::class, SeedDemoIncidents::class, SeedUatCommand::class, BrowserCheckFixturesCommand::class]);
         }
 
         $this->configureDefaults();

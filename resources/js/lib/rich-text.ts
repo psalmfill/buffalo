@@ -76,3 +76,48 @@ export function plainText(html: string): string {
 export function isEmptyRichText(html: string | null | undefined): boolean {
     return !html || plainText(html) === '';
 }
+
+/** Elements dropped from pasted HTML before the editor parses it. */
+const PASTE_DROP =
+    'script, style, link, meta, img, picture, svg, iframe, object, embed, video, audio, source, form, input, button, template';
+
+/**
+ * Cleans pasted HTML in an inert document (DOMParser: no scripting, no
+ * loading) before the editor's own parser sees it: event-handler
+ * attributes, inline styles and active or embedded elements are removed.
+ * The editor's schema keeps only the allow-listed formatting anyway, and
+ * the server sanitises every save; this keeps the browser from even
+ * parsing a pasted inline handler (found by the Phase 11 browser check:
+ * an `onerror` in pasted Word or web content raised a CSP violation).
+ */
+export function cleanPastedHtml(html: string): string {
+    // Chrome reports a CSP violation as soon as any document, even an inert
+    // DOMParser one, parses an inline handler attribute: drop them from the
+    // tags before parsing (the parse below catches anything left).
+    const withoutHandlers = html.replace(/<[^>]*>/g, (tag) =>
+        tag.replace(
+            /\s+on[a-z0-9_:-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi,
+            '',
+        ),
+    );
+    const doc = new DOMParser().parseFromString(withoutHandlers, 'text/html');
+
+    doc.body.querySelectorAll(PASTE_DROP).forEach((el) => el.remove());
+    doc.body.querySelectorAll('*').forEach((el) => {
+        for (const attr of Array.from(el.attributes)) {
+            const name = attr.name.toLowerCase();
+
+            if (
+                name.startsWith('on') ||
+                name === 'style' ||
+                name === 'srcset' ||
+                (name === 'href' &&
+                    !/^(https?:|mailto:|#|\/)/i.test(attr.value.trim()))
+            ) {
+                el.removeAttribute(attr.name);
+            }
+        }
+    });
+
+    return doc.body.innerHTML;
+}

@@ -96,7 +96,13 @@ test('every sensitive export needs step-up and a reason of at least 20 character
         ->and($run->is_sensitive)->toBeTrue()
         ->and($run->reason)->toBe(REASON);
 
-    // Through the page: the code is asked even for one row.
+    // Through the page: the code is asked even for one row, and again for
+    // the next export (each confirmation is used up).
+    $client = CrossFixtures::signIn($this->sd);
+    $payload = ['list' => 'persons', 'format' => 'csv', 'filters' => [], 'reason' => REASON];
+    $client->post('/exports', $payload)->assertRedirect();
+    $client->post('/exports', $payload, ['X-Inertia' => 'true'])->assertStatus(428);
+
     CrossFixtures::signInWithoutStepUp($this->sd)->post('/exports', ['list' => 'persons', 'format' => 'csv', 'filters' => [], 'reason' => REASON], ['X-Inertia' => 'true'])
         ->assertStatus(428);
 });

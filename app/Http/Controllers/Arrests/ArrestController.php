@@ -26,6 +26,7 @@ use App\Support\Dashboard\MapView;
 use App\Support\Exports\Lists\Exporters\ArrestsExporter;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\PlaceFilter;
+use App\Support\LocalGovernment\CommunityRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -210,6 +211,12 @@ class ArrestController extends Controller
     private function prefill(Incident $incident): array
     {
         $incident->loadMissing(['lga', 'community']);
+        // The incident's point is offered only when it is a valid arrest
+        // location: an incident recorded before the LGA's boundary was
+        // imported may lie outside it, and the arrest would then be refused
+        // (found by the Phase 11 browser check).
+        $point = $incident->latitude !== null && $incident->longitude !== null
+            && app(CommunityRules::class)->locationError($incident->lga, (float) $incident->latitude, (float) $incident->longitude) === null;
         $agencies = IncidentAgency::query()->where('incident_id', $incident->id)->with(['agency', 'formation'])->orderBy('id')->get();
         $suspects = IncidentPerson::query()->where('incident_id', $incident->id)
             ->where('involvement', PersonInvolvement::Suspect->value)->with('person')->orderBy('id')->get();
@@ -218,8 +225,8 @@ class ArrestController extends Controller
             'incident' => ['value' => $incident->ulid, 'label' => trim(($incident->reference_no ?? 'Draft').' · '.$incident->title)],
             'lga' => $incident->lga->ulid,
             'community' => $incident->community?->ulid,
-            'latitude' => $incident->latitude,
-            'longitude' => $incident->longitude,
+            'latitude' => $point ? $incident->latitude : null,
+            'longitude' => $point ? $incident->longitude : null,
             'location_description' => $incident->location_description,
             'agencies' => array_values($agencies->unique('security_agency_id')->map(fn (IncidentAgency $a) => [
                 'value' => $a->agency->ulid,

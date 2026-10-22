@@ -297,6 +297,12 @@ export default function BuffaloMap({
         geoPaneRef.current = L.layerGroup().addTo(map);
 
         const reportView = () => {
+            // The deferred first report can run after a quickly-left page
+            // removed the map (Phase 11 browser check: "_leaflet_pos").
+            if (mapRef.current !== map) {
+                return;
+            }
+
             const b = map.getBounds();
             const c = map.getCenter();
 
@@ -371,6 +377,10 @@ export default function BuffaloMap({
             geoPaneRef.current = null;
             pickerMarkerRef.current = null;
             setReady(false);
+            // Stop any pan or zoom still running before removing the map
+            // (found by the Phase 11 browser check: "_leaflet_pos" errors).
+            map.stop();
+            map.off();
             map.remove();
         };
         // The map is created once; later phases will add props for layers
@@ -411,7 +421,9 @@ export default function BuffaloMap({
             map.invalidateSize();
             map.fitBounds(
                 L.latLngBounds(markers.map((marker) => marker.position)),
-                { padding: [24, 24], maxZoom: 13 },
+                // Not animated: a page left during the animation would make
+                // Leaflet's pending zoom step throw after map.remove().
+                { padding: [24, 24], maxZoom: 13, animate: false },
             );
         }
     }, [ready, markers, fitMarkers]);
@@ -445,7 +457,10 @@ export default function BuffaloMap({
 
         if (fitOutline) {
             map.invalidateSize();
-            map.fitBounds(layer.getBounds(), { padding: [16, 16] });
+            map.fitBounds(layer.getBounds(), {
+                padding: [16, 16],
+                animate: false,
+            });
         }
     }, [ready, outline, fitOutline]);
 
@@ -550,7 +565,11 @@ export default function BuffaloMap({
                 L.latLngBounds([]),
             );
             map.invalidateSize();
-            map.fitBounds(bounds, { padding: [24, 24], maxZoom: 14 });
+            map.fitBounds(bounds, {
+                padding: [24, 24],
+                maxZoom: 14,
+                animate: false,
+            });
         }
     }, [ready, circles, fitCircles]);
 

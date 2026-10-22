@@ -34,6 +34,9 @@ class ThemeController extends Controller
             'minimums' => ['text' => Contrast::TEXT, 'graphic' => Contrast::GRAPHIC],
             'kpiTypes' => Theme::KPI_TYPES,
             'fixed' => FixedColours::present(),
+            // The stylesheet the layout serves, so a save or reset applies to
+            // the open page at once (the layout's <style> is only in the first load).
+            'css' => Theme::css(),
         ]);
     }
 

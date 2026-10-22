@@ -70,6 +70,32 @@ environment (`make uat-down PURGE=1 && make uat-up`): the scripts build on each
 other's records. Testers still run the scripts by hand in the browser; the
 runner proves the environment and the workflows before they start.
 
+### Browser check (Phase 11 screens)
+
+`make browser-check` drives a real browser (Playwright with Chromium, dev
+only, in `tests/browser`) through every screen added or changed in Phase 11,
+signing in as each role with a generated TOTP code. It fails on any console
+error, failed request or Content-Security-Policy violation, and saves
+screenshots to `results/phase-11/`.
+
+    make browser-check                 # the development stack (make up)
+    make browser-check target=uat      # this UAT environment
+    make browser-check args="specs/04-arrests.spec.ts"   # one spec
+
+- **Local** (default): creates the UAT test accounts on the dev database if
+  missing and issues them new passwords and TOTP secrets, written to
+  `.local-check/credentials.txt` (owner-only, git-ignored, never printed).
+- **UAT**: save the credentials table printed by `make uat-up` (or
+  `make uat-credentials`) as `.uat/credentials.txt`.
+- Both need the map tiles extract installed: `make tiles` for the dev stack;
+  `make uat-up` does not install one, so copy the extract into the UAT
+  `buffalo-uat_map_tiles` volume (without it every map page requests a
+  missing file and the check refuses to start). Both also create a few clearly
+  synthetic records (`buffalo:uat:browser-fixtures`, which refuses outside
+  UAT and local).
+- The sensitive export test skips once the State Director has used the day's
+  three sensitive exports; that quota is never reset.
+
 Each step has an expected result. Mark **Pass** or **Fail**; for a failure,
 press **Feedback** on that page and describe what happened. Record each run
 in `results/` (copy the script, fill in the Pass/Fail column, the date, the

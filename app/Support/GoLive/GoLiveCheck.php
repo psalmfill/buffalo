@@ -11,6 +11,7 @@ use App\Support\Health\HealthStatus;
 use App\Support\Malware\MalwareScanner;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -43,6 +44,7 @@ final class GoLiveCheck
         $items = [
             $this->bootChecks(),
             $this->tlsCertificate(),
+            $this->realTimeOrigin(),
             ...$this->dataItems(),
             $this->superAdmin(),
             $this->developmentAccounts(),
@@ -105,6 +107,25 @@ final class GoLiveCheck
         $days = (int) floor(CarbonImmutable::now()->diffInDays($expiry, false));
 
         return self::item('tls', "TLS certificate valid for at least {$min} days", $days >= $min, "The served certificate expires on {$expiry->toDateString()} ({$days} days).");
+    }
+
+    /**
+     * Reverb accepts WebSocket connections only from the allowed origins: the
+     * host users open BUFFALO on must be one of them, or live updates
+     * (report status, notifications, incidents) silently stop (found by the
+     * Phase 11 browser check in UAT).
+     *
+     * @return Item
+     */
+    private function realTimeOrigin(): array
+    {
+        $host = (string) parse_url((string) config('app.url'), PHP_URL_HOST);
+        $allowed = array_values(array_filter(array_map('trim', (array) config('reverb.apps.apps.0.allowed_origins'))));
+        $ok = $host !== '' && collect($allowed)->contains(fn (string $origin) => $origin === '*' || Str::is($origin, $host));
+
+        return self::item('realtime_origin', 'Live updates accept the site\'s address (REVERB_ALLOWED_ORIGINS)', $ok, $ok
+            ? "WebSocket connections from {$host} are accepted."
+            : "REVERB_ALLOWED_ORIGINS does not include {$host} (the APP_URL host): browsers cannot receive live updates.");
     }
 
     /**

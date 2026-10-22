@@ -60,6 +60,7 @@ if [[ ! -f "$dir/buffalo.env" ]]; then
         -e "s#^BUFFALO_BIND_ADDRESS=.*#BUFFALO_BIND_ADDRESS=127.0.0.1#" \
         -e "s#^BUFFALO_HTTP_PORT=.*#BUFFALO_HTTP_PORT=$http_port#" \
         -e "s#^BUFFALO_HTTPS_PORT=.*#BUFFALO_HTTPS_PORT=$https_port#" \
+        -e "s#^REVERB_ALLOWED_ORIGINS=.*#REVERB_ALLOWED_ORIGINS=localhost#" \
         deploy/buffalo.env.example > "$dir/buffalo.env"
     printf '\n# UAT: its own frontend bridge, so it can run beside a production install.\nBUFFALO_FRONTEND_BRIDGE=bflo-uat-front\n' >> "$dir/buffalo.env"
 fi
@@ -92,6 +93,10 @@ if [[ -n "$demo_host" ]]; then
 elif [[ -n "${DEMO_PORT:-}" ]]; then
     echo "DEMO_PORT needs DEMO_HOST." >&2
     exit 1
+elif ! grep -q '^DEMO_HOST=' "$dir/buffalo.env"; then
+    # Live updates (Reverb) accept the address the browser uses: earlier
+    # .uat/ settings kept the example host and refused localhost.
+    setting REVERB_ALLOWED_ORIGINS localhost
 fi
 demo_host=$(sed -n 's/^DEMO_HOST=//p' "$dir/buffalo.env")
 demo_port=$(sed -n 's/^DEMO_PORT=//p' "$dir/buffalo.env")
