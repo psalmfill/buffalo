@@ -1,0 +1,10 @@
+# TEST ONLY (scripts/uat/edge-check.sh on a workstation whose port 80 is
+# taken): edge mode direct on 0.0.0.0:8080 and 0.0.0.0:8443 instead of 80
+# and 443. Everything else is the real direct mode. Never used by a release;
+# scripts/check-edge-ports.sh asserts the real 80/443 mapping without it.
+#   make uat-up EDGE=direct ... UAT_EXTRA_COMPOSE=tests/edge/compose.direct-test-ports.yml
+services:
+  nginx:
+    ports: !override
+      - "0.0.0.0:8080:8080"
+      - "0.0.0.0:8443:8443"

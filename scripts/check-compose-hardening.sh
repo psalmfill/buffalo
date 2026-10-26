@@ -100,6 +100,10 @@ check "base" -f compose.yml
 check "production, all overlays" -f compose.yml -f compose.prod.yml -f compose.profile-connected.yml \
     -f compose.egress-mail.yml -f compose.egress-clamav.yml -f compose.acme.yml --profile tools
 check "production, airgapped" -f compose.yml -f compose.prod.yml -f compose.profile-airgapped.yml
+# Edge mode proxy, and the UAT environment with its site password.
+check "production, edge mode proxy" -f compose.yml -f compose.prod.yml -f compose.profile-airgapped.yml -f compose.edge-proxy.yml
+check "UAT, proxy with site password" -f compose.yml -f compose.prod.yml -f compose.profile-airgapped.yml -f compose.uat.yml \
+    -f compose.edge-proxy.yml -f compose.uat-basic-auth.yml
 
 if $running; then
     status=0

@@ -1,0 +1,34 @@
+#!/bin/sh
+# Edge mode `proxy` only (compose.edge-proxy.yml sets BUFFALO_EDGE=proxy).
+# Sourced by the nginx image's entrypoint before the templates are
+# rendered: exports BUFFALO_EDGE_GATEWAY, the only peer whose
+# X-Forwarded-For / X-Forwarded-Proto the proxy server honours
+# (templates-proxy/proxy.conf.template).
+#
+# Connections to a published port arrive from the gateway of the network
+# that carries the port, which is the container's default route (the
+# `frontend` network, or `egress` in the connected and cloud profiles: the
+# one with the highest gateway priority). Set BUFFALO_EDGE_GATEWAY in the
+# installation settings to override (a host whose port publishing works
+# differently).
+[ "${BUFFALO_EDGE:-direct}" = proxy ] || return 0
+
+if [ -z "${BUFFALO_EDGE_GATEWAY:-}" ]; then
+    BUFFALO_EDGE_GATEWAY=$(awk '$2 == "00000000" {
+        hex = "0123456789ABCDEF"; g = toupper($3); ip = ""
+        for (i = 7; i >= 1; i -= 2) {
+            n = (index(hex, substr(g, i, 1)) - 1) * 16 + index(hex, substr(g, i + 1, 1)) - 1
+            ip = ip (i < 7 ? "." : "") n
+        }
+        print ip; exit
+    }' /proc/net/route)
+fi
+
+if [ -z "$BUFFALO_EDGE_GATEWAY" ]; then
+    # Fail closed: no peer is trusted (TEST-NET-1, never a real peer).
+    BUFFALO_EDGE_GATEWAY=192.0.2.1
+    echo "16-buffalo-edge-gateway: no default gateway found; forwarded headers will not be trusted" >&2
+fi
+
+export BUFFALO_EDGE_GATEWAY
+echo "16-buffalo-edge-gateway: trusting X-Forwarded-* from $BUFFALO_EDGE_GATEWAY" >&2

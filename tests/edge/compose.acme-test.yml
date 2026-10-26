@@ -1,0 +1,72 @@
+# TEST ONLY: a local ACME CA for the TLS=acme flow, instead of Let's
+# Encrypt (no public DNS or internet-facing port 80 needed). Never used by a
+# release.
+#
+#   make uat-up EDGE=direct DEMO_HOST=demo.buffalo.test TLS=acme ACME_EMAIL=ops@buffalo.test \
+#       ACME_SERVER=https://step-ca:9000/acme/acme/directory \
+#       UAT_EXTRA_COMPOSE=tests/edge/compose.direct-test-ports.yml:tests/edge/compose.acme-test.yml
+#
+# - step-ca: smallstep step-ca 0.30.2 (Apache-2.0), initialised with an ACME
+#   provisioner; certbot (compose.acme.yml) trusts its root through
+#   REQUESTS_CA_BUNDLE (copied out by ca-root).
+# - acme-forward: the CA validates HTTP-01 on port 80 of DEMO_HOST, which
+#   resolves (a network alias on `egress`) to this forwarder, which passes
+#   the request to BUFFALO's nginx port 80 server (container port 8080), as
+#   a router forwarding the public port 80 would.
+services:
+  step-ca:
+    image: smallstep/step-ca:0.30.2@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
+    environment:
+      DOCKER_STEPCA_INIT_NAME: BUFFALO edge test CA
+      DOCKER_STEPCA_INIT_DNS_NAMES: step-ca,localhost
+      DOCKER_STEPCA_INIT_ACME: "true"
+    networks: [egress]
+    volumes:
+      - edge_test_ca:/home/step
+    healthcheck:
+      test: ["CMD", "step", "ca", "health", "--ca-url", "https://localhost:9000", "--root", "/home/step/certs/root_ca.crt"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # The CA keeps its files private to its own user: copy only the root
+  # certificate (public) to a volume certbot (uid 101) can read.
+  ca-root:
+    image: buffalo/patched-nginx:${BUFFALO_VERSION}
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c", "cp /step/certs/root_ca.crt /root-ca/root_ca.crt && chmod 0644 /root-ca/root_ca.crt"]
+    volumes:
+      - edge_test_ca:/step:ro
+      - edge_test_ca_root:/root-ca
+    depends_on:
+      step-ca:
+        condition: service_healthy
+
+  acme-forward:
+    image: buffalo/patched-nginx:${BUFFALO_VERSION}
+    networks:
+      egress:
+        aliases: ["${DEMO_HOST:?set DEMO_HOST}"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        printf 'server { listen 80; location / { proxy_pass http://nginx:8080; proxy_set_header Host $$host; } }\n' > /etc/nginx/conf.d/default.conf
+        exec nginx -g 'daemon off;'
+    depends_on:
+      nginx:
+        condition: service_healthy
+
+  certbot:
+    environment:
+      REQUESTS_CA_BUNDLE: /root-ca/root_ca.crt
+    volumes:
+      - edge_test_ca_root:/root-ca:ro
+    depends_on:
+      ca-root:
+        condition: service_completed_successfully
+      acme-forward:
+        condition: service_started
+
+volumes:
+  edge_test_ca:
+  edge_test_ca_root:

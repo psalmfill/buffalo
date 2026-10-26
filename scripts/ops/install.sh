@@ -17,7 +17,18 @@
 #   --install-dir DIR     Where releases are unpacked (default /opt/buffalo)
 #   --mail-egress         connected/cloud: queue workers may reach the mail relay
 #   --clamav-online       connected/cloud: ClamAV updates signatures online
-#   --acme                connected/cloud: certificates from ACME (needs port 80)
+#   --edge MODE           How nginx meets the outside world (remembered in the
+#                         settings; default: the remembered mode, else direct):
+#                           direct  dedicated server: nginx publishes 80 and 443
+#                                   and terminates TLS
+#                           proxy   shared server behind its existing nginx: plain
+#                                   HTTP on 127.0.0.1:EDGE_PORT only (the host's
+#                                   nginx terminates TLS; see edge-host-config.sh)
+#   --edge-port PORT      proxy: the loopback port (default: remembered, else 8090)
+#   --tls-cert FILE       direct: the certificate chain (sets BUFFALO_TLS_CERTIFICATE_FILE)
+#   --tls-key FILE        direct: its private key (copied to the tls_key secret)
+#   --acme                direct, connected/cloud: certificates from ACME (needs port 80)
+#   --acme-staging        with --acme: Let's Encrypt's staging CA (testing only)
 #   --allow-test-signature  Accept a release signed with the development TEST key
 #   --accept-low-memory   Install on a host with less than 16 GB (test systems only)
 #   --skip-firewall       Do not apply the frontend egress firewall rule
@@ -51,6 +62,11 @@ install_dir=/opt/buffalo
 mail_egress=false
 clamav_online=false
 acme=false
+acme_staging=false
+edge=""
+edge_port=""
+tls_cert=""
+tls_key=""
 allow_test=false
 low_memory=false
 skip_firewall=false
@@ -80,6 +96,11 @@ while [ $# -gt 0 ]; do
         --mail-egress) mail_egress=true; shift ;;
         --clamav-online) clamav_online=true; shift ;;
         --acme) acme=true; shift ;;
+        --acme-staging) acme_staging=true; shift ;;
+        --edge) edge=$2; shift 2 ;;
+        --edge-port) edge_port=$2; shift 2 ;;
+        --tls-cert) tls_cert=$2; shift 2 ;;
+        --tls-key) tls_key=$2; shift 2 ;;
         --allow-test-signature) allow_test=true; shift ;;
         --accept-low-memory) low_memory=true; shift ;;
         --skip-firewall) skip_firewall=true; shift ;;
@@ -94,6 +115,8 @@ abspath() { case "$1" in /*) printf '%s' "$1" ;; *) printf '%s/%s' "$(pwd)" "$1"
 config=$(abspath "$config")
 install_dir=$(abspath "$install_dir")
 [ -z "$secrets_dir" ] || secrets_dir=$(abspath "$secrets_dir")
+[ -z "$tls_cert" ] || tls_cert=$(abspath "$tls_cert")
+[ -z "$tls_key" ] || tls_key=$(abspath "$tls_key")
 
 case "$profile" in
     airgapped|connected|cloud) ;;
@@ -103,6 +126,24 @@ if [ "$profile" = airgapped ]; then
     $mail_egress || $clamav_online || $acme || [ -n "$registry" ] && \
         die "The airgapped profile has no egress: --mail-egress, --clamav-online, --acme and --registry are not available."
 fi
+
+# Edge mode: the option, else what the settings remember, else direct.
+[ -n "$edge" ] || edge=$(sed -n 's/^BUFFALO_EDGE=//p' "$config" 2>/dev/null | tail -n 1)
+edge=${edge:-direct}
+case "$edge" in
+    direct|proxy) ;;
+    *) die "--edge must be direct or proxy." ;;
+esac
+[ -n "$edge_port" ] || edge_port=$(sed -n 's/^BUFFALO_EDGE_PORT=//p' "$config" 2>/dev/null | tail -n 1)
+edge_port=${edge_port:-8090}
+case "$edge_port" in ''|*[!0-9]*) die "--edge-port must be a port number." ;; esac
+if [ "$edge" = proxy ]; then
+    $acme && die "--acme is for --edge direct: in proxy mode the host's nginx holds the certificate."
+    [ -z "$tls_cert$tls_key" ] || die "--tls-cert and --tls-key are for --edge direct: in proxy mode the host's nginx holds the certificate."
+fi
+$acme_staging && ! $acme && die "--acme-staging needs --acme."
+{ [ -n "$tls_cert" ] && [ -z "$tls_key" ]; } || { [ -z "$tls_cert" ] && [ -n "$tls_key" ]; } && die "Give both --tls-cert and --tls-key."
+$acme && [ -n "$tls_cert" ] && die "Use either --acme or --tls-cert/--tls-key."
 
 # --- 1. Signature and checksums ---------------------------------------------
 say "Verifying the release signature and checksums"
@@ -206,6 +247,7 @@ fi
 files="compose.yml:compose.prod.yml:compose.profile-$profile.yml"
 $mail_egress && files="$files:compose.egress-mail.yml"
 $clamav_online && files="$files:compose.egress-clamav.yml"
+[ "$edge" = proxy ] && files="$files:compose.edge-proxy.yml"
 $acme && files="$files:compose.acme.yml"
 if [ ! -f "$config" ]; then
     run mkdir -p "$(dirname "$config")"
@@ -237,6 +279,15 @@ set_setting BUFFALO_PROFILE "$profile"
 set_setting BUFFALO_SECRETS_DIR "$secrets_dir"
 set_setting BUFFALO_CONFIG "$config"
 set_setting BUFFALO_IMAGE_PREFIX "$prefix"
+set_setting BUFFALO_EDGE "$edge"
+set_setting BUFFALO_EDGE_PORT "$edge_port"
+$acme_staging && set_setting ACME_SERVER https://acme-staging-v02.api.letsencrypt.org/directory
+if [ -n "$tls_cert" ]; then
+    [ -r "$tls_cert" ] && [ -r "$tls_key" ] || die "Cannot read --tls-cert or --tls-key."
+    [ "$(openssl x509 -noout -pubkey -in "$tls_cert" 2>/dev/null)" = "$(openssl pkey -pubout -in "$tls_key" 2>/dev/null)" ] \
+        || die "--tls-key is not the private key of --tls-cert."
+    set_setting BUFFALO_TLS_CERTIFICATE_FILE "$tls_cert"
+fi
 [ "$(sed -n 's/^APP_URL=//p' "$config")" != "https://buffalo.example.gov.ng" ] || $dry_run \
     || die "$config still has the template's APP_URL. Set your server name, APP_URL and certificate path first."
 
@@ -247,15 +298,34 @@ for name in app_key ciphersweet_key db_password db_migrations_password db_readon
     pgbackrest_passphrase restic_password tls_key; do
     [ -f "$secrets_dir/$name" ] || missing="$missing $name"
 done
+if [ -n "$tls_key" ]; then
+    if $dry_run; then
+        printf '   (dry run) copy --tls-key to %s/tls_key\n' "$secrets_dir"
+    else
+        # Written in place (a running nginx has the file bind-mounted).
+        [ -f "$secrets_dir/tls_key" ] && chmod u+w "$secrets_dir/tls_key"
+        cat "$tls_key" > "$secrets_dir/tls_key" && chmod 0444 "$secrets_dir/tls_key"
+    fi
+    missing=$(printf '%s' "$missing" | sed 's/ tls_key//')
+fi
 if [ -n "$missing" ]; then
-    $acme && [ "$missing" = " tls_key" ] && { run sh -c ": > '$secrets_dir/tls_key'"; run chmod 0444 "$secrets_dir/tls_key"; missing=""; }
+    # ACME and edge mode proxy need no key of their own: an empty placeholder.
+    { $acme || [ "$edge" = proxy ]; } && [ "$missing" = " tls_key" ] && { run sh -c ": > '$secrets_dir/tls_key'"; run chmod 0444 "$secrets_dir/tls_key"; missing=""; }
 fi
 [ -z "$missing" ] || die "Missing secret files:$missing. Create them with scripts/ops/generate-secrets.sh --dir $secrets_dir (tls_key: your certificate's private key)."
 dir_mode=$(stat -c '%a' "$secrets_dir" 2>/dev/null || stat -f '%Lp' "$secrets_dir")
 [ "$dir_mode" = 700 ] || warn "$secrets_dir should be mode 0700 (it is $dir_mode)."
+if [ "$edge" = direct ] && ! $acme && ! $dry_run; then
+    cert_file=$(sed -n 's/^BUFFALO_TLS_CERTIFICATE_FILE=//p' "$config" | tail -n 1)
+    [ -s "${cert_file:-/etc/buffalo/tls/fullchain.pem}" ] \
+        || die "Edge mode direct: the certificate ${cert_file:-/etc/buffalo/tls/fullchain.pem} is missing (BUFFALO_TLS_CERTIFICATE_FILE, --tls-cert, or --acme)."
+fi
 
 # From the release directory: COMPOSE_FILE (in the settings file) is relative to it.
 compose() { (cd "$install_dir/current" && docker compose --env-file "$config" "$@"); }
+
+say "Checking the published ports against edge mode $edge"
+run "$install_dir/current/scripts/ops/edge-check.sh" "$config" "$install_dir/current"
 
 # --- 6. Database, migrations, reference data ----------------------------------------
 say "Starting PostgreSQL and Valkey"
@@ -279,9 +349,7 @@ done
 
 if $acme; then
     say "Preparing ACME certificates (temporary self-signed certificate until the first issuance)"
-    run docker run --rm --network none --user 0 --entrypoint sh -v "$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$config")_letsencrypt":/etc/letsencrypt \
-        certbot/certbot:v5.8.0@sha256:f70ad0adbb7e117f0fe42a63c553f28ea451edabc0148757b6efcd9735acaa20 -c \
-        'mkdir -p /etc/letsencrypt/buffalo; [ -s /etc/letsencrypt/buffalo/fullchain.pem ] || openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 7 -subj /CN=placeholder -keyout /etc/letsencrypt/buffalo/privkey.pem -out /etc/letsencrypt/buffalo/fullchain.pem 2>/dev/null; chown -R 101:101 /etc/letsencrypt'
+    run "$install_dir/current/scripts/ops/acme-prepare.sh" "$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$config")"
 fi
 
 # --- 7. Firewall, services --------------------------------------------------------------
@@ -317,9 +385,16 @@ say "Starting all services"
 run compose up -d --wait
 $dry_run || compose ps --format 'table {{.Service}}\t{{.Status}}'
 
+if [ "$edge" = proxy ]; then
+    edge_line="Edge mode proxy: http://127.0.0.1:$edge_port only. Configure this host's nginx with:
+  $install_dir/current/scripts/ops/edge-host-config.sh --config $config"
+else
+    edge_line="Edge mode direct: nginx publishes ports 80 and 443 and terminates TLS."
+fi
 cat <<NEXT
 
 BUFFALO $version is installed ($profile profile).
+$edge_line
 
 Next steps (docs/operations/runbook.md):
   1. Create the first super admin:

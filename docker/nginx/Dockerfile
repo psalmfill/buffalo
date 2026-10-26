@@ -5,8 +5,9 @@
 #   base - configuration only (development: compose.override.yml mounts the
 #          source tree for public/).
 #   prod - plus the application's public/ directory (index.php and the built
-#          assets) from the prod application image (APP_IMAGE), the TLS
-#          template and the maintenance page.
+#          assets) from the prod application image (APP_IMAGE), the server
+#          templates for both edge modes (templates/: direct, TLS here;
+#          templates-proxy/: behind a host nginx) and the maintenance page.
 
 ARG BASE_IMAGE=buffalo/patched-nginx:dev
 ARG APP_IMAGE=buffalo/app:dev
@@ -22,6 +23,8 @@ COPY docker/nginx/maintenance.html /usr/share/nginx/maintenance/maintenance.html
 FROM base AS prod
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY docker/nginx/templates/ /etc/nginx/templates/
+COPY docker/nginx/templates-proxy/ /etc/nginx/templates-proxy/
+COPY --chmod=0755 docker/nginx/edge-gateway.envsh /docker-entrypoint.d/16-buffalo-edge-gateway.envsh
 # The template step (20-envsubst-on-templates.sh) writes to /tmp, an empty
 # tmpfs at start: create its output directory first.
 RUN printf '#!/bin/sh\nmkdir -p /tmp/nginx-conf.d\n' > /docker-entrypoint.d/15-buffalo-conf-dir.sh \
@@ -29,4 +32,7 @@ RUN printf '#!/bin/sh\nmkdir -p /tmp/nginx-conf.d\n' > /docker-entrypoint.d/15-b
 COPY --chmod=0755 docker/nginx/cert-reload.sh /docker-entrypoint.d/40-buffalo-cert-reload.sh
 COPY --from=app /var/www/html/public /var/www/html/public
 ENV NGINX_ENVSUBST_OUTPUT_DIR=/tmp/nginx-conf.d \
-    NGINX_OCSP_STAPLING=off
+    NGINX_OCSP_STAPLING=off \
+    BUFFALO_EDGE=direct \
+    BUFFALO_BASIC_AUTH=off \
+    BUFFALO_BASIC_AUTH_FILE=/run/secrets/basic_auth

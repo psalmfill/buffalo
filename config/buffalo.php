@@ -465,6 +465,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Edge mode
+    |--------------------------------------------------------------------------
+    | How the nginx container meets the outside world. `mode` is the choice
+    | in the installation settings (BUFFALO_EDGE): `direct` (nginx publishes
+    | 80 and 443 and terminates TLS) or `proxy` (plain HTTP on 127.0.0.1
+    | behind a host nginx); UAT also has `local` (https://localhost:19443).
+    | The other values are set by the compose files from what nginx actually
+    | publishes; buffalo:production:check refuses a mismatch. `basic_auth` is
+    | the UAT-only site password (compose.uat-basic-auth.yml).
+    */
+    'edge' => [
+        'mode' => env('BUFFALO_EDGE', 'direct'),
+        'published' => env('BUFFALO_EDGE_PUBLISHED'),
+        'bind' => env('BUFFALO_EDGE_BIND'),
+        'ports' => env('BUFFALO_EDGE_PORTS'),
+        'basic_auth' => (bool) env('BUFFALO_BASIC_AUTH', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Go-live check (Phase 9B.6)
     |--------------------------------------------------------------------------
     | buffalo:go-live:check runs daily and on demand. `version` is baked into

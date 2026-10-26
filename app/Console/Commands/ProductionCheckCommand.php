@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\Edge\EdgeMode;
 use App\Support\Rollout\Rollout;
 use Illuminate\Console\Command;
 use Illuminate\Http\Request;
@@ -16,7 +17,9 @@ use Laravel\Horizon\Horizon;
  * - APP_URL is https, and session cookies are Secure, HttpOnly, SameSite;
  * - the Content Security Policy is enforced (not report-only);
  * - Horizon's dashboard requires the viewHorizon gate (no anonymous access);
- * - Inertia DevTools are off.
+ * - Inertia DevTools are off;
+ * - the edge mode is consistent (EdgeMode): BUFFALO_EDGE matches what the
+ *   compose files publish, and edge mode proxy publishes on 127.0.0.1 only.
  *
  * Prints the setting names only, never values.
  */
@@ -45,6 +48,7 @@ class ProductionCheckCommand extends Command
             'Inertia DevTools must be off (INERTIA_DEVTOOLS_ENABLED)' => (bool) config('inertia.devtools.enabled'),
             'Pilot rollout gating must be enforced (BUFFALO_ROLLOUT_ENFORCE=true)' => ! Rollout::enforced(),
         ]));
+        array_push($problems, ...EdgeMode::problems((bool) $this->option('uat')));
 
         if ($problems !== []) {
             foreach ($problems as $problem) {

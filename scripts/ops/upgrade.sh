@@ -223,6 +223,9 @@ if ! $dry_run; then
         || printf 'BUFFALO_PREVIOUS_VERSION=%s\n' "$current_version" >> "$config"
 fi
 
+say "Checking the published ports against the edge mode (BUFFALO_EDGE=$(setting BUFFALO_EDGE))"
+run "$install_dir/current/scripts/ops/edge-check.sh" "$config" "$install_dir/current"
+
 say "Starting the new PostgreSQL and Valkey images"
 run compose up -d --wait postgres valkey pgbackrest
 

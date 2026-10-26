@@ -96,7 +96,8 @@ step "Release notes"
 } > "$out/RELEASE-NOTES.md"
 
 step "Bundle"
-cp compose.yml compose.prod.yml compose.profile-*.yml compose.egress-*.yml compose.acme.yml "$bundle/"
+# Not compose.uat*.yml: the UAT environment runs from the source tree only.
+cp compose.yml compose.prod.yml compose.profile-*.yml compose.egress-*.yml compose.acme.yml compose.edge-proxy.yml "$bundle/"
 mkdir -p "$bundle/scripts" "$bundle/docs" "$bundle/security" "$bundle/deploy" "$bundle/docker/drill"
 cp -R scripts/ops scripts/restore "$bundle/scripts/"
 cp scripts/clamav-import-signatures.sh "$bundle/scripts/"

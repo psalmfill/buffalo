@@ -102,6 +102,14 @@ type Report = {
         }[];
     };
     keys: { name: string; fingerprint: string; activated_at: string | null }[];
+    edge: {
+        mode: 'direct' | 'proxy' | 'local';
+        bind: string;
+        ports: string[];
+        basic_auth: boolean;
+        summary: string;
+        problems: string[];
+    };
     certificate: {
         configured: boolean;
         expires_at: string | null;
@@ -508,12 +516,29 @@ export default function SystemHealth({ report }: { report: Report }) {
                                     </span>
                                 </Row>
                             ))}
+                            <Row label="Edge mode">
+                                <span data-test="health-edge">
+                                    {report.edge.summary}
+                                    {report.edge.basic_auth &&
+                                        ' Site password on (UAT).'}
+                                </span>
+                                {report.edge.problems.map((problem) => (
+                                    <span
+                                        key={problem}
+                                        className="block text-destructive"
+                                    >
+                                        {problem}
+                                    </span>
+                                ))}
+                            </Row>
                             <Row label="TLS certificate">
-                                {report.certificate.expires_at
-                                    ? `Expires ${formatDateTime(report.certificate.expires_at)} (${report.certificate.days_left} days)`
-                                    : report.certificate.configured
-                                      ? 'Configured but unreadable'
-                                      : 'Not configured (Phase 9)'}
+                                {report.edge.mode === 'proxy'
+                                    ? "At the host's nginx (edge mode proxy): check it there"
+                                    : report.certificate.expires_at
+                                      ? `Expires ${formatDateTime(report.certificate.expires_at)} (${report.certificate.days_left} days)`
+                                      : report.certificate.configured
+                                        ? 'Configured but unreadable'
+                                        : 'Not configured (Phase 9)'}
                             </Row>
                         </CardContent>
                     </Card>

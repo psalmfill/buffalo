@@ -7,8 +7,10 @@ use App\Enums\Role;
 use App\Models\GoLiveDecisionRecord;
 use App\Models\User;
 use App\Support\Backups\BackupStatus;
+use App\Support\Edge\EdgeMode;
 use App\Support\Health\HealthStatus;
 use App\Support\Malware\MalwareScanner;
+use App\Support\Uat\Uat;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,6 +21,9 @@ use Throwable;
  * decisions must be recorded. Runs in the console (system context), daily
  * and on demand; the result is stored for the read-only view on System
  * health. Details name settings, counts and dates only, never secrets.
+ *
+ * Statuses: pass, fail, manual (checked outside BUFFALO; not blocking) for
+ * technical items; recorded, missing, fail for decisions.
  *
  * @phpstan-type Item array{section: string, key: string, label: string, status: string, detail: string}
  */
@@ -43,6 +48,7 @@ final class GoLiveCheck
     {
         $items = [
             $this->bootChecks(),
+            $this->edgeMode(),
             $this->tlsCertificate(),
             $this->realTimeOrigin(),
             ...$this->dataItems(),
@@ -57,7 +63,9 @@ final class GoLiveCheck
             ...$this->decisions(),
         ];
 
-        $passed = collect($items)->every(fn (array $item): bool => in_array($item['status'], ['pass', 'recorded'], true));
+        // `manual`: checked by people outside BUFFALO (the host nginx's
+        // certificate in edge mode proxy); shown, but never blocking.
+        $passed = collect($items)->every(fn (array $item): bool => in_array($item['status'], ['pass', 'recorded', 'manual'], true));
 
         return [
             'passed' => $passed,
@@ -94,11 +102,31 @@ final class GoLiveCheck
             $failed === [] ? 'buffalo:production:check, buffalo:secrets:check and buffalo:keys:verify pass.' : 'Failing: '.implode(', ', $failed).'. Run them for the details.');
     }
 
+    /**
+     * The edge mode and its port, and whether the settings are consistent
+     * (the same rules as the start-up check).
+     *
+     * @return Item
+     */
+    private function edgeMode(): array
+    {
+        $problems = EdgeMode::problems(Uat::enabled());
+
+        return self::item('edge', 'Edge mode and port ('.EdgeMode::mode().')', $problems === [],
+            $problems === [] ? EdgeMode::summary() : implode('; ', $problems).'.');
+    }
+
     /** @return Item */
     private function tlsCertificate(): array
     {
-        $expiry = $this->tls->servedCertificateExpiry();
         $min = (int) config('buffalo.golive.tls_min_days');
+
+        if (EdgeMode::mode() === EdgeMode::PROXY) {
+            return ['section' => 'technical', 'key' => 'tls', 'label' => "TLS certificate valid for at least {$min} days", 'status' => 'manual',
+                'detail' => 'Edge mode proxy: the host\'s nginx terminates TLS, and BUFFALO cannot read its certificate. Check its expiry and automatic renewal on the host.'];
+        }
+
+        $expiry = $this->tls->servedCertificateExpiry();
 
         if ($expiry === null) {
             return self::item('tls', "TLS certificate valid for at least {$min} days", false, 'No certificate could be read from nginx on the internal network.');

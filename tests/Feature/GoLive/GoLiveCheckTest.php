@@ -107,6 +107,7 @@ beforeEach(function () {
 
     $this->dir = sys_get_temp_dir().'/buffalo-golive-'.uniqid();
     config(['buffalo.backups.status_path' => $this->dir, 'buffalo.golive.version' => '1.0.0']);
+    config(['buffalo.edge.mode' => 'direct', 'buffalo.edge.published' => 'direct', 'buffalo.edge.bind' => '0.0.0.0', 'buffalo.edge.ports' => '80,443']);
     writeBackupStatus($this->dir);
 
     GoLiveFixtures::loadProductionHierarchy();
@@ -143,6 +144,7 @@ test('each technical item fails on its own', function (Closure $break, string $k
     'tls unreadable' => [fn ($t) => $t->tls->expiry = null, 'tls'],
     'tls expiring' => [fn ($t) => $t->tls->expiry = now()->addDays(20)->toImmutable(), 'tls'],
     // Phase 11 browser check: a UAT left with the example origin refused live updates.
+    'edge mode not what compose publishes' => [fn ($t) => config(['buffalo.edge.published' => 'proxy', 'buffalo.edge.bind' => '127.0.0.1']), 'edge'],
     'live updates refuse the site' => [fn ($t) => config(['app.url' => 'https://buffalo.agency.gov.ng', 'reverb.apps.apps.0.allowed_origins' => ['buffalo.example.gov.ng']]), 'realtime_origin'],
     'demo incidents' => [function ($t) {
         $lga = Lga::query()->firstOrFail();
@@ -286,4 +288,29 @@ test('go-live decisions are part of the audit hash chain', function () {
     recordAllDecisions($this->admin);
     expect(AuditChain::verify('golive_decisions')['ok'])->toBeTrue()
         ->and(DB::table('golive_decisions')->whereNull('row_hash')->count())->toBe(0);
+});
+
+test('edge mode proxy: the item names the mode and port, and the host certificate is a non-blocking manual check', function () {
+    recordAllDecisions($this->admin);
+    config(['buffalo.edge.mode' => 'proxy', 'buffalo.edge.published' => 'proxy', 'buffalo.edge.bind' => '127.0.0.1', 'buffalo.edge.ports' => '8090']);
+    $this->tls->expiry = null; // nginx serves no TLS in this mode
+
+    $result = app(GoLiveCheck::class)->run();
+    $items = collect($result['items'])->keyBy('key');
+
+    expect($result['passed'])->toBeTrue()
+        ->and($items['edge']['status'])->toBe('pass')
+        ->and($items['edge']['label'])->toContain('proxy')
+        ->and($items['edge']['detail'])->toContain('127.0.0.1:8090')
+        ->and($items['tls']['status'])->toBe('manual')
+        ->and($items['tls']['detail'])->toContain("host's nginx");
+
+    // The command prints and reports the manual item too.
+    expect(Artisan::call('buffalo:go-live:check', ['--no-report' => true]))->toBe(0)
+        ->and(Artisan::output())->toContain('check on the host');
+
+    config(['buffalo.edge.bind' => '0.0.0.0']);
+    expect(collect(app(GoLiveCheck::class)->run()['items'])->keyBy('key')['edge'])
+        ->status->toBe('fail')
+        ->detail->toContain('BUFFALO_EDGE_BIND must be 127.0.0.1');
 });

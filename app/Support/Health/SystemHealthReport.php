@@ -3,7 +3,9 @@
 namespace App\Support\Health;
 
 use App\Support\Backups\BackupStatus;
+use App\Support\Edge\EdgeMode;
 use App\Support\GoLive\GoLiveCheck;
+use App\Support\Uat\Uat;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +15,7 @@ use Throwable;
 /**
  * Everything System health shows (Phase 8C.4), as plain arrays: services,
  * queues, scheduler, backups, storage, audit chains, key fingerprints, the
- * TLS certificate and open alerts. No intelligence content: counts, times,
+ * edge mode, the TLS certificate and open alerts. No intelligence content: counts, times,
  * sizes, results and fingerprints only. Also the body of /health/detailed.
  */
 final class SystemHealthReport
@@ -37,6 +39,8 @@ final class SystemHealthReport
             'keys' => DB::table('key_fingerprints')->where('status', 'active')->orderBy('key_name')
                 ->get(['key_name', 'fingerprint', 'activated_at'])
                 ->map(fn (object $k) => ['name' => (string) $k->key_name, 'fingerprint' => (string) $k->fingerprint, 'activated_at' => self::time($k->activated_at)])->all(),
+            // How nginx meets the outside world: mode, address and ports.
+            'edge' => EdgeMode::report(Uat::enabled()),
             'certificate' => ($expiry = StackChecks::certificateExpiry()) === null
                 ? ['configured' => (string) config('buffalo.health.tls_certificate') !== '', 'expires_at' => null, 'days_left' => null]
                 : ['configured' => true, 'expires_at' => self::time($expiry), 'days_left' => (int) floor(CarbonImmutable::now()->diffInDays($expiry, false))],

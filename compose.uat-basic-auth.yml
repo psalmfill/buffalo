@@ -1,0 +1,33 @@
+# UAT only (make uat-up BASIC_AUTH=1): a username and password in front of
+# the whole site, checked by nginx before anything reaches the
+# application, in every edge mode. Never part of a release bundle; the
+# production start-up check refuses BUFFALO_BASIC_AUTH.
+#
+# The password is generated on first start and printed once; only its hash
+# is stored (${BUFFALO_SECRETS_DIR}/basic_auth, "user:hash", SHA-512 crypt).
+# make uat-credentials issues a new one (nginx reads the file per request).
+services:
+  nginx:
+    environment:
+      BUFFALO_BASIC_AUTH: BUFFALO UAT
+    secrets:
+      - basic_auth
+  app:
+    environment:
+      BUFFALO_BASIC_AUTH: "1"
+  horizon:
+    environment:
+      BUFFALO_BASIC_AUTH: "1"
+  scheduler:
+    environment:
+      BUFFALO_BASIC_AUTH: "1"
+  reverb:
+    environment:
+      BUFFALO_BASIC_AUTH: "1"
+  tools:
+    environment:
+      BUFFALO_BASIC_AUTH: "1"
+
+secrets:
+  basic_auth:
+    file: ${BUFFALO_SECRETS_DIR:?set BUFFALO_SECRETS_DIR}/basic_auth

@@ -94,7 +94,7 @@ test('the UAT start-up check uses the production rules, and production refuses t
     config([
         'app.debug' => false, 'app.url' => 'https://uat.example', 'session.secure' => true, 'session.http_only' => true,
         'session.same_site' => 'lax', 'buffalo.security.csp.report_only' => false, 'inertia.devtools.enabled' => false,
-        'buffalo.rollout.enforce' => true, 'session.lifetime' => 30,
+        'buffalo.rollout.enforce' => true, 'session.lifetime' => 30, 'buffalo.edge.published' => 'direct',
     ]);
 
     config(['app.env' => 'uat']);

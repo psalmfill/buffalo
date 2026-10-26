@@ -15,7 +15,7 @@ NODE    := $(COMPOSE) run --rm --no-deps vite
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup up down shell artisan test lint fix fresh logs tiles release uat-up uat-down uat-credentials browser-check images restore-drill security-scan clamav-import-signatures wayfinder ci
+.PHONY: help setup up down shell artisan test lint fix fresh logs tiles release uat-up uat-down uat-credentials edge-host-config browser-check images restore-drill security-scan clamav-import-signatures wayfinder ci
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -74,14 +74,19 @@ logs: ## Follow container logs
 tiles: ## Download the Nigeria map extract: make tiles url=<protomaps build URL>
 	./scripts/fetch-map-tiles.sh $(url)
 
-uat-up: ## UAT (production images, APP_ENV=uat, synthetic data): https://localhost:19443; demo: DEMO_HOST=host [DEMO_PORT=8090]
-	DEMO_HOST="$(DEMO_HOST)" DEMO_PORT="$(DEMO_PORT)" ./scripts/uat/up.sh
+uat-up: ## UAT (production images, APP_ENV=uat, synthetic data); EDGE=local|direct|proxy DEMO_HOST=... (docs/operations/demo-hosting.md)
+	EDGE="$(EDGE)" DEMO_HOST="$(DEMO_HOST)" EDGE_PORT="$(EDGE_PORT)" DEMO_PORT="$(DEMO_PORT)" \
+		TLS="$(TLS)" TLS_CERT="$(TLS_CERT)" TLS_KEY="$(TLS_KEY)" ACME_EMAIL="$(ACME_EMAIL)" ACME_STAGING="$(ACME_STAGING)" \
+		ACME_SERVER="$(ACME_SERVER)" BASIC_AUTH="$(BASIC_AUTH)" UAT_EXTRA_COMPOSE="$(UAT_EXTRA_COMPOSE)" ./scripts/uat/up.sh
 
 uat-down: ## Stop the UAT environment or demo (PURGE=1 also deletes its volumes; UAT_PURGE=1 also removes .uat/)
 	PURGE="$(PURGE)" UAT_PURGE="$(UAT_PURGE)" ./scripts/uat/down.sh
 
-uat-credentials: ## New passwords and TOTP secrets for the UAT accounts (printed once)
-	docker compose --env-file .uat/buffalo.env run --rm -T tools php artisan buffalo:uat:seed --reset-credentials
+uat-credentials: ## New passwords and TOTP secrets for the UAT accounts, and a new site password with BASIC_AUTH=1 (printed once)
+	./scripts/uat/credentials.sh
+
+edge-host-config: ## Edge mode proxy: print the host nginx's server block (CONFIG=settings file; default .uat/buffalo.env or /etc/buffalo/buffalo.env)
+	./scripts/ops/edge-host-config.sh $(if $(CONFIG),--config $(CONFIG))
 
 browser-check: ## Phase 11 browser check (Playwright): target=local (default, make up) or target=uat (make uat-up)
 	TARGET="$(target)" ./scripts/uat/browser-check.sh $(args)
@@ -106,6 +111,7 @@ wayfinder: ## Regenerate Wayfinder TypeScript routes (run after changing routes)
 
 ci: images ## Run scripts/ci.sh in a clean copy of the working tree (Docker)
 	./scripts/check-compose-hardening.sh
+	./scripts/check-edge-ports.sh
 	python3 scripts/security/check-exceptions.py
 	docker build -f docker/php/Dockerfile --target ci \
 		--build-arg UID=$(DOCKER_UID) --build-arg GID=$(DOCKER_GID) -t buffalo-app:ci .

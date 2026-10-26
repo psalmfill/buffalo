@@ -16,7 +16,8 @@
 #   docs/operations/install.md for the list and file permissions.
 # - Laravel's writable paths live on the `app_storage` volume, so the
 #   application containers keep read-only root filesystems.
-# - nginx terminates TLS on 443 (8443 in the container) and redirects 80.
+# - Edge mode `direct`: nginx terminates TLS on 443 (8443 in the container)
+#   and redirects 80. compose.edge-proxy.yml switches to `proxy`.
 # - Application logs go to stderr (Docker's rotated json-file logs).
 # Requires Docker Compose 2.24+ (`!reset`, `!override`).
 
@@ -36,6 +37,11 @@ x-prod-app: &prod-app
     REDIS_PASSWORD_FILE: /run/secrets/redis_password
     REVERB_APP_KEY_FILE: /run/secrets/reverb_app_key
     REVERB_APP_SECRET_FILE: /run/secrets/reverb_app_secret
+    # What nginx publishes (edge mode `direct`; compose.edge-proxy.yml
+    # replaces these for `proxy`), checked against BUFFALO_EDGE at start.
+    BUFFALO_EDGE_PUBLISHED: direct
+    BUFFALO_EDGE_BIND: ${BUFFALO_BIND_ADDRESS:-0.0.0.0}
+    BUFFALO_EDGE_PORTS: "${BUFFALO_HTTP_PORT:-80},${BUFFALO_HTTPS_PORT:-443}"
   secrets: &prod-app-secrets
     - app_key
     - ciphersweet_key

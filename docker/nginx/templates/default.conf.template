@@ -1,8 +1,10 @@
-# BUFFALO nginx: production (Phase 9A). Rendered at start by the nginx
-# image's envsubst step into /tmp/nginx-conf.d (the root filesystem is
-# read-only). Variables: BUFFALO_SERVER_NAME, BUFFALO_TLS_CERTIFICATE,
-# BUFFALO_TLS_KEY (paths inside the container), NGINX_OCSP_STAPLING (on only
-# when the profile gives nginx egress).
+# BUFFALO nginx: production (Phase 9A), edge mode `direct`: TLS ends here
+# and no forwarded headers are trusted (edge mode `proxy` renders
+# templates-proxy/ instead). Rendered at start by the nginx image's
+# envsubst step into /tmp/nginx-conf.d (the root filesystem is read-only).
+# Variables: BUFFALO_SERVER_NAME, BUFFALO_TLS_CERTIFICATE, BUFFALO_TLS_KEY
+# (paths inside the container), NGINX_OCSP_STAPLING (on only when the
+# profile gives nginx egress), BUFFALO_BASIC_AUTH(_FILE) (UAT only).
 
 resolver 127.0.0.11 valid=10s ipv6=off;
 
@@ -23,6 +25,18 @@ server {
         access_log off;
         allow 127.0.0.1;
         deny all;
+        return 204;
+    }
+
+    # System health's nginx probe (BUFFALO_HEALTH_NGINX_URL,
+    # http://nginx:8080/up): nginx itself answering, internal networks only.
+    location = /up {
+        allow 127.0.0.0/8;
+        allow 10.0.0.0/8;
+        allow 172.16.0.0/12;
+        allow 192.168.0.0/16;
+        deny all;
+        access_log off;
         return 204;
     }
 
@@ -58,6 +72,11 @@ server {
     # OCSP stapling needs to reach the CA's responder: only with egress.
     ssl_stapling ${NGINX_OCSP_STAPLING};
     ssl_stapling_verify ${NGINX_OCSP_STAPLING};
+
+    # UAT only (compose.uat-basic-auth.yml): a site-wide password; "off"
+    # otherwise.
+    auth_basic "${BUFFALO_BASIC_AUTH}";
+    auth_basic_user_file ${BUFFALO_BASIC_AUTH_FILE};
 
     include /etc/nginx/buffalo/app.conf;
 }

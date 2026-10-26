@@ -1,0 +1,48 @@
+# Edge mode `proxy` (BUFFALO_EDGE=proxy): behind an existing host-level
+# nginx that terminates TLS, on a shared server. Added to COMPOSE_FILE by
+# install.sh --edge proxy (production) and make uat-up EDGE=proxy (UAT).
+# Without it the edge mode is `direct`: nginx publishes 80 and 443 and
+# terminates TLS itself (compose.prod.yml).
+#
+# - nginx publishes ONLY plain HTTP on 127.0.0.1:${BUFFALO_EDGE_PORT}
+#   (default 8090), served by templates-proxy/ in the nginx image. No other
+#   port is published, and nginx needs no certificate.
+# - X-Forwarded-For / X-Forwarded-Proto are honoured only from the Docker
+#   gateway address (docker/nginx/edge-gateway.envsh). Laravel trusts no
+#   proxies.
+# - The application containers are told what is published here; their
+#   start-up check (buffalo:production:check) refuses to run when it does
+#   not match BUFFALO_EDGE in the settings, or when BUFFALO_EDGE_BIND is
+#   anything other than 127.0.0.1. install.sh, upgrade.sh and make uat-up
+#   also check the merged configuration (buffalo:edge:check-compose).
+# - make edge-host-config prints the host nginx's server block.
+
+x-edge-proxy-env: &edge-proxy-env
+  BUFFALO_EDGE_PUBLISHED: proxy
+  BUFFALO_EDGE_BIND: ${BUFFALO_EDGE_BIND:-127.0.0.1}
+  BUFFALO_EDGE_PORTS: ${BUFFALO_EDGE_PORT:-8090}
+
+services:
+  app:
+    environment: *edge-proxy-env
+  horizon:
+    environment: *edge-proxy-env
+  scheduler:
+    environment: *edge-proxy-env
+  reverb:
+    environment: *edge-proxy-env
+  tools:
+    environment: *edge-proxy-env
+
+  nginx:
+    ports: !override
+      - "${BUFFALO_EDGE_BIND:-127.0.0.1}:${BUFFALO_EDGE_PORT:-8090}:8081"
+    environment:
+      BUFFALO_EDGE: proxy
+      NGINX_ENVSUBST_TEMPLATE_DIR: /etc/nginx/templates-proxy
+      BUFFALO_EDGE_GATEWAY: ${BUFFALO_EDGE_GATEWAY:-}
+    # No TLS here: no key, no certificate file.
+    secrets: !reset []
+    volumes: !override
+      - map_tiles:/usr/share/nginx/tiles:ro
+      - maintenance:/var/lib/buffalo/maintenance:ro

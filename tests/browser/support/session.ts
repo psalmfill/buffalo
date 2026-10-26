@@ -2,6 +2,7 @@ import {
     expect,
     type Browser,
     type BrowserContext,
+    type BrowserContextOptions,
     type Page,
 } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
@@ -19,13 +20,17 @@ export type Session = {
     guard: Guard;
 };
 
-/** Signs in with the password and a TOTP code, as a tester would. */
+/**
+ * Signs in with the password and a TOTP code, as a tester would. `options`:
+ * extra context options (the edge check's site password and headers).
+ */
 export async function signIn(
     browser: Browser,
     local: string,
+    options: BrowserContextOptions = {},
 ): Promise<Session> {
     const who = account(local);
-    const context = await browser.newContext();
+    const context = await browser.newContext(options);
     const page = await context.newPage();
     const guard = await Guard.install(page);
 

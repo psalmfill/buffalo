@@ -1,52 +1,124 @@
 # Hosting the UAT environment as a demo
 
-The UAT environment (synthetic data only, the red "UAT — TEST DATA ONLY"
-banner, accounts for every role) can be shown on a public host name behind
-a host-level nginx that already terminates TLS. This is a **demo** of
-the UAT build: it is never a production deployment, holds no real data, and
-production is configured exactly as before (`docs/operations/installation.md`).
+The UAT environment can be shown on a public host name. It has synthetic
+data only, the red "UAT — TEST DATA ONLY" banner, and accounts for every
+role. This is a **demo** of the UAT build. It is never a production
+deployment and holds no real data. Production uses the same edge modes,
+chosen with `install.sh --edge`
+([installation.md, "Edge modes"](installation.md#edge-modes)).
+
+## Which mode do I need?
+
+| Where the demo runs | Mode | Command |
+|---|---|---|
+| Your own machine, for testing | `local` (default) | `make uat-up` → `https://localhost:19443` |
+| A server for the demo alone; nothing else on ports 80 and 443 | `direct` | `make uat-up EDGE=direct DEMO_HOST=demo.example.org TLS=acme ACME_EMAIL=you@example.org` |
+| A shared server whose nginx already serves other sites on 80 and 443 | `proxy` | `make uat-up EDGE=proxy DEMO_HOST=demo.example.org` |
+
+Not sure? On the server, `sudo ss -ltnp 'sport = :443'`: if nothing listens
+there, use `direct`. If the host's nginx does, use `proxy`.
+
+Every choice (mode, host, port, certificate, site password) is remembered
+in `.uat/buffalo.env`, so a later `make uat-up` needs no flags. Switching
+modes is just another `make uat-up EDGE=...`: the data and accounts are kept.
+
+## Requirements
+
+- The BUFFALO source tree on the server, with Docker and Docker Compose (as
+  for `make uat-up`, see `docs/uat/README.md`), and about 6 GB of free
+  memory.
+- For `direct` and `proxy`: a DNS name for the demo pointing at the server.
+
+## `direct`: a dedicated server
+
+```
+browser ──https:443──▶ UAT nginx container (TLS for demo.example.org) ──▶ app, Reverb (wss)
+```
+
+nginx publishes ports 80 and 443 on all interfaces and terminates TLS with
+the production settings (TLS 1.2 and 1.3, port 80 redirecting to HTTPS).
+No forwarded headers are trusted. The certificate comes from one of:
+
+```sh
+# Let's Encrypt, obtained and renewed automatically (port 80 must be
+# reachable from the internet; the server needs outbound HTTPS)
+make uat-up EDGE=direct DEMO_HOST=demo.example.org TLS=acme ACME_EMAIL=you@example.org
+
+# ... first against Let's Encrypt's staging CA (browsers will warn)
+make uat-up EDGE=direct DEMO_HOST=demo.example.org TLS=acme ACME_EMAIL=you@example.org ACME_STAGING=1
+
+# your own certificate files
+make uat-up EDGE=direct DEMO_HOST=demo.example.org TLS_CERT=/path/fullchain.pem TLS_KEY=/path/privkey.pem
+```
+
+With `TLS=acme` the environment uses the `connected` profile: certbot (and
+nginx, for OCSP stapling) can reach the internet. A temporary self-signed
+certificate is served for the first few seconds until Let's Encrypt has
+issued the real one. To leave the staging CA, run the command again without
+`ACME_STAGING=1`, after `make uat-down` and
+`docker volume rm buffalo-uat_letsencrypt` (so the staging certificate is not
+kept).
+
+## `proxy`: behind the server's existing nginx
 
 ```
 browser ──https──▶ host nginx (TLS for demo.example.org, :443)
                      │  plain HTTP, X-Forwarded-For / X-Forwarded-Proto
                      ▼
-               127.0.0.1:8090 ──▶ UAT nginx container ──▶ app, Reverb (WebSockets)
+               127.0.0.1:8090 ──▶ UAT nginx container ──▶ app, Reverb (wss)
+```
+
+```sh
+make uat-up EDGE=proxy DEMO_HOST=demo.example.org EDGE_PORT=8090
+make edge-host-config | sudo tee /etc/nginx/sites-available/buffalo-demo
+sudo ln -s /etc/nginx/sites-available/buffalo-demo /etc/nginx/sites-enabled/
+sudoedit /etc/nginx/sites-available/buffalo-demo    # replace the two CHANGE-ME certificate paths
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 - The UAT nginx container publishes **only** plain HTTP on
-  `127.0.0.1:$DEMO_PORT` (default 8090). No other UAT service publishes a
+  `127.0.0.1:$EDGE_PORT` (default 8090). No other UAT service publishes a
   port, and nothing listens on a public address except your host nginx.
 - `X-Forwarded-For` and `X-Forwarded-Proto` are honoured only from the
   Docker gateway address. Connections to the published port arrive from
-  it; from any other peer the headers are ignored. Laravel itself trusts no
+  it. From any other peer the headers are ignored. Laravel itself trusts no
   proxies.
-- Session and XSRF cookies stay `Secure`, so the demo works only over
-  HTTPS.
-- Live updates (notifications, incident and threat events) use WebSockets
-  at `wss://$DEMO_HOST/app/...` on port 443, through the same host nginx.
-  The frontend takes the WebSocket host, port and scheme from the page's own
-  address, so the same build works on any host name.
+- `make edge-host-config` prints the host's server block for `DEMO_HOST`.
+  It has the WebSocket upgrade, `X-Forwarded-Proto https`, the larger proxy
+  buffers BUFFALO's headers need (without them: 502), and
+  `client_max_body_size`. If `map $http_upgrade $connection_upgrade` is
+  already defined elsewhere in your nginx configuration, delete it from
+  the block.
+- The certificate for `DEMO_HOST` lives in the host's nginx (for example
+  from the host's certbot package). The go-live page shows its item as
+  "Check on the host".
 
-## Requirements
+`make uat-up DEMO_HOST=... DEMO_PORT=...` (from before edge modes) still means
+`EDGE=proxy`.
 
-- The BUFFALO source tree on the demo server, with Docker and Docker Compose
-  (the same as for `make uat-up`, see `docs/uat/README.md`). About 6 GB of
-  free memory.
-- A DNS name for the demo pointing at the server, and a TLS certificate for
-  it in your host nginx.
+## Live updates (wss)
 
-## 1. Start the demo
+In every mode, live updates (notifications, incident and threat events) use
+WebSockets at `wss://<host>/app/...` on the page's own host and port. The
+frontend takes the WebSocket address from the page, so the same build works
+everywhere. Reverb accepts connections only from pages on `DEMO_HOST` (its
+allowed origins, set by `make uat-up`). In proxy mode the `Host` header must
+be the demo host name, which the generated block passes on.
 
-From the repository root:
+## A site password (`BASIC_AUTH=1`, UAT only)
 
 ```sh
-make uat-up DEMO_HOST=demo.example.org DEMO_PORT=8090
+make uat-up BASIC_AUTH=1      # add it (any mode); BASIC_AUTH=0 removes it
 ```
 
-This builds the production images from the source, prepares `.uat/`
-(settings and secrets, never committed), migrates, seeds synthetic data and
-starts every service. `DEMO_HOST` and `DEMO_PORT` are remembered in
-`.uat/buffalo.env`, so a later `make uat-up` brings the same demo back.
+The UAT nginx then asks for a username and password before anything else,
+including the sign-in page. The password is generated on the first start
+and **printed once**. Only its hash is stored, in `.uat/secrets/basic_auth`.
+`make uat-credentials` issues a new one together with new account
+credentials; the change applies at once, with no restart. Production never
+has this: its start-up check refuses it.
+
+## Accounts
 
 On the **first** start (and only then), the output lists each demo
 account's email, password and TOTP secret, followed by its TOTP setup URI:
@@ -63,103 +135,43 @@ anywhere and are not shown again. To issue new ones later:
 make uat-credentials
 ```
 
-## 2. Point your host nginx at it
-
-Add a server block for the demo host to the host's nginx (for example
-`/etc/nginx/sites-available/buffalo-demo`, then link it into
-`sites-enabled`), with your certificate paths:
-
-```nginx
-map $http_upgrade $connection_upgrade {
-    default upgrade;
-    ''      close;
-}
-
-server {
-    listen 80;
-    server_name demo.example.org;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    http2 on;
-    server_name demo.example.org;
-
-    ssl_certificate     /etc/letsencrypt/live/demo.example.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/demo.example.org/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-
-    # Evidence uploads (keep in step with the application's 100 MB limit).
-    client_max_body_size 100M;
-
-    location / {
-        proxy_pass http://127.0.0.1:8090;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Forwarded-Proto https;
-        # WebSockets (live notifications) on the same host and port.
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $connection_upgrade;
-        proxy_read_timeout 120s;
-        proxy_buffering off;
-        # BUFFALO's response headers (security policy, cookies) exceed
-        # nginx's default 4-8 KB header buffer: without this, 502.
-        proxy_buffer_size 32k;
-        proxy_buffers 8 32k;
-    }
-}
-```
-
-If `map $http_upgrade $connection_upgrade` is already defined elsewhere in
-your nginx configuration, leave it out here. Then:
-
-```sh
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-Open `https://demo.example.org` and sign in with one of the printed
-accounts.
-
-The `Host` header must be the demo host name. Reverb accepts WebSocket
-connections only from pages on `DEMO_HOST` (its allowed origins), and the
-application builds its links from it.
-
-## 3. Stop, restart, remove
+## Stop, restart, remove
 
 ```sh
 make uat-down              # stop the demo; its data and accounts are kept
-make uat-up                # start it again (same host, same data, no new credentials)
+make uat-up                # start it again (same mode and host, same data, no new credentials)
 make uat-down PURGE=1      # stop it and delete its data (volumes)
 make uat-up                # then: a fresh demo, new credentials printed once
-make uat-down UAT_PURGE=1  # also remove .uat/ (settings, secrets, demo host)
+make uat-down UAT_PURGE=1  # also remove .uat/ (settings, secrets, mode, host)
 ```
 
-Remove the server block from the host nginx when the demo is retired.
+In proxy mode, remove the server block from the host nginx when the demo is
+retired.
 
-## 4. Changing the host name or port
+## Checking a mode end to end
 
-```sh
-make uat-down
-make uat-up DEMO_HOST=new-demo.example.org DEMO_PORT=8091
-```
+`scripts/uat/edge-check.sh` (test tooling) checks the current mode:
 
-Update `server_name` and `proxy_pass` in the host nginx to match.
+- signing in through the edge;
+- a live notification arriving over `wss://`;
+- the login history recording the client's address rather than a forged
+  `X-Forwarded-For`;
+- with `EDGE_BASIC_AUTH=user:password`, the site password asked first.
+
+In proxy mode it runs a stand-in for the host nginx from the
+`make edge-host-config` output.
 
 ## Notes
 
-- **Synthetic data only.** Never load real data into the demo; the UAT
+- **Synthetic data only.** Never load real data into the demo. The UAT
   seed refuses databases that hold non-UAT accounts.
 - **The demo is the UAT build.** It runs the production images with
   `APP_ENV=uat` and passes the same start-up checks (`buffalo:production:check
-  --uat`). It always shows the UAT banner, and its accounts are on
-  `uat.buffalo.test`.
-- **An unusual Docker set-up.** The demo's nginx trusts forwarded headers
-  from the default gateway of its network, found when it starts (its log
-  shows "trusting X-Forwarded-* from …"). If your Docker forwards published
-  ports from a different address, set `BUFFALO_DEMO_GATEWAY=<address>` in
-  `.uat/buffalo.env` and run `make uat-up` again.
-- **Without `DEMO_HOST`,** `make uat-up` is the local UAT environment on
-  `https://localhost:19443` as before. A `.uat/` that already holds a demo
-  host keeps it: run `make uat-down UAT_PURGE=1` to start over.
+  --uat`, which also accepts `local` and the site password). It always shows
+  the UAT banner, and its accounts are on `uat.buffalo.test`.
+- **An unusual Docker set-up.** In proxy mode the UAT nginx trusts forwarded
+  headers from the default gateway of its network, found when it starts (its
+  log shows "trusting X-Forwarded-* from …"). If your Docker forwards
+  published ports from a different address, set
+  `BUFFALO_EDGE_GATEWAY=<address>` in `.uat/buffalo.env` and run `make uat-up`
+  again.

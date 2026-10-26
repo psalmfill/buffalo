@@ -47,6 +47,21 @@ test('super admins see System health; nobody else does', function () {
     }
 });
 
+test('System health shows the edge mode and port, and any inconsistency', function () {
+    config(['buffalo.edge.mode' => 'proxy', 'buffalo.edge.published' => 'proxy', 'buffalo.edge.bind' => '127.0.0.1', 'buffalo.edge.ports' => '8090']);
+
+    CrossFixtures::signIn($this->admin)->get('/system/health')->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('report.edge.mode', 'proxy')
+            ->where('report.edge.ports', ['8090'])
+            ->where('report.edge.summary', fn (string $summary) => str_contains($summary, '127.0.0.1:8090'))
+            ->where('report.edge.problems', []));
+
+    config(['buffalo.edge.mode' => 'direct']);
+    CrossFixtures::signIn($this->admin)->get('/system/health')->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('report.edge.problems.0', fn (string $p) => str_contains($p, 'compose.edge-proxy.yml')));
+});
+
 test('/health/detailed needs the token, sets no cookies, and is 404 without a configured token', function () {
     putenv('BUFFALO_HEALTH_TOKEN=');
     $this->getJson('/health/detailed')->assertNotFound();

@@ -1,0 +1,86 @@
+# BUFFALO nginx, edge mode `proxy` (compose.edge-proxy.yml sets
+# NGINX_ENVSUBST_TEMPLATE_DIR to this directory instead of templates/):
+# behind a host-level nginx that terminates TLS
+# (docs/operations/installation.md, "Edge modes"). No TLS here and no
+# certificate: plain HTTP on 8081, published on the host's
+# 127.0.0.1:$BUFFALO_EDGE_PORT only.
+#
+# X-Forwarded-For and X-Forwarded-Proto are honoured ONLY from the Docker
+# gateway address (BUFFALO_EDGE_GATEWAY, found at start by
+# 16-buffalo-edge-gateway.envsh): connections to the published port arrive
+# from it. From any other peer the headers are ignored, and PHP never
+# trusts them itself (Laravel trusts no proxies).
+
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+# The peer as seen before real_ip: the gateway, or anything else.
+geo $realip_remote_addr $buffalo_from_edge_proxy {
+    default 0;
+    ${BUFFALO_EDGE_GATEWAY}/32 1;
+}
+
+map "$buffalo_from_edge_proxy:$http_x_forwarded_proto" $buffalo_edge_https {
+    "1:https" on;
+    default "";
+}
+
+# The container health check only (nothing publishes this port here).
+server {
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
+    server_name _;
+    server_tokens off;
+
+    location = /nginx-ping {
+        access_log off;
+        allow 127.0.0.1;
+        deny all;
+        return 204;
+    }
+
+    # System health's nginx probe (BUFFALO_HEALTH_NGINX_URL,
+    # http://nginx:8080/up): nginx itself answering, internal networks only.
+    location = /up {
+        allow 127.0.0.0/8;
+        allow 10.0.0.0/8;
+        allow 172.16.0.0/12;
+        allow 192.168.0.0/16;
+        deny all;
+        access_log off;
+        return 204;
+    }
+
+    location / {
+        return 404;
+    }
+}
+
+server {
+    listen 8081 default_server;
+    listen [::]:8081 default_server;
+    server_name _;
+
+    # The browser's address replaces the gateway's in logs, the internal
+    # allow-lists (/health/detailed) and PHP's REMOTE_ADDR (login history):
+    # the last X-Forwarded-For entry, the one the host proxy set.
+    set_real_ip_from ${BUFFALO_EDGE_GATEWAY}/32;
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive off;
+
+    # UAT only (compose.uat-basic-auth.yml): a site-wide password; "off"
+    # otherwise.
+    auth_basic "${BUFFALO_BASIC_AUTH}";
+    auth_basic_user_file ${BUFFALO_BASIC_AUTH_FILE};
+
+    include /etc/nginx/buffalo/app.conf;
+
+    # After the include: HTTPS as forwarded by the trusted proxy.
+    if ($buffalo_edge_https) {
+        set $buffalo_https on;
+    }
+}

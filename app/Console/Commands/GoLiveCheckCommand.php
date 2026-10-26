@@ -21,7 +21,7 @@ class GoLiveCheckCommand extends Command
 
     protected $description = 'Check that the system is ready to go live (technical checks and recorded client decisions)';
 
-    private const MARK = ['pass' => '✓ pass', 'fail' => '✗ FAIL', 'recorded' => '✓ recorded', 'missing' => '✗ MISSING'];
+    private const MARK = ['pass' => '✓ pass', 'fail' => '✗ FAIL', 'recorded' => '✓ recorded', 'missing' => '✗ MISSING', 'manual' => '? check on the host'];
 
     public function handle(GoLiveCheck $check): int
     {
@@ -32,8 +32,12 @@ class GoLiveCheckCommand extends Command
             $this->newLine();
             $this->components->twoColumnDetail("<fg=gray>{$title}</>");
             foreach (array_filter($result['items'], fn (array $item) => $item['section'] === $section) as $item) {
-                $ok = in_array($item['status'], ['pass', 'recorded'], true);
-                $this->components->twoColumnDetail($item['label'], $ok ? '<fg=green>'.self::MARK[$item['status']].'</>' : '<fg=red>'.self::MARK[$item['status']].'</>');
+                $colour = match ($item['status']) {
+                    'pass', 'recorded' => 'green',
+                    'manual' => 'yellow',
+                    default => 'red',
+                };
+                $this->components->twoColumnDetail($item['label'], "<fg={$colour}>".self::MARK[$item['status']].'</>');
                 $this->line('    <fg=gray>'.$item['detail'].'</>');
             }
         }

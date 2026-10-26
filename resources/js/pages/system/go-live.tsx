@@ -25,7 +25,9 @@ type Item = {
     section: 'technical' | 'decision';
     key: string;
     label: string;
-    status: 'pass' | 'fail' | 'recorded' | 'missing';
+    // manual: checked outside BUFFALO (the host nginx's certificate in
+    // edge mode proxy); never blocks go-live.
+    status: 'pass' | 'fail' | 'recorded' | 'missing' | 'manual';
     detail: string;
 };
 
@@ -64,9 +66,14 @@ const STATUS_LABELS: Record<Item['status'], string> = {
     fail: 'Fail',
     recorded: 'Recorded',
     missing: 'Not recorded',
+    manual: 'Check on the host',
 };
 
 function StatusBadge({ status }: { status: Item['status'] }) {
+    if (status === 'manual') {
+        return <Badge variant="outline">{STATUS_LABELS[status]}</Badge>;
+    }
+
     const ok = status === 'pass' || status === 'recorded';
 
     return (
