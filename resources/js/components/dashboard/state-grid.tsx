@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { useState } from 'react';
 import PlaceDashboardController from '@/actions/App/Http/Controllers/Dashboard/PlaceDashboardController';
+import StateLink from '@/components/local-government/state-link';
 import { cn } from '@/lib/utils';
 import type { StateGridCard } from '@/types/dashboard';
 
@@ -52,19 +53,21 @@ function Figure({
     );
 }
 
+// The name opens the state page (Phase 11F); the figures open the state's dashboard.
 function Card({ card }: { card: StateGridCard }) {
     return (
-        <Link
-            href={PlaceDashboardController.state.url(card.state.ulid)}
+        <div
             className={cn(
-                'block rounded-xl border bg-card p-3 text-xs transition hover:bg-accent/40',
+                'rounded-xl border bg-card p-3 text-xs transition hover:bg-accent/40',
                 BORDER[card.attention.level],
             )}
             data-test="state-card"
             data-attention={card.attention.level}
         >
             <div className="mb-2 flex items-baseline justify-between gap-2">
-                <h3 className="text-sm font-medium">{card.state.name}</h3>
+                <h3 className="text-sm font-medium">
+                    <StateLink state={card.state} />
+                </h3>
                 <span
                     className="text-muted-foreground"
                     title={`Attention score ${card.attention.score}`}
@@ -72,49 +75,59 @@ function Card({ card }: { card: StateGridCard }) {
                     {LEVEL_LABEL[card.attention.level]}
                 </span>
             </div>
-            <dl className="space-y-0.5">
-                {card.incidents7 !== null && (
-                    <div className="flex justify-between gap-2">
-                        <dt className="text-muted-foreground">
-                            Incidents 7 / 30 days
-                        </dt>
-                        <dd className="font-medium tabular-nums">
-                            {card.incidents7}
-                            {change(card.incidents7Change)} / {card.incidents30}
-                            {change(card.incidents30Change)}
-                        </dd>
-                    </div>
-                )}
-                <Figure label="Critical open" value={card.criticalOpen} />
-                <Figure
-                    label="Escalations unacknowledged"
-                    value={card.escalationsUnacknowledged}
-                />
-                <Figure
-                    label="Immediate threats"
-                    value={card.immediateThreats}
-                />
-                <Figure
-                    label="Overdue verifications"
-                    value={card.overdueVerifications}
-                />
-                <Figure label="Killed (30 days)" value={card.killed30} />
-                <Figure label="Abducted (30 days)" value={card.abducted30} />
-                <Figure label="Arrests (30 days)" value={card.arrests30} />
-                <Figure
-                    label="Coverage compliance"
-                    value={card.coverageCompliance}
-                    suffix="%"
-                />
-            </dl>
-        </Link>
+            <Link
+                href={PlaceDashboardController.state.url(card.state.ulid)}
+                className="block"
+                aria-label={`${card.state.name} dashboard`}
+            >
+                <dl className="space-y-0.5">
+                    {card.incidents7 !== null && (
+                        <div className="flex justify-between gap-2">
+                            <dt className="text-muted-foreground">
+                                Incidents 7 / 30 days
+                            </dt>
+                            <dd className="font-medium tabular-nums">
+                                {card.incidents7}
+                                {change(card.incidents7Change)} /{' '}
+                                {card.incidents30}
+                                {change(card.incidents30Change)}
+                            </dd>
+                        </div>
+                    )}
+                    <Figure label="Critical open" value={card.criticalOpen} />
+                    <Figure
+                        label="Escalations unacknowledged"
+                        value={card.escalationsUnacknowledged}
+                    />
+                    <Figure
+                        label="Immediate threats"
+                        value={card.immediateThreats}
+                    />
+                    <Figure
+                        label="Overdue verifications"
+                        value={card.overdueVerifications}
+                    />
+                    <Figure label="Killed (30 days)" value={card.killed30} />
+                    <Figure
+                        label="Abducted (30 days)"
+                        value={card.abducted30}
+                    />
+                    <Figure label="Arrests (30 days)" value={card.arrests30} />
+                    <Figure
+                        label="Coverage compliance"
+                        value={card.coverageCompliance}
+                        suffix="%"
+                    />
+                </dl>
+            </Link>
+        </div>
     );
 }
 
 /**
  * The national dashboard's state grid (Phase 11A.2): one card per state
  * within reach, most urgent first; or alphabetical, or grouped by zone.
- * Each card opens that state's dashboard.
+ * Each card's figures open that state's dashboard, its name the state page.
  */
 export default function StateGrid({ cards }: { cards: StateGridCard[] }) {
     const [order, setOrder] = useState<Order>('attention');

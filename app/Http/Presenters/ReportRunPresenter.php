@@ -13,6 +13,7 @@ use App\Models\OrganizationSite;
 use App\Models\Person;
 use App\Models\ReportRun;
 use App\Models\ReportSchedule;
+use App\Models\State;
 use App\Models\User;
 use App\Services\Analytics\Analytics;
 use App\Services\Reports\Builders\Places;
@@ -90,6 +91,7 @@ final class ReportRunPresenter
             ReportType::IncidentList => count((array) ($p['filters'] ?? [])) === 0 ? 'All incidents in your jurisdiction' : count((array) $p['filters']).' filter(s) applied',
             ReportType::Incident => Incident::query()->where('ulid', (string) ($p['incident'] ?? ''))->value('reference_no') ?? 'An incident',
             ReportType::LgaProfile => (Lga::query()->where('ulid', (string) ($p['lga'] ?? ''))->value('name') ?? 'An').' LGA',
+            ReportType::StateProfile => (State::query()->where('ulid', (string) ($p['state'] ?? ''))->value('name') ?? 'A').' State',
             ReportType::Coverage => ($r = CoverageReport::query()->with('lga')->where('ulid', (string) ($p['report'] ?? ''))->first()) === null ? 'A coverage report' : $r->lga->name.' LGA · '.$r->periodLabel(),
             ReportType::Analytics => (app(Analytics::class)->area($user, (string) ($p['tab'] ?? ''))?->label() ?? 'Analytics'),
             ReportType::ListExport => (ListExporters::find((string) ($p['list'] ?? ''))?->label() ?? 'A list')

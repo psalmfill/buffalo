@@ -12,6 +12,7 @@ use App\Models\Incident;
 use App\Models\IncidentType;
 use App\Models\IncidentUpdate;
 use App\Models\LgaProfile;
+use App\Models\StateProfile;
 use App\Models\Organization;
 use App\Models\OrganizationSector;
 use App\Models\OrganizationSite;
@@ -101,6 +102,12 @@ function richScenarios(): array
             $save(test()->chief, 'put', '/lgas/'.test()->lga->ulid.'/profile', [...array_fill_keys($fields, RICH_EVIL), 'terrain' => []]);
 
             return [$latest(LgaProfile::class), $fields];
+        },
+        'state profile (Phase 11F)' => function () use ($save, $latest) {
+            $fields = ['history', 'economic_activities', 'major_roads', 'waterways', 'borders', 'general_notes'];
+            $save(test()->sd, 'put', '/states/'.test()->lga->state->ulid.'/profile', [...array_fill_keys($fields, RICH_EVIL), 'terrain' => []]);
+
+            return [$latest(StateProfile::class), $fields];
         },
         'community notes' => function () use ($save, $latest) {
             $save(test()->chief, 'post', '/lgas/'.test()->lga->ulid.'/communities', ['name' => 'Oke-Ado', 'type' => 'town', 'other_names' => [], 'notes' => RICH_EVIL]);

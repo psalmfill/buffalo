@@ -5,20 +5,24 @@ namespace App\Console\Commands;
 use App\Enums\Role;
 use App\Models\Lga;
 use App\Models\LgaProfile;
+use App\Models\State;
+use App\Models\StateProfile;
 use App\Notifications\LgaProfileReviewDue;
+use App\Notifications\StateProfileReviewDue;
 use App\Support\Notifications\NotifyRole;
 use Illuminate\Console\Command;
 
 /**
  * Scheduled weekly: reminds each LGA chief whose LGA profile has not been
- * reviewed in BUFFALO_PROFILE_REVIEW_DAYS days (or never). Runs in the
- * console's system context.
+ * reviewed in BUFFALO_PROFILE_REVIEW_DAYS days (or never), and the State
+ * Director and Deputies of each state whose state profile has not been
+ * (Phase 11F). Runs in the console's system context.
  */
 class SendProfileReviewReminders extends Command
 {
     protected $signature = 'buffalo:profile-review-reminders';
 
-    protected $description = 'Remind LGA chiefs whose LGA profile is due for review';
+    protected $description = 'Remind LGA chiefs and State Directors whose LGA or state profile is due for review';
 
     public function handle(NotifyRole $notify): int
     {
@@ -37,6 +41,16 @@ class SendProfileReviewReminders extends Command
                     $sent += $notify->send(new LgaProfileReviewDue($lga, $days), Role::LgaSecurityChief, $lga);
                 }
             });
+
+        $recentlyReviewedStates = StateProfile::query()
+            ->where('last_reviewed_at', '>=', $cutoff)
+            ->select('state_id');
+
+        foreach (State::query()->active()->whereNotIn('id', $recentlyReviewedStates)->orderBy('id')->get() as $state) {
+            foreach ([Role::StateDirector, Role::DeputyStateDirector] as $role) {
+                $sent += $notify->send(new StateProfileReviewDue($state, $days), $role, $state);
+            }
+        }
 
         $this->components->info("Profile review reminders sent: {$sent}.");
 

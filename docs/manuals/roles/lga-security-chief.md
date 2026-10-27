@@ -30,8 +30,13 @@ starts with you. You see and record everything in **your own LGA**, at the
 - **Flashpoint and blackspot reviews** when their review date comes
   ([Flashpoints](../guides/flashpoints.md)).
 - **Person of interest reviews** when due.
-- Keep the **LGA profile** and **communities** up to date (Local Government
+- Keep the **LGA profile** and **communities** up to date (States & LGAs
   → LGAs → your LGA).
+- Read your **state's profile** for background (States & LGAs → States): its
+  overview, profile, senatorial districts and public office holders, with
+  your own LGA in the LGAs tab. You cannot edit it, and the state's
+  security, organization and incident tabs are for state and national
+  officers.
 
 ## What you can do
 
@@ -44,7 +49,7 @@ starts with you. You see and record everything in **your own LGA**, at the
 | Flashpoints | Record, assess, link incidents and notes |
 | Coverage reports | Write and submit for your LGA |
 | Communities, institutions, notes | Record and update |
-| Reports | SITREPs, weekly summaries, incident and LGA profile PDFs |
+| Reports | SITREPs, weekly summaries, incident, LGA profile and state profile PDFs |
 
 ## What you cannot do
 

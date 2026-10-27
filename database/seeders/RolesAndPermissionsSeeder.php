@@ -125,6 +125,21 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 11F — State pages and profiles. LGA chiefs see their own
+            // state's page with limited tabs; editing is for state-level and
+            // national roles.
+            // ---------------------------------------------------------------
+            'states' => [
+                Permission::StatesView->value => self::INTELLIGENCE_ROLES,
+                Permission::StateProfilesUpdate->value => [
+                    Role::DirectorGeneral,
+                    Role::DeputyDirectorGeneral,
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                ],
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 2C — Community information (never the super admin)
             // ---------------------------------------------------------------
             'community_information' => [

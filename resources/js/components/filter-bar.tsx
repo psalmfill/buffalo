@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import StateLink from '@/components/local-government/state-link';
 import { Button } from '@/components/ui/button';
 import { useLens } from '@/hooks/use-lens';
 
@@ -106,7 +107,7 @@ export function PlaceFilterChip() {
             className="inline-flex items-center gap-1 rounded-full border bg-primary/10 px-2 py-0.5 text-xs"
             data-test="place-filter-chip"
         >
-            Place: {label}
+            Place: {state ? <StateLink state={state} /> : label}
             <button
                 type="button"
                 onClick={remove}

@@ -5,6 +5,8 @@ export type ReportTypeValue =
     | 'incident_list'
     | 'incident'
     | 'lga_profile'
+    // Phase 11F.
+    | 'state_profile'
     | 'coverage'
     | 'analytics'
     // Phase 11E: list exports and single-record PDFs, started on their pages.
@@ -59,6 +61,8 @@ export type ReportPrefill = {
 export type PlaceOptions = {
     states: { value: string; label: string }[];
     lgas: { value: string; label: string; state: string }[];
+    /** States whose profile PDF the user may request (Phase 11F). */
+    profileStates: { value: string; label: string }[];
 };
 
 export type ReportScheduleRow = {

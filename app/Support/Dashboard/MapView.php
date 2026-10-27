@@ -103,4 +103,33 @@ final class MapView
 
         return is_array($decoded) ? $decoded : null;
     }
+
+    /**
+     * The simplified outlines of a state's active LGAs at state zoom (Phase
+     * 11F state page), as a GeoJSON FeatureCollection with each LGA's ULID
+     * and name, or null when none has been imported.
+     *
+     * @return array{type: 'FeatureCollection', features: list<array<string, mixed>>}|null
+     */
+    public static function lgaOutlines(State $state): ?array
+    {
+        $rows = DB::table('boundary_simplified')
+            ->join('lgas', 'lgas.id', '=', 'boundary_simplified.place_id')
+            ->where('boundary_simplified.place_type', 'lga')
+            ->where('boundary_simplified.zoom', 'state')
+            ->where('lgas.state_id', $state->id)
+            ->where('lgas.is_active', true)
+            ->orderBy('lgas.name')
+            ->get(['lgas.ulid', 'lgas.name', DB::raw('ST_AsGeoJSON(boundary_simplified.geom, 5) AS json')]);
+
+        $features = [];
+        foreach ($rows as $row) {
+            $geometry = is_string($row->json) ? json_decode($row->json, true) : null;
+            if (is_array($geometry)) {
+                $features[] = ['type' => 'Feature', 'geometry' => $geometry, 'properties' => ['ulid' => $row->ulid, 'name' => $row->name]];
+            }
+        }
+
+        return $features === [] ? null : ['type' => 'FeatureCollection', 'features' => $features];
+    }
 }

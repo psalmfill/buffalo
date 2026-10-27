@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import StateLink from '@/components/local-government/state-link';
 import PrintRecordButton from '@/components/reports/print-record-button';
 import ExportListButton from '@/components/exports/export-list-button';
 import RichTextView from '@/components/rich-text/rich-text-view';
@@ -548,7 +549,7 @@ export default function CriminalGroupShow({
                         </div>
                         <p className="text-sm text-muted-foreground">
                             {group.type.label} · based in {group.lga.name} LGA,{' '}
-                            {group.state.name} State
+                            <StateLink state={group.state} suffix=" State" />
                         </p>
                     </div>
                     <div className="flex gap-2">

@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import StateLink from '@/components/local-government/state-link';
 import ExportListButton from '@/components/exports/export-list-button';
 import ArrestsTable from '@/components/arrests/arrests-table';
 import type { ArrestRow } from '@/types/arrests';
@@ -147,7 +148,7 @@ export default function LgaShow(props: Props) {
                             {lga.name} LGA
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {lga.state.name} State
+                            <StateLink state={lga.state} suffix=" State" />
                             {lga.district ? ` · ${lga.district}` : ''}
                             {!lga.is_active && ' · inactive'}
                         </p>

@@ -27,14 +27,27 @@ final class JurisdictionOptions
      */
     public function states(User $user): Collection
     {
+        return $this->stateQuery($user)->active()->orderBy('name')->get();
+    }
+
+    /**
+     * States (reference data, not scoped) within the user's reach, as a
+     * query: all for national users (a zoned DDG: their zones' states),
+     * their own state for state-level users and LGA chiefs. Super admins
+     * get none.
+     *
+     * @return Builder<State>
+     */
+    public function stateQuery(User $user): Builder
+    {
         $restriction = $this->rules->restrictionFor($user, visibleToSuperAdmin: false);
-        $query = State::query()->active()->orderBy('name');
+        $query = State::query();
 
         return match ($restriction->type) {
-            RestrictionType::Everything => $query->get(),
-            RestrictionType::States => $query->whereKey($restriction->stateIds)->get(),
-            RestrictionType::Lga => $query->whereKey(Lga::query()->whereKey($restriction->lgaId)->value('state_id'))->get(),
-            RestrictionType::Nothing => new Collection,
+            RestrictionType::Everything => $query,
+            RestrictionType::States => $query->whereIn($query->qualifyColumn('id'), $restriction->stateIds),
+            RestrictionType::Lga => $query->whereIn($query->qualifyColumn('id'), Lga::query()->whereKey($restriction->lgaId)->select('state_id')),
+            RestrictionType::Nothing => $query->whereRaw('1 = 0'),
         };
     }
 
@@ -143,6 +156,22 @@ final class JurisdictionOptions
             RestrictionType::States => in_array($state->id, $restriction->stateIds, true),
             RestrictionType::Lga => Lga::query()->whereKey($restriction->lgaId)->value('state_id') === $state->id,
             RestrictionType::Nothing => false,
+        };
+    }
+
+    /**
+     * Whether the user's jurisdiction covers ALL of $state: national users
+     * within reach and the state's own state-level users, never an LGA
+     * chief (Phase 11F: editing state profiles, operational state tabs).
+     */
+    public function coversWholeState(User $user, State $state): bool
+    {
+        $restriction = $this->rules->restrictionFor($user, visibleToSuperAdmin: false);
+
+        return match ($restriction->type) {
+            RestrictionType::Everything => true,
+            RestrictionType::States => in_array($state->id, $restriction->stateIds, true),
+            RestrictionType::Lga, RestrictionType::Nothing => false,
         };
     }
 }

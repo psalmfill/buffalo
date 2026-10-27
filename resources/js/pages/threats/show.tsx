@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import StateLink from '@/components/local-government/state-link';
 import PrintRecordButton from '@/components/reports/print-record-button';
 import { useEcho } from '@laravel/echo-react';
 import { CalendarClock, Pencil, RotateCcw, Trash2, Unlink } from 'lucide-react';
@@ -129,7 +130,11 @@ export default function ThreatShow(props: Props) {
                             <UrgencyBadge urgency={threat.urgency} />
                             <span>
                                 · {threat.credibility.label} · {threat.lga.name}{' '}
-                                LGA, {threat.state.name} State
+                                LGA,{' '}
+                                <StateLink
+                                    state={threat.state}
+                                    suffix=" State"
+                                />
                             </span>
                         </p>
                     </div>

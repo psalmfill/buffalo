@@ -19,6 +19,8 @@ declare module '@inertiajs/core' {
             boundaryAttribution: string | null;
             /** Null for users without a lens control (Phase 11A.2). */
             lens: Lens | null;
+            /** ULIDs of the states whose page the user may open (Phase 11F). */
+            stateLinks: string[];
             notifications: { unreadCount: number };
             badges: {
                 coverageReview: number;

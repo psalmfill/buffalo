@@ -80,6 +80,7 @@ test('the page to exporter mapping covers the lists the phase names', function (
         'religious_institutions' => 'lgas.show#religious_institutions',
         'vulnerable_population' => 'lgas.show#vulnerable_population',
         'security_notes' => 'lgas.show#security_notes',
+        'states' => 'states.index',
         'lgas' => 'lgas.index',
         'senatorial_districts' => 'senatorial-districts.index',
         'political_offices' => 'lgas.show#leadership',

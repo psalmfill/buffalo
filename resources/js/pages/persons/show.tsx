@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import StateLink from '@/components/local-government/state-link';
 import PrintRecordButton from '@/components/reports/print-record-button';
 import ArrestsTable from '@/components/arrests/arrests-table';
 import RichTextView from '@/components/rich-text/rich-text-view';
@@ -628,8 +629,8 @@ export default function PersonShow({
                             </div>
                             {person.lga && person.state && (
                                 <p className="text-sm text-muted-foreground">
-                                    {person.lga.name} LGA, {person.state.name}{' '}
-                                    State
+                                    {person.lga.name} LGA,{' '}
+                                    <StateLink state={person.state} /> State
                                     {person.community &&
                                         ` · ${person.community.name}`}
                                 </p>

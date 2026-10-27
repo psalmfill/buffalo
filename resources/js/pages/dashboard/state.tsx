@@ -1,4 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
+import { Landmark } from 'lucide-react';
+import StateController from '@/actions/App/Http/Controllers/LocalGovernment/StateController';
 import { StateThreats } from '@/components/dashboard/threat-report-figures';
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import PersonDuplicateController from '@/actions/App/Http/Controllers/Persons/PersonDuplicateController';
@@ -64,8 +66,21 @@ export default function StateDashboard({
                         .filter(Boolean)
                         .join(' · ')}
                 >
-                    {/* A national user's view of this state (Phase 11A.2). */}
-                    {place && <BackToNational />}
+                    <div className="flex flex-wrap items-center gap-4">
+                        {/* A national user's view of this state (Phase 11A.2). */}
+                        {place && <BackToNational />}
+                        {/* The state's reference profile (Phase 11F). */}
+                        {can('states.view') && (
+                            <Link
+                                href={StateController.show(state.ulid)}
+                                className="inline-flex items-center gap-1 pt-1 text-sm underline"
+                                data-test="state-profile-link"
+                            >
+                                <Landmark className="size-3.5" aria-hidden />
+                                State profile
+                            </Link>
+                        )}
+                    </div>
                 </DashboardHeader>
                 <PeriodSelector period={period} analyticsPlace={place} />
                 <KpiTiles tiles={kpis} />

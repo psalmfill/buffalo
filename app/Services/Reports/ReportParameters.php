@@ -12,6 +12,7 @@ use App\Models\Lga;
 use App\Models\OrganizationSite;
 use App\Models\Person;
 use App\Models\ReportRun;
+use App\Models\State;
 use App\Models\ThreatReport;
 use App\Models\User;
 use App\Services\Analytics\Analytics;
@@ -37,6 +38,7 @@ use Illuminate\Validation\ValidationException;
  * | incident_list | filters (IncidentFilters), confirmed? (large exports)           |
  * | incident      | incident (ULID)                                                 |
  * | lga_profile   | lga (ULID)                                                      |
+ * | state_profile | state (ULID, within reach)                                      |
  * | coverage      | report (ULID)                                                   |
  * | analytics     | tab, filters (AnalyticsFilters values)                          |
  * | list          | list (exporter key), filters (the page's), columns (allowed set) |
@@ -59,6 +61,7 @@ final class ReportParameters
             ReportType::Monthly => [...$this->place($input, $user), 'month' => $this->month($input['month'] ?? null)],
             ReportType::IncidentList => ['filters' => IncidentFilters::from((array) ($input['filters'] ?? []))->values],
             ReportType::LgaProfile => ['lga' => $this->lga($input['lga'] ?? null, $user)],
+            ReportType::StateProfile => ['state' => $this->state($input['state'] ?? null, $user)],
             ReportType::Analytics => $this->analytics($input, $user),
             ReportType::ListExport => $this->listExport($input, $user),
             ReportType::Incident, ReportType::Coverage, ReportType::Flashpoint, ReportType::OrganizationSite, ReportType::Arrest,
@@ -196,6 +199,17 @@ final class ReportParameters
         }
 
         return $lga->ulid;
+    }
+
+    private function state(mixed $ulid, User $user): string
+    {
+        $state = is_string($ulid) ? State::query()->where('ulid', $ulid)->first() : null;
+
+        if ($state === null || ! $user->can('view', $state)) {
+            throw ValidationException::withMessages(['state' => 'Choose a state within your jurisdiction.']);
+        }
+
+        return $state->ulid;
     }
 
     /**

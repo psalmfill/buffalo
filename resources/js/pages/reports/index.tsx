@@ -45,6 +45,8 @@ const DESCRIPTIONS: Partial<Record<ReportTypeValue, string>> = {
     incident: 'One incident in its print layout.',
     lga_profile:
         'One LGA: profile, communities, security presence, current public office holders, flashpoints and recent incidents.',
+    state_profile:
+        'One state: profile, LGAs, senatorial districts, current public office holders, security presence, flashpoints and recent incidents.',
     coverage:
         'One coverage report with its deployments, uncovered communities and history.',
     analytics: 'An analytics view with its filters, charts and tables.',
@@ -130,7 +132,9 @@ export default function ReportsIndex({
         (type === 'incident' || type === 'coverage') && record === null;
     const needsLga =
         type === 'lga_profile' && !(parameters.lga as string | undefined);
-    const blocked = needsRecord || needsLga;
+    const needsState =
+        type === 'state_profile' && !(parameters.state as string | undefined);
+    const blocked = needsRecord || needsLga || needsState;
 
     const generate = () => {
         if (!type) {
@@ -274,6 +278,33 @@ export default function ReportsIndex({
                                         onChange={(p) => set(p)}
                                         lgaOnly
                                     />
+                                )}
+
+                                {type === 'state_profile' && (
+                                    <div className="grid gap-2 sm:max-w-sm">
+                                        <Label htmlFor="report-profile-state">
+                                            State
+                                        </Label>
+                                        <NativeSelect
+                                            id="report-profile-state"
+                                            value={placeState}
+                                            onChange={(e) =>
+                                                set({ state: e.target.value })
+                                            }
+                                        >
+                                            <option value="">
+                                                Choose a state
+                                            </option>
+                                            {options.profileStates.map((s) => (
+                                                <option
+                                                    key={s.value}
+                                                    value={s.value}
+                                                >
+                                                    {s.label}
+                                                </option>
+                                            ))}
+                                        </NativeSelect>
+                                    </div>
                                 )}
 
                                 {(type === 'incident' || type === 'coverage') &&

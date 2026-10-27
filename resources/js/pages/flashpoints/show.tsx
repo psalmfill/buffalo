@@ -1,4 +1,5 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import StateLink from '@/components/local-government/state-link';
 import PrintRecordButton from '@/components/reports/print-record-button';
 import { ClipboardCheck, Link2, Pencil, Trash2, Unlink } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -144,7 +145,10 @@ export default function FlashpointShow(props: Props) {
                             <span>{flashpoint.status.label}</span>·
                             <span>
                                 {flashpoint.lga.name} LGA,{' '}
-                                {flashpoint.state.name} State
+                                <StateLink
+                                    state={flashpoint.state}
+                                    suffix=" State"
+                                />
                             </span>
                         </p>
                     </div>

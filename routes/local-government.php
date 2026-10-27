@@ -3,6 +3,7 @@
 use App\Http\Controllers\LocalGovernment\CommunityController;
 use App\Http\Controllers\LocalGovernment\CommunityImportController;
 use App\Http\Controllers\LocalGovernment\LgaController;
+use App\Http\Controllers\LocalGovernment\StateController;
 use App\Models\Lga;
 use App\Models\User;
 use App\Support\Jurisdiction\JurisdictionOptions;
@@ -20,6 +21,16 @@ Route::bind('lga', function (string $value): Lga {
 });
 
 Route::middleware(['auth'])->group(function () {
+    // State pages (Phase 11F). {state} is bound by ULID (states are
+    // reference data); StatePolicy::view answers 404 outside reach.
+    Route::get('states', [StateController::class, 'index'])->name('states.index')->middleware('lens');
+
+    Route::whereUlid('state')->group(function () {
+        Route::get('states/{state}', [StateController::class, 'show'])->name('states.show');
+        Route::put('states/{state}/profile', [StateController::class, 'updateProfile'])->name('states.profile.update');
+        Route::post('states/{state}/review', [StateController::class, 'markReviewed'])->name('states.review');
+    });
+
     Route::get('lgas', [LgaController::class, 'index'])->name('lgas.index');
 
     Route::whereUlid('lga')->group(function () {

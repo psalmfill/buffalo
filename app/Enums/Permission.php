@@ -38,6 +38,11 @@ enum Permission: string
     case CommunitiesImport = 'communities.import';
     case CommunitiesDelete = 'communities.delete';
 
+    // State pages and profiles (Phase 11F): intelligence, limited to the
+    // states within reach (an LGA chief: their own state, read-only)
+    case StatesView = 'states.view';
+    case StateProfilesUpdate = 'state_profiles.update';
+
     // Community information (Phase 2C): jurisdiction-scoped; security notes
     // are also classified. Deleting needs State Director or above.
     case ReligiousInstitutionsView = 'religious_institutions.view';

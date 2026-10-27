@@ -21,6 +21,7 @@ use App\Models\PoliticalOffice;
 use App\Models\RecordAccessLog;
 use App\Models\ReportRun;
 use App\Models\ReportSchedule;
+use App\Models\StateProfile;
 use App\Models\User;
 use App\Notifications\ReportReady;
 use App\Support\Jurisdiction\JurisdictionContext;
@@ -148,7 +149,7 @@ test('report types per role: monthly summaries for DG, DDG, SD and DSD; super ad
     CrossFixtures::signIn($this->chief)->post('/reports', ['type' => 'incident_list', 'format' => 'csv'])->assertForbidden();
     CrossFixtures::signIn($this->chief)->post('/reports', ['type' => 'monthly', 'format' => 'pdf'])->assertForbidden();
     CrossFixtures::signIn($this->chief)->get('/reports')->assertOk()
-        ->assertInertia(fn ($page) => $page->component('reports/index')->where('types', fn ($types) => collect($types)->pluck('value')->all() === ['sitrep', 'weekly', 'incident', 'lga_profile', 'coverage', 'analytics']));
+        ->assertInertia(fn ($page) => $page->component('reports/index')->where('types', fn ($types) => collect($types)->pluck('value')->all() === ['sitrep', 'weekly', 'incident', 'lga_profile', 'state_profile', 'coverage', 'analytics']));
 });
 
 /*
@@ -314,6 +315,45 @@ test('the LGA profile names only current public office holders', function () {
 
     // Out of jurisdiction: refused at request time.
     expect(fn () => generateReport($this->chief, ReportType::LgaProfile, ['lga' => $this->world->lgas['A1b']->ulid]))
+        ->toThrow(ValidationException::class);
+});
+
+test('the state profile PDF holds the profile and public office holders only, marked at its highest level (Phase 11F)', function () {
+    $lga = $this->world->lgas['A1a'];
+    $state = $this->world->states['A1'];
+    $state->forceFill(['capital' => 'Capital Town'])->save();
+    StateProfile::factory()->forState($state)->create(['borders' => '<p>Benin Republic at Seme</p>']);
+    $governor = CrossFixtures::person($lga, ['first_name' => 'Babajide', 'last_name' => 'Governor', 'other_names' => null]);
+    $party = CrossFixtures::person($lga, ['first_name' => 'Party', 'last_name' => 'Chairman', 'other_names' => null]);
+    $past = CrossFixtures::person($lga, ['first_name' => 'Former', 'last_name' => 'Governor', 'other_names' => null]);
+    $poi = CrossFixtures::person($lga, ['first_name' => 'Wanted', 'last_name' => 'Suspect', 'other_names' => null]);
+    PoliticalOffice::factory()->forPerson($governor)->stateWide(PoliticalOfficeType::Governor, $state)->create();
+    PoliticalOffice::factory()->forPerson($party)->stateWide(PoliticalOfficeType::PartyOfficial, $state)->create();
+    PoliticalOffice::factory()->forPerson($past)->stateWide(PoliticalOfficeType::Governor, $state)->ended()->create();
+    PersonOfInterest::factory()->create(['person_id' => $poi->id]);
+
+    $run = generateReport($this->sd, ReportType::StateProfile, ['state' => $state->ulid]);
+    $pages = reportPages($run);
+    $text = implode("\n", $pages);
+
+    expect($run->status)->toBe(ReportRunStatus::Completed)
+        ->and($run->classification)->toBe(Classification::Secret)
+        ->and($pages[0])->toContain('SECRET')->toContain("Generated for {$this->sd->name}")
+        ->and($text)->toContain($state->name.' State profile')->toContain('Capital Town')->toContain('Benin Republic at Seme')
+        ->toContain($lga->name)->toContain('Senatorial districts')
+        ->toContain('Current public office holders')->toContain('Babajide Governor')
+        ->toContain('Incidents in the last 90 days')->toContain('Kidnapping')
+        ->not->toContain('Party Chairman')->not->toContain('Former Governor')->not->toContain('Wanted Suspect');
+
+    // The deputy cannot see the secret incident: the file is restricted.
+    expect(generateReport($this->dsd, ReportType::StateProfile, ['state' => $state->ulid])->classification)->toBe(Classification::Restricted);
+
+    // An LGA chief gets the reference sections only, for their own state only.
+    $chief = implode("\n", reportPages(generateReport($this->chief, ReportType::StateProfile, ['state' => $state->ulid])));
+    expect($chief)->toContain('Senatorial districts')->not->toContain('Incidents in the last 90 days')->not->toContain('Security presence')->not->toContain('Population estimate');
+    expect(fn () => generateReport($this->chief, ReportType::StateProfile, ['state' => $this->world->states['A2']->ulid]))
+        ->toThrow(ValidationException::class);
+    expect(fn () => generateReport($this->admin, ReportType::StateProfile, ['state' => $state->ulid]))
         ->toThrow(ValidationException::class);
 });
 

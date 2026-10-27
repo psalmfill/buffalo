@@ -60,6 +60,8 @@ class ReportController extends Controller
                 'states' => $states->count() > 1 ? $states->sortBy('name')->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values() : [],
                 'lgas' => $options->lgaQuery($user)->active()->with('state:id,ulid')->orderBy('name')->get()
                     ->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name, 'state' => $l->state->ulid])->values(),
+                // The state profile PDF (Phase 11F): any state whose page the user may open.
+                'profileStates' => $states->sortBy('name')->map(fn (State $s) => ['value' => $s->ulid, 'label' => $s->name])->values(),
             ],
             'limits' => ['confirm_rows' => (int) config('buffalo.reports.confirm_rows'), 'max_rows' => (int) config('buffalo.reports.max_rows'), 'expiry_days' => (int) config('buffalo.reports.expiry_days')],
             'highlight' => is_string($request->query('run')) ? $request->query('run') : null,
@@ -138,6 +140,7 @@ class ReportController extends Controller
             ReportType::Coverage => $this->record($type, 'report', CoverageReport::query()->with('lga')->where('ulid', (string) ($query['report'] ?? ''))->first(), $user,
                 fn (CoverageReport $r) => $r->lga->name.' LGA · '.$r->periodLabel()),
             ReportType::LgaProfile => ['type' => $type->value, 'parameters' => ['lga' => is_string($query['lga'] ?? null) ? $query['lga'] : null]],
+            ReportType::StateProfile => ['type' => $type->value, 'parameters' => ['state' => is_string($query['state'] ?? null) ? $query['state'] : null]],
             ReportType::Analytics => $this->analytics($type, $query, $user, $analytics),
             default => ['type' => $type->value, 'parameters' => array_filter(['state' => $query['state'] ?? null, 'lga' => $query['lga'] ?? null], 'is_string')],
         };

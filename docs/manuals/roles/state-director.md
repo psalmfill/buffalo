@@ -26,6 +26,11 @@ and who outside the state may see it.
    Act on BUFFALO's daily "not shared" alerts.
 5. **Coverage reports:** review, return or mark reviewed.
 6. **Suggested blackspots:** accept or dismiss the night's suggestions.
+7. **State profile:** keep it current (States & LGAs → States opens your
+   state): history, economy, terrain, roads, borders (neighbouring states,
+   international borders and crossings) and the capital, then **Mark as
+   reviewed**. You and your Deputy are reminded weekly when it has not been
+   reviewed for six months. **Export PDF** prints it.
 
 ## Delegating approvals
 

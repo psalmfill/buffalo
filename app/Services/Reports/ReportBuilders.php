@@ -15,6 +15,7 @@ use App\Services\Reports\Builders\ListExportBuilder;
 use App\Services\Reports\Builders\OrganizationSiteReportBuilder;
 use App\Services\Reports\Builders\PersonReportBuilder;
 use App\Services\Reports\Builders\SitrepBuilder;
+use App\Services\Reports\Builders\StateProfileBuilder;
 use App\Services\Reports\Builders\SummaryBuilder;
 use App\Services\Reports\Builders\ThreatReportBuilder;
 
@@ -29,6 +30,7 @@ final class ReportBuilders
             ReportType::IncidentList => IncidentListBuilder::class,
             ReportType::Incident => IncidentReportBuilder::class,
             ReportType::LgaProfile => LgaProfileBuilder::class,
+            ReportType::StateProfile => StateProfileBuilder::class,
             ReportType::Coverage => CoverageReportBuilder::class,
             ReportType::Analytics => AnalyticsReportBuilder::class,
             ReportType::ListExport => ListExportBuilder::class,

@@ -1,4 +1,5 @@
 import type { IncidentListRow } from '@/types/incidents';
+import StateLink from '@/components/local-government/state-link';
 import ArrestsTable from '@/components/arrests/arrests-table';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
@@ -76,7 +77,10 @@ export default function FormationShow({
                             {formation.agency.name} ·{' '}
                             {formation.formation_type.label} ·{' '}
                             {formation.status.label} · {formation.lga.name} LGA,{' '}
-                            {formation.state.name} State
+                            <StateLink
+                                state={formation.state}
+                                suffix=" State"
+                            />
                         </p>
                     </div>
                     <div className="flex gap-2">

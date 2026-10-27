@@ -52,6 +52,7 @@ final class ReportPolicy
             ReportType::Monthly => $actor->checkPermissionTo(Permission::IncidentsView->value)
                 && in_array($actor->getRole(), [Role::DirectorGeneral, Role::DeputyDirectorGeneral, Role::StateDirector, Role::DeputyStateDirector], true),
             ReportType::LgaProfile => $actor->checkPermissionTo(Permission::LgasView->value),
+            ReportType::StateProfile => $actor->checkPermissionTo(Permission::StatesView->value),
             ReportType::Coverage => $actor->checkPermissionTo(Permission::CoverageView->value),
             ReportType::Analytics => $actor->checkPermissionTo(Permission::AnalyticsView->value),
             ReportType::Flashpoint => $actor->checkPermissionTo(Permission::FlashpointsView->value),

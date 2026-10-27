@@ -356,3 +356,17 @@ test('active persons of interest only, with their risk level', function () {
         ->and($hits[0]['badge'])->toBe('high')
         ->and($hits[0]['href'])->toEndWith('?tab=poi');
 });
+
+test('states are found by name or code within reach (Phase 11F)', function () {
+    $this->world->states['A1']->forceFill(['name' => 'Qorvath Highlands', 'code' => 'QH'])->save();
+    $this->world->states['B1']->forceFill(['name' => 'Qorvath Lowlands', 'code' => 'QL'])->save();
+
+    expect(sectionTitles(quickSearch($this->sd, 'Qorvath'), 'places'))->toBe(['Qorvath Highlands State'])
+        ->and(sectionTitles(quickSearch($this->chief, 'qorvath highlands'), 'places'))->toBe(['Qorvath Highlands State'])
+        ->and(sectionTitles(quickSearch($this->world->users['director_general'], 'Qorvath'), 'places'))->toContain('Qorvath Highlands State', 'Qorvath Lowlands State')
+        ->and(sectionTitles(quickSearch($this->world->users['director_general'], 'QL'), 'places'))->toContain('Qorvath Lowlands State')
+        ->and(sectionTitles(quickSearch($this->sd, 'QL'), 'places'))->toBe([]);
+
+    $hit = collect(quickSearch($this->sd, 'Qorvath')['sections'])->firstWhere('key', 'places')['hits'][0];
+    expect($hit['href'])->toBe('/states/'.$this->world->states['A1']->ulid);
+});

@@ -5,6 +5,7 @@ namespace App\Services\Search\Providers;
 use App\Enums\Permission;
 use App\Models\Lga;
 use App\Models\SenatorialDistrict;
+use App\Models\State;
 use App\Models\User;
 use App\Services\Search\SearchHit;
 use App\Services\Search\SearchQuery;
@@ -12,9 +13,12 @@ use App\Support\Jurisdiction\JurisdictionOptions;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * LGAs and senatorial districts within the viewer's jurisdiction
- * (JurisdictionOptions, as on their own pages): the name by trigram
- * (`<%`, GIN on the generated search_name) or the code exactly.
+ * States (Phase 11F), LGAs and senatorial districts within the viewer's
+ * jurisdiction (JurisdictionOptions, as on their own pages). LGAs and
+ * districts: the name by trigram (`<%`, GIN on the generated search_name)
+ * or the code exactly. States (37 rows, no index needed): the name by
+ * substring or word similarity, or the code exactly; only for users who
+ * may open state pages.
  */
 final class PlaceProvider extends BaseProvider
 {
@@ -27,7 +31,7 @@ final class PlaceProvider extends BaseProvider
 
     public function label(): string
     {
-        return 'LGAs & senatorial districts';
+        return 'States, LGAs & senatorial districts';
     }
 
     protected function permission(): string
@@ -71,12 +75,44 @@ final class PlaceProvider extends BaseProvider
                 self::score($d->getAttribute('search_score')),
             ));
 
-        return array_slice(SearchHit::rank([...$lgas->all(), ...$districts->all()]), $offset, $limit);
+        $states = $this->states($query, $user)
+            ->select('states.*')
+            ->selectRaw('CASE WHEN upper(states.code) = upper(?) THEN 1.0 ELSE word_similarity(buffalo_search_text(?), buffalo_search_text(states.name)) END AS search_score', [$query->raw, $query->raw])
+            ->tap(fn (Builder $q) => self::preferStates($q, $query, 'states.id'))
+            ->orderByDesc('search_score')->orderBy('states.name')
+            ->limit($take)->get()
+            ->map(fn (State $s) => new SearchHit(
+                'places',
+                $s->ulid,
+                $s->name.' State',
+                self::subtitle('State', $s->code),
+                '/states/'.$s->ulid,
+                null,
+                // A state outranks its namesake LGA (Kano State before Kano Municipal).
+                self::score((float) $s->getAttribute('search_score') + 0.01),
+            ));
+
+        return array_slice(SearchHit::rank([...$states->all(), ...$lgas->all(), ...$districts->all()]), $offset, $limit);
     }
 
     public function count(SearchQuery $query, User $user): int
     {
-        return $this->lgas($query, $user)->count() + $this->districts($query, $user)->count();
+        return $this->states($query, $user)->count() + $this->lgas($query, $user)->count() + $this->districts($query, $user)->count();
+    }
+
+    /**
+     * @return Builder<State>
+     */
+    private function states(SearchQuery $query, User $user): Builder
+    {
+        if (! $user->can('viewAny', State::class)) {
+            return State::query()->whereRaw('1 = 0');
+        }
+
+        return $this->options->stateQuery($user)->active()->where(fn (Builder $q) => $q
+            ->whereRaw('strpos(buffalo_search_text(states.name), buffalo_search_text(?)) > 0', [$query->raw])
+            ->orWhereRaw('word_similarity(buffalo_search_text(?), buffalo_search_text(states.name)) >= 0.6', [$query->raw])
+            ->orWhereRaw('upper(states.code) = upper(?)', [$query->raw]));
     }
 
     /**

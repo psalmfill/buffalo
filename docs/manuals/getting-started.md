@@ -69,8 +69,13 @@ Recovery codes are not accepted here.
 ## The screen
 
 - **The menu** on the left shows only what your role may use. The sections are
-  Overview, Incidents, Threats & flashpoints, Local Government, Intelligence,
+  Overview, Incidents, Threats & flashpoints, States & LGAs, Intelligence,
   Security and Administration.
+- **States & LGAs** holds the reference profiles of places: **States** (each
+  state's profile, LGAs, senatorial districts, leadership and security
+  presence), **LGAs**, **Senatorial districts** and **Communities**. A
+  state's page and its dashboard link to each other: the page says what the
+  state is, the dashboard what is happening there now.
 - **The header** shows where you are, the search box and the notification bell.
 - **The classification banner** at the top and bottom of the screen reminds
   you of the handling level of what you are looking at.

@@ -2,6 +2,7 @@ import type { InertiaLinkProps } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import {
     Building2,
+    Flag,
     ChartLine,
     ClipboardCheck,
     ClipboardList,
@@ -59,6 +60,7 @@ import SystemHealthController from '@/actions/App/Http/Controllers/System/System
 import CriminalGroupController from '@/actions/App/Http/Controllers/CriminalGroups/CriminalGroupController';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
+import StateController from '@/actions/App/Http/Controllers/LocalGovernment/StateController';
 import LoginHistoryController from '@/actions/App/Http/Controllers/Audit/LoginHistoryController';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
 import PersonDuplicateController from '@/actions/App/Http/Controllers/Persons/PersonDuplicateController';
@@ -128,11 +130,12 @@ export const NAVIGATION: NavSection[] = [
         ],
     },
     {
-        title: 'Local Government',
+        title: 'States & LGAs',
         items: [
+            { title: 'States', icon: Flag, href: StateController.index(), permission: 'states.view' },
             { title: 'LGAs', icon: Landmark, href: LgaController.index(), permission: 'lgas.view' },
-            { title: 'Communities', icon: MapPinned, href: CommunityController.index(), permission: 'communities.view' },
             { title: 'Senatorial districts', icon: MapIcon, href: SenatorialDistrictController.index(), permission: 'lgas.view' },
+            { title: 'Communities', icon: MapPinned, href: CommunityController.index(), permission: 'communities.view' },
         ],
     },
     {

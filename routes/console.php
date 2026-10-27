@@ -8,7 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Weekly reminder to LGA chiefs whose LGA profile is due for review (Phase 2B).
+// Weekly reminder to LGA chiefs (Phase 2B) and State Directors and Deputies
+// (Phase 11F) whose LGA or state profile is due for review.
 Schedule::command('buffalo:profile-review-reminders')->weeklyOn(1, '07:00');
 
 // Daily reminder of overdue person of interest reviews (Phase 3B).

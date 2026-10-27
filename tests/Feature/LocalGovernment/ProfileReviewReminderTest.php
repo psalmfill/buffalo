@@ -30,7 +30,8 @@ test('chiefs whose profile was never or not recently reviewed are reminded; nobo
     Notification::assertNotSentTo($inactive, LgaProfileReviewDue::class);
     Notification::assertNotSentTo($world->users['state_director'], LgaProfileReviewDue::class);
     Notification::assertNotSentTo($world->users['director_general'], LgaProfileReviewDue::class);
-    Notification::assertCount(2);
+    // State profile reminders (Phase 11F) go to state directors: StatePagesTest.
+    Notification::assertSentTimes(LgaProfileReviewDue::class, 2);
 });
 
 test('the review period is configurable', function () {

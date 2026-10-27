@@ -111,7 +111,7 @@ test('the state director\'s exports never include another state\'s records', fun
 
     expect($count($this->sd))->toBeLessThan($count($this->dg))
         ->and($count($this->sd))->toBeGreaterThan(0);
-})->with(['arrests', 'threats', 'flashpoints', 'coverage_reports', 'formations', 'communities', 'criminal_groups', 'incidents', 'lgas', 'senatorial_districts', 'persons_of_interest']);
+})->with(['arrests', 'threats', 'flashpoints', 'coverage_reports', 'formations', 'communities', 'criminal_groups', 'incidents', 'states', 'lgas', 'senatorial_districts', 'persons_of_interest']);
 
 test('exports hold the same rows as their page for the same filters', function () {
     $lga = $this->world->lgas['A1a'];
@@ -139,6 +139,14 @@ test('exports hold the same rows as their page for the same filters', function (
     $page = CrossFixtures::signIn($this->dg)->get('/lgas?state='.$state->ulid)->assertOk()->viewData('page')['props'];
     $export = ExportFiles::data(exportList($this->dg, 'lgas', ['state' => $state->ulid]));
     expect(collect($export)->pluck('LGA')->all())->toBe(collect($page['lgas']['data'])->pluck('name')->all());
+
+    // States filtered by zone (Phase 11F), with the page's figures.
+    $zone = $this->world->zones['A'];
+    $page = CrossFixtures::signIn($this->dg)->get('/states?zone='.$zone->ulid)->assertOk()->viewData('page')['props'];
+    $export = ExportFiles::data(exportList($this->dg, 'states', ['zone' => $zone->ulid]));
+    expect(collect($export)->pluck('State')->all())->toBe(collect($page['states'])->pluck('name')->all())
+        ->and(collect($export)->pluck('LGAs')->map(fn ($n) => (int) $n)->all())->toBe(collect($page['states'])->pluck('lgas')->all())
+        ->and(count($export))->toBe(2);
 });
 
 test('exports respect the clearance ceiling and are marked at the highest level they hold', function () {

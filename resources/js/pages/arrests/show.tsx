@@ -1,4 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import StateLink from '@/components/local-government/state-link';
 import PrintRecordButton from '@/components/reports/print-record-button';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
@@ -201,7 +202,8 @@ export default function ArrestShow(props: Props) {
                             {formatDateTime(arrest.arrested_at)}
                             {arrest.arrested_at_precision.value !== 'exact' &&
                                 ` (${arrest.arrested_at_precision.label.toLowerCase()})`}{' '}
-                            · {arrest.lga.name} LGA, {arrest.state.name}
+                            · {arrest.lga.name} LGA,{' '}
+                            <StateLink state={arrest.state} />
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">

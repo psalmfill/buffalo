@@ -26,6 +26,7 @@ final class ListExporters
         E\ReligiousInstitutionsExporter::class,
         E\VulnerableFiguresExporter::class,
         E\SecurityNotesExporter::class,
+        E\StatesExporter::class,
         E\LgasExporter::class,
         E\SenatorialDistrictsExporter::class,
         E\PoliticalOfficesExporter::class,

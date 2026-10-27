@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import FormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
+import StateLink from '@/components/local-government/state-link';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import InputError from '@/components/input-error';
@@ -109,8 +110,8 @@ export default function CoverageReportShow({
                         </div>
                         <p className="text-sm text-muted-foreground">
                             {report.period_type.label} coverage report ·{' '}
-                            {report.state.name} State · {report.period_start} to{' '}
-                            {report.period_end}
+                            <StateLink state={report.state} suffix=" State" /> ·{' '}
+                            {report.period_start} to {report.period_end}
                         </p>
                     </div>
                     <div className="flex gap-2">

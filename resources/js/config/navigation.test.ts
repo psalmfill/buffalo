@@ -35,6 +35,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'reference_data.view',
         'reference_data.manage',
         'lgas.view',
+        'states.view',
+        'state_profiles.update',
         'lga_profiles.update',
         'communities.view',
         'communities.manage',
@@ -118,6 +120,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'audit.exports',
         'reference_data.view',
         'lgas.view',
+        'states.view',
+        'state_profiles.update',
         'lga_profiles.update',
         'communities.view',
         'communities.manage',
@@ -199,6 +203,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'users.view',
         'reference_data.view',
         'lgas.view',
+        'states.view',
+        'state_profiles.update',
         'lga_profiles.update',
         'communities.view',
         'communities.manage',
@@ -285,6 +291,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'users.view',
         'reference_data.view',
         'lgas.view',
+        'states.view',
+        'state_profiles.update',
         'lga_profiles.update',
         'communities.view',
         'communities.manage',
@@ -346,6 +354,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     lga_security_chief: [
         'reference_data.view',
         'lgas.view',
+        'states.view',
         'lga_profiles.update',
         'communities.view',
         'communities.manage',
@@ -478,10 +487,11 @@ describe('navigation', () => {
                     'Shared threats & flashpoints',
                     'Suggested blackspots',
                 ],
-                'Local Government': [
+                'States & LGAs': [
+                    'States',
                     'LGAs',
-                    'Communities',
                     'Senatorial districts',
+                    'Communities',
                 ],
                 Intelligence: [
                     'Persons',
@@ -523,10 +533,11 @@ describe('navigation', () => {
                     'Shared threats & flashpoints',
                     'Suggested blackspots',
                 ],
-                'Local Government': [
+                'States & LGAs': [
+                    'States',
                     'LGAs',
-                    'Communities',
                     'Senatorial districts',
+                    'Communities',
                 ],
                 Intelligence: [
                     'Persons',
@@ -562,10 +573,11 @@ describe('navigation', () => {
                     'Shared threats & flashpoints',
                     'Suggested blackspots',
                 ],
-                'Local Government': [
+                'States & LGAs': [
+                    'States',
                     'LGAs',
-                    'Communities',
                     'Senatorial districts',
+                    'Communities',
                 ],
                 Intelligence: [
                     'Persons',
@@ -601,10 +613,11 @@ describe('navigation', () => {
                     'Shared threats & flashpoints',
                     'Suggested blackspots',
                 ],
-                'Local Government': [
+                'States & LGAs': [
+                    'States',
                     'LGAs',
-                    'Communities',
                     'Senatorial districts',
+                    'Communities',
                 ],
                 Intelligence: [
                     'Persons',
@@ -639,10 +652,11 @@ describe('navigation', () => {
                     'Flashpoints & blackspots',
                     'Shared threats & flashpoints',
                 ],
-                'Local Government': [
+                'States & LGAs': [
+                    'States',
                     'LGAs',
-                    'Communities',
                     'Senatorial districts',
+                    'Communities',
                 ],
                 Intelligence: [
                     'Persons',

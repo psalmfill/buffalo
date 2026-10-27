@@ -12,6 +12,7 @@ use App\Models\Incident;
 use App\Models\Lga;
 use App\Models\OrganizationSite;
 use App\Models\Person;
+use App\Models\State;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -62,6 +63,41 @@ final class IncidentLinks
     public static function lga(Lga $lga): Builder
     {
         return self::base()->where('incidents.lga_id', $lga->id);
+    }
+
+    /** @return Builder<Incident> */
+    public static function state(State $state): Builder
+    {
+        return self::base()->where('incidents.state_id', $state->id);
+    }
+
+    /**
+     * The state's incidents in the last 90 days (Phase 11F), by type and by
+     * LGA (largest first), through the viewer's scopes.
+     *
+     * @return array{byType: list<array{type: string, count: int}>, byLga: list<array{lga: array{ulid: string, name: string}, count: int}>, total: int}
+     */
+    public static function stateSummary(State $state): array
+    {
+        $recent = fn () => self::state($state)->where('incidents.occurred_at', '>=', CarbonImmutable::now()->subDays(90));
+
+        $byType = $recent()
+            ->join('incident_types', 'incident_types.id', '=', 'incidents.incident_type_id')
+            ->groupBy('incident_types.name')
+            ->orderByRaw('COUNT(*) DESC')->orderBy('incident_types.name')
+            ->get([DB::raw('incident_types.name AS type'), DB::raw('COUNT(*) AS count')])
+            ->map(fn (Incident $row) => ['type' => (string) $row->getAttribute('type'), 'count' => (int) $row->getAttribute('count')])
+            ->all();
+
+        $byLga = $recent()
+            ->join('lgas', 'lgas.id', '=', 'incidents.lga_id')
+            ->groupBy('lgas.ulid', 'lgas.name')
+            ->orderByRaw('COUNT(*) DESC')->orderBy('lgas.name')
+            ->get([DB::raw('lgas.ulid AS lga_ulid'), DB::raw('lgas.name AS lga_name'), DB::raw('COUNT(*) AS count')])
+            ->map(fn (Incident $row) => ['lga' => ['ulid' => (string) $row->getAttribute('lga_ulid'), 'name' => (string) $row->getAttribute('lga_name')], 'count' => (int) $row->getAttribute('count')])
+            ->all();
+
+        return ['byType' => array_values($byType), 'byLga' => array_values($byLga), 'total' => array_sum(array_column($byType, 'count'))];
     }
 
     /**

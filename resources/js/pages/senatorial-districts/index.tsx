@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import StateLink from '@/components/local-government/state-link';
 import ExportListButton from '@/components/exports/export-list-button';
 import SenatorialDistrictController from '@/actions/App/Http/Controllers/Political/SenatorialDistrictController';
 import EmptyState from '@/components/empty-state';
@@ -74,7 +75,7 @@ export default function SenatorialDistrictsIndex({
                                         </Link>
                                     </td>
                                     <td className="px-3 py-2">
-                                        {district.state.name}
+                                        <StateLink state={district.state} />
                                     </td>
                                     <td className="px-3 py-2 text-right tabular-nums">
                                         {district.lga_count}

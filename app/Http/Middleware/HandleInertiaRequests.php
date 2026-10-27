@@ -7,10 +7,12 @@ use App\Enums\Permission;
 use App\Enums\ThreatUrgency;
 use App\Http\Presenters\CurrentUserPresenter;
 use App\Models\CoverageReport;
+use App\Models\State;
 use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\DisseminationFigures;
 use App\Support\Geo\BoundaryAttribution;
+use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\StateLens;
 use App\Support\SystemBanner;
 use App\Support\Uat\Uat;
@@ -107,6 +109,12 @@ class HandleInertiaRequests extends Middleware
             'boundaryAttribution' => fn (): ?string => $user instanceof User ? BoundaryAttribution::current() : null,
             // The state lens control (Phase 11A.2): national users only.
             'lens' => fn (): ?array => app(StateLens::class)->share($request),
+            // States whose page the user may open (Phase 11F), so state names
+            // shown as text can link to them. For links only; the state pages
+            // are authorised on the server.
+            'stateLinks' => fn (): array => $user instanceof User && $user->can('viewAny', State::class)
+                ? app(JurisdictionOptions::class)->stateQuery($user)->active()->pluck('ulid')->all()
+                : [],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

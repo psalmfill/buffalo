@@ -22,6 +22,8 @@ export const PERMISSIONS = [
     'communities.manage',
     'communities.import',
     'communities.delete',
+    'states.view',
+    'state_profiles.update',
     'religious_institutions.view',
     'religious_institutions.manage',
     'religious_institutions.delete',

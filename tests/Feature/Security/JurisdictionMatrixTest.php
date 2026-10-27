@@ -69,6 +69,7 @@ const EXCLUDED = [
  */
 const ROUTE_PERMISSIONS = [
     'users.show' => ['users.view'],
+    'states.show' => ['states.view'],
     'lgas.show' => ['lgas.view'],
     'lgas.communities.create' => ['communities.manage'],
     'lgas.religious-institutions.create' => ['religious_institutions.manage'],

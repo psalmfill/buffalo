@@ -12,8 +12,9 @@ return [
     // Optional banner at the top of every page, e.g. "RESTRICTED — Authorised
     // users only. All activity is logged." Level: info, restricted,
     // confidential or secret (sets the colour). No text, no banner.
-    // Weekly reminder to LGA chiefs whose LGA profile has not been reviewed
-    // for this many days (Phase 2B).
+    // Weekly reminder to LGA chiefs whose LGA profile, and to State Directors
+    // and Deputies whose state profile (Phase 11F), has not been reviewed for
+    // this many days (Phase 2B).
     'profile_review_days' => (int) env('BUFFALO_PROFILE_REVIEW_DAYS', 180),
 
     // Persons of interest are due for review this many months after being

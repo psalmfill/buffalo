@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Report types (Phase 7D, extended in 11E). PDF reports need
+ * Report types (Phase 7D, extended in 11E and 11F). PDF reports need
  * reports.generate; list exports (`list`, any registered ListExporter)
  * need exports.lists, or exports.sensitive for the sensitive lists. Each
  * also needs its module's view permission (ReportPolicy).
@@ -19,6 +19,7 @@ enum ReportType: string
     case IncidentList = 'incident_list';
     case Incident = 'incident';
     case LgaProfile = 'lga_profile';
+    case StateProfile = 'state_profile';
     case Coverage = 'coverage';
     case Analytics = 'analytics';
     case ListExport = 'list';
@@ -38,6 +39,7 @@ enum ReportType: string
             self::IncidentList => 'Incident list export',
             self::Incident => 'Incident report',
             self::LgaProfile => 'LGA profile',
+            self::StateProfile => 'State profile',
             self::Coverage => 'Coverage report',
             self::Analytics => 'Analytics report',
             self::ListExport => 'List export',
@@ -76,7 +78,7 @@ enum ReportType: string
     /** Requested from the /reports page (record PDFs and list exports come from their pages). */
     public function offeredOnReportsPage(): bool
     {
-        return in_array($this, [self::Sitrep, self::Weekly, self::Monthly, self::Incident, self::LgaProfile, self::Coverage, self::Analytics], true);
+        return in_array($this, [self::Sitrep, self::Weekly, self::Monthly, self::Incident, self::LgaProfile, self::StateProfile, self::Coverage, self::Analytics], true);
     }
 
     /**

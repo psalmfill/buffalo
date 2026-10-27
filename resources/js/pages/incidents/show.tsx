@@ -8,6 +8,7 @@ import IncidentThreatsSection, {
 } from '@/components/threats/incident-threats';
 import { useMemo, useState } from 'react';
 import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/FlashpointController';
+import StateLink from '@/components/local-government/state-link';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import { flashpointCircles } from '@/components/flashpoints/flashpoint-areas';
 import IncidentFlashpointsSection, {
@@ -204,7 +205,7 @@ export default function IncidentShow({
                         </div>
                         <p className="text-sm text-muted-foreground">
                             {incident.type.name} · {incident.lga.name} LGA,{' '}
-                            {incident.state.name} State
+                            <StateLink state={incident.state} suffix=" State" />
                             {workflow.submitted &&
                                 ` · submitted ${formatDateTime(workflow.submitted.at)}${workflow.submitted.by ? ` by ${workflow.submitted.by}` : ''}`}
                         </p>
