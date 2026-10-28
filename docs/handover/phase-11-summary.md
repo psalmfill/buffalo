@@ -10,7 +10,7 @@ Phase 11 delivered the changes requested after the client's review, in five step
 | 11C | `f221c01` | Arrests module with offence types and person links |
 | 11D | `e929c68` | Organization logos and site photos |
 | 11E | `795916c` (plus this summary) | Flashpoint documents, exports for every list, printable records |
-| 11F | see `phase-11f.md` | States section: state pages and profiles, `states` export, state profile PDF, states in search |
+| 11F | `464e0eb` | States section: state pages and profiles, `states` export, state profile PDF, states in search |
 
 ## Role types (11A.1)
 
