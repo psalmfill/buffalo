@@ -13,7 +13,22 @@ States now have pages of their own, working like the LGA pages:
 
 Also added: state profiles with completeness and weekly review reminders, a `states` list exporter, a state profile PDF, states in global search, and state names linked across the app.
 
-RESULTS_PLACEHOLDER
+**Results:**
+
+- `make test`: 1,982 Pest tests (17,095 assertions) and 5 Vitest files.
+- `make lint` and `make ci` pass.
+- `make browser-check` (local stack): all 29 checks, including the 6 new States checks, with no console errors, failed requests or CSP violations. Screenshots are `docs/uat/results/phase-11/40-…46-…png`.
+
+## Acceptance checklist
+
+| Item | Result |
+|---|---|
+| The side menu shows **States & LGAs** with States first | ✅ Browser check: the group's items are States, LGAs, Senatorial districts, Communities. |
+| The DG sees all 37 states grouped by zone with Lagos's figures, opens Lagos, and moves between the state page and the Lagos state dashboard | ✅ The list shows "37 states" in six zone groups; the Lagos row has 12 LGAs, its State Director, completeness, last review and 30-day incidents. Lagos opens with all nine tabs. **Open state dashboard** goes to `/dashboard/states/…`, and the dashboard's **State profile** link comes back. |
+| The Lagos State Director lands directly on Lagos's page, completes its profile including international and state borders, and marks it reviewed | ✅ `/states` redirects to Lagos. History, economy, roads, terrain and borders ("Ogun State … the Republic of Benin to the west, crossing at Seme") were saved; **Mark as reviewed** shows the reviewer and time; completeness 83% (no Lagos LGA profile reviewed by then in the dev data). |
+| A Lagos LGA chief sees Lagos's overview, read-only profile, districts and leadership, only their own LGA in the LGAs tab, and no security or incident tabs | ✅ Tabs are exactly Overview, Profile, LGAs, Senatorial districts and Leadership. There is no dashboard link and no Save button; the borders text is shown; the LGAs tab has one row. |
+| The state profile PDF downloads with markings and no persons of interest | ✅ It downloaded in the browser as a SECRET file: a secret Lagos incident is in the dev data, so the download asked for an authenticator code, as for every secret file. Its content and markings are tested in `ReportsTest`: SECRET for the SD, RESTRICTED for the DSD, "Generated for", no POI, no past holders, no party officials. |
+| `make test`, `make lint`, `make ci` and `make browser-check` pass | ✅ |
 
 ## What was built
 

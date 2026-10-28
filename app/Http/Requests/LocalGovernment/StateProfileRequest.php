@@ -3,21 +3,28 @@
 namespace App\Http\Requests\LocalGovernment;
 
 use App\Enums\Terrain;
+use App\Models\State;
 use App\Rules\RichTextRule;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
- * A state's profile and its capital (Phase 11F). Authorisation is in the
- * controller (StatePolicy::updateProfile).
+ * A state's profile and its capital (Phase 11F). Authorised here, before
+ * validation (StatePolicy::updateProfile: 403, or 404 outside reach), so
+ * a user without rights never learns about validation rules; the
+ * controller authorises again.
  */
 class StateProfileRequest extends FormRequest
 {
     public const PROFILE_FIELDS = LgaProfileRequest::PROFILE_FIELDS;
 
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        return true;
+        $state = $this->route('state');
+
+        return $state instanceof State ? Gate::inspect('updateProfile', $state) : Response::denyAsNotFound();
     }
 
     /**

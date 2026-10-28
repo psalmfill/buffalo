@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { freshCode } from '../support/accounts';
 import { editor } from '../support/editor';
 import { downloadRun, shot, signIn, type Session } from '../support/session';
 
@@ -157,8 +158,21 @@ test('the Lagos State Director lands on Lagos, completes the profile and marks i
 test('the state profile PDF downloads', async () => {
     const { page } = sd;
     await page.locator('[data-test="export-report"]').click();
-    await page.waitForURL(/\/reports\?type=state_profile/);
+    await page.waitForURL(/\/reports\?.*type=state_profile/);
     await page.getByRole('button', { name: 'Generate' }).click();
+    await page.waitForURL(/\/reports\?run=/);
+    // In the development data the file is SECRET (a secret Lagos incident),
+    // so its download needs a fresh authenticator code (Phase 8B): confirm
+    // one first on the step-up page, as an officer would.
+    // Inertia answers the step-up with 409 + X-Inertia-Location (a full
+    // visit back to the reports page).
+    sd.guard.allow(409, /\/step-up$/);
+    const back = new URL(page.url());
+    await page.goto(
+        `/step-up?intended=${encodeURIComponent(back.pathname + back.search)}`,
+    );
+    await page.locator('input[data-input-otp]').fill(await freshCode(sd.who));
+    await page.getByRole('button', { name: 'Continue' }).click();
     const pdf = await downloadRun(page);
     expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
     await shot(page, '44-sd-state-profile-pdf');
