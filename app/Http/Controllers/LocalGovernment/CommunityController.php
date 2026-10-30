@@ -67,6 +67,12 @@ class CommunityController extends Controller
             'lgas' => $lgas->count() > 1 ? $lgas->map(fn (Lga $lga) => ['ulid' => $lga->ulid, 'name' => $lga->name])->values() : [],
             'types' => CommunityPresenter::typeOptions(),
             'can' => ['import' => $user->can('importAnyCommunities', Lga::class)],
+            // New community (CRUD coverage step): the LGAs within reach where
+            // the user may add one (LgaPolicy::addCommunity), to pick from.
+            'createLgas' => $options->lgaQuery($user)->active()->with('state')->orderBy('name')->get()
+                ->filter(fn (Lga $lga) => $user->can('addCommunity', $lga))
+                ->map(fn (Lga $lga) => ['ulid' => $lga->ulid, 'name' => $lga->name, 'state' => $lga->state->name])
+                ->values(),
         ]);
     }
 

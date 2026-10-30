@@ -385,6 +385,12 @@ class RolesAndPermissionsSeeder extends Seeder
                     Role::SuperAdmin,
                     Role::DirectorGeneral,
                 ],
+                // CRUD coverage step: districts, LGAs, wards and state
+                // capitals (Administration › Hierarchy), with step-up.
+                Permission::HierarchyManage->value => [
+                    Role::SuperAdmin,
+                    Role::DirectorGeneral,
+                ],
             ],
         ];
     }

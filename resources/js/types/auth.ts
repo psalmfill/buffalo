@@ -16,6 +16,7 @@ export const PERMISSIONS = [
     'theme.manage',
     'reference_data.view',
     'reference_data.manage',
+    'hierarchy.manage',
     'lgas.view',
     'lga_profiles.update',
     'communities.view',

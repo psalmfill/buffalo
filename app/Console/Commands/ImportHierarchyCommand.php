@@ -53,6 +53,7 @@ class ImportHierarchyCommand extends Command
         }
 
         $this->reportMissing($report);
+        $this->reportOnScreen($report);
         $this->summary($report);
 
         if ($report->dryRun) {
@@ -84,6 +85,39 @@ class ImportHierarchyCommand extends Command
             foreach ($items as $item) {
                 $this->line("    {$item}");
             }
+        }
+    }
+
+    /**
+     * Entries created in Administration › Hierarchy that the official files
+     * do not have: listed with who created them, when and why, and left
+     * active (even with --deactivate-missing).
+     */
+    private function reportOnScreen(HierarchyImportReport $report): void
+    {
+        $any = false;
+
+        foreach ($report->onScreen as $level => $items) {
+            if ($items === []) {
+                continue;
+            }
+
+            $any = true;
+            $this->components->warn(sprintf('%d %s created on screen %s not in the files (left active):', count($items), $level, count($items) === 1 ? 'is' : 'are'));
+
+            foreach ($items as $item) {
+                $this->line(sprintf(
+                    '    %s — created by %s on %s; reason: %s',
+                    $item['entry'],
+                    $item['created_by'] ?? 'unknown',
+                    $item['created_at'] ?? 'unknown date',
+                    $item['reason'] ?? '—',
+                ));
+            }
+        }
+
+        if ($any) {
+            $this->line('  Add these to the official CSV, or deactivate them in Administration → Hierarchy if they are no longer needed.');
         }
     }
 

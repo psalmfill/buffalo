@@ -12,8 +12,8 @@ use Illuminate\Auth\Access\Response;
 /**
  * States are reference data. Actions: the pilot rollout switch (Phase
  * 9B.3; super admins only), a national user's view of one state's
- * dashboard or the state lens (Phase 11A.2; states within reach), and the
- * state pages and profiles (Phase 11F).
+ * dashboard or the state lens (Phase 11A.2; states within reach), the
+ * state pages and profiles (Phase 11F), and hierarchy administration.
  *
  * State pages: states within reach (JurisdictionOptions); any other state
  * is 404, like an LGA outside the jurisdiction. An LGA chief opens their
@@ -31,6 +31,17 @@ class StatePolicy
     public function manageRollout(User $user): bool
     {
         return $user->checkPermissionTo(Permission::SystemSettings->value);
+    }
+
+    /**
+     * Administration › Hierarchy (CRUD coverage step): state capitals and
+     * the districts, LGAs and wards under every state. Super admins and the
+     * DG; reference data, not intelligence, so national in reach. Every
+     * change also needs step-up and a reason.
+     */
+    public function manageHierarchy(User $user): bool
+    {
+        return $user->checkPermissionTo(Permission::HierarchyManage->value);
     }
 
     public function viewAny(User $user): bool

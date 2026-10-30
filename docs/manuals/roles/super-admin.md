@@ -43,6 +43,18 @@ reason and your authenticator code are required, and the change is recorded.
 **Set not live** signs them out at their next action. National users are
 never affected.
 
+## Hierarchy
+
+**Hierarchy** (shared with the DG) lists the 37 states with their senatorial
+districts and LGAs. States are fixed: only the **capital** can be edited.
+Districts, LGAs and wards can be **created, renamed, deactivated and
+reactivated**, never deleted, under the same rules as the official CSV import
+(unique codes and names, districts within their state, wards within their LGA).
+Every change needs your authenticator code and a reason and is recorded.
+Codes are set on create and never change; to correct one, fix the official CSV
+and re-import. Deactivated entries stay on the records that already use them.
+A warning shows when the national totals differ from 109 districts and 774 LGAs.
+
 ## Monitoring
 
 - **System health:** services, queues, the scheduler, backups (database and

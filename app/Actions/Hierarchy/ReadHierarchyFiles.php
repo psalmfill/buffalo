@@ -25,13 +25,13 @@ final class ReadHierarchyFiles
 
     public const WARDS_FILE = 'wards.csv';
 
-    public const EXPECTED_STATES = 37;
+    public const EXPECTED_STATES = HierarchyRules::EXPECTED_STATES;
 
-    public const EXPECTED_DISTRICTS = 109;
+    public const EXPECTED_DISTRICTS = HierarchyRules::EXPECTED_DISTRICTS;
 
-    public const EXPECTED_LGAS = 774;
+    public const EXPECTED_LGAS = HierarchyRules::EXPECTED_LGAS;
 
-    private const MAX_NAME_LENGTH = 255;
+    private const MAX_NAME_LENGTH = HierarchyRules::MAX_NAME_LENGTH;
 
     /** @var list<string> */
     private array $errors = [];
@@ -123,7 +123,7 @@ final class ReadHierarchyFiles
 
             $valid = $this->checkState($file, $line, $state, $stateIds);
 
-            if (! str_starts_with($code, "{$state}-") || preg_match('/^[A-Z0-9]+$/', substr($code, strlen($state) + 1)) !== 1 || strlen($code) > 20) {
+            if (! HierarchyRules::validDistrictCode($code, $state)) {
                 $this->error($file, $line, "district_code \"{$code}\" must be the state code, a hyphen and uppercase letters or digits (e.g. {$state}-C), at most 20 characters.");
                 $valid = false;
             }
@@ -180,7 +180,7 @@ final class ReadHierarchyFiles
 
             $valid = $this->checkState($file, $line, $state, $stateIds);
 
-            if (preg_match('/^[A-Z]{3}$/', $code) !== 1) {
+            if (! HierarchyRules::validLgaCode($code)) {
                 $this->error($file, $line, "lga_code \"{$code}\" must be exactly 3 uppercase letters.");
                 $valid = false;
             }
@@ -265,7 +265,7 @@ final class ReadHierarchyFiles
                 $valid = false;
             }
 
-            if (preg_match('/^[A-Z0-9][A-Z0-9-]{0,19}$/', $code) !== 1) {
+            if (! HierarchyRules::validWardCode($code)) {
                 $this->error($file, $line, "ward_code \"{$code}\" must be 1-20 uppercase letters, digits or hyphens, starting with a letter or digit.");
                 $valid = false;
             }

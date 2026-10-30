@@ -29,6 +29,11 @@ enum Permission: string
     case ReferenceDataView = 'reference_data.view';
     case ReferenceDataManage = 'reference_data.manage';
 
+    // Hierarchy administration (CRUD coverage step): create, rename and
+    // deactivate districts, LGAs and wards; edit state capitals. Step-up and
+    // a reason for every change.
+    case HierarchyManage = 'hierarchy.manage';
+
     // LGA profiles and communities (Phase 2B): intelligence, always also
     // limited to the user's jurisdiction
     case LgasView = 'lgas.view';

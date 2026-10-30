@@ -16,6 +16,14 @@ final class HierarchyImportReport
     /** @var array<string, list<string>> */
     public array $missing = [];
 
+    /**
+     * Active entries created on screen that are not in the files (never
+     * deactivated by the import).
+     *
+     * @var array<string, list<array{entry: string, created_by: string|null, created_at: string|null, reason: string|null}>>
+     */
+    public array $onScreen = [];
+
     public bool $written = false;
 
     /**
@@ -31,6 +39,7 @@ final class HierarchyImportReport
         foreach (self::LEVELS as $level) {
             $this->counts[$level] = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'missing' => 0, 'deactivated' => 0];
             $this->missing[$level] = [];
+            $this->onScreen[$level] = [];
         }
     }
 

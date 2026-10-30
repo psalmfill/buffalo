@@ -25,6 +25,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'theme.manage',
         'reference_data.view',
         'reference_data.manage',
+        'hierarchy.manage',
         'exports.lists',
     ],
     director_general: [
@@ -34,6 +35,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'theme.manage',
         'reference_data.view',
         'reference_data.manage',
+        'hierarchy.manage',
         'lgas.view',
         'states.view',
         'state_profiles.update',
@@ -458,6 +460,7 @@ describe('navigation', () => {
                 Administration: [
                     'Users',
                     'Reference data',
+                    'Hierarchy',
                     'Audit log',
                     'Login history',
                     'System health',
@@ -508,6 +511,7 @@ describe('navigation', () => {
                 Administration: [
                     'Users',
                     'Reference data',
+                    'Hierarchy',
                     'Audit log',
                     'Exports review',
                     'Theme',

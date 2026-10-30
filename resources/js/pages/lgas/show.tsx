@@ -62,6 +62,7 @@ type Tab =
     | 'overview'
     | 'profile'
     | 'communities'
+    | 'wards'
     | 'leadership'
     | 'religious_institutions'
     | 'vulnerable_population'
@@ -104,6 +105,8 @@ type Props = {
     vulnerablePopulation: VulnerableTab | null;
     securityNotes: NotesTab | null;
     leadership: LgaLeadership | null;
+    /** Wards (reference data), with communities through their scope. */
+    wards: WardRow[] | null;
     securityPresence: SecurityPresenceTab | null;
     organizations: LgaOrganizationsTab | null;
     /** Phase 6A. */
@@ -115,6 +118,7 @@ const TAB_LABELS: Record<Tab, string> = {
     overview: 'Overview',
     profile: 'Profile',
     communities: 'Communities',
+    wards: 'Wards',
     leadership: 'Leadership',
     religious_institutions: 'Religious institutions',
     vulnerable_population: 'Vulnerable population',
@@ -231,6 +235,9 @@ export default function LgaShow(props: Props) {
                         />
                     </div>
                 )}
+                {tab === 'wards' && props.wards && (
+                    <WardsTab wards={props.wards} />
+                )}
                 {tab === 'religious_institutions' &&
                     props.religiousInstitutions && (
                         <ReligiousInstitutionsPanel
@@ -329,7 +336,60 @@ const TAB_EXPORTS: Partial<Record<Tab, string>> = {
     security_notes: 'security_notes',
     organizations: 'organization_sites',
     leadership: 'political_offices',
+    wards: 'wards',
 };
+
+type WardRow = {
+    ulid: string;
+    code: string;
+    name: string;
+    is_active: boolean;
+    communities: number;
+};
+
+/** The LGA's wards (read-only; administered in Administration › Hierarchy). */
+function WardsTab({ wards }: { wards: WardRow[] }) {
+    return (
+        <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                    <tr>
+                        <th className="px-3 py-2 font-medium">Ward</th>
+                        <th className="px-3 py-2 font-medium">Code</th>
+                        <th className="px-3 py-2 font-medium">Status</th>
+                        <th className="px-3 py-2 text-right font-medium">
+                            Communities
+                        </th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y">
+                    {wards.map((ward) => (
+                        <tr key={ward.ulid}>
+                            <td className="px-3 py-2 font-medium">
+                                {ward.name}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-xs">
+                                {ward.code}
+                            </td>
+                            <td className="px-3 py-2">
+                                <Badge
+                                    variant={
+                                        ward.is_active ? 'default' : 'secondary'
+                                    }
+                                >
+                                    {ward.is_active ? 'Active' : 'Deactivated'}
+                                </Badge>
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                                {ward.communities}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
 
 function tabUrl(ulid: string, tab: Tab): string {
     return LgaController.show(ulid, { query: { tab } }).url;

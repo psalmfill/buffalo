@@ -29,11 +29,13 @@ use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
 use App\Models\User;
 use App\Models\VulnerablePopulationStat;
+use App\Models\Ward;
 use App\Support\Arrests\ArrestLinks;
 use App\Support\CommunityInformation\TabData;
 use App\Support\Dashboard\MapView;
 use App\Support\Exports\Lists\Exporters\LgasExporter;
 use App\Support\Exports\Lists\Exporters\OrganizationSitesExporter;
+use App\Support\Exports\Lists\Exporters\WardsExporter;
 use App\Support\Incidents\IncidentLinks;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\LocalGovernment\ProfileCompleteness;
@@ -56,7 +58,7 @@ class LgaController extends Controller
     /**
      * Tabs of an LGA page. Phase 2C and later phases add theirs here.
      */
-    public const TABS = ['overview', 'profile', 'communities', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations', 'incidents', 'arrests', 'flashpoints'];
+    public const TABS = ['overview', 'profile', 'communities', 'wards', 'leadership', 'religious_institutions', 'vulnerable_population', 'security_notes', 'security_presence', 'organizations', 'incidents', 'arrests', 'flashpoints'];
 
     /** Map markers per LGA page (plain markers, no clustering). */
     private const MARKER_LIMIT = 1000;
@@ -100,7 +102,7 @@ class LgaController extends Controller
         ]);
     }
 
-    public function show(Request $request, Lga $lga, TabData $data, Leadership $leadership): Response
+    public function show(Request $request, Lga $lga, TabData $data, Leadership $leadership, WardsExporter $wards): Response
     {
         $this->authorize('view', $lga);
         $user = $this->actor($request);
@@ -109,7 +111,9 @@ class LgaController extends Controller
         $hasIncidents = $user->can('viewAny', Incident::class) && IncidentLinks::lga($lga)->exists();
         // Arrests in the LGA (Phase 11C), likewise hidden when there are none.
         $hasArrests = $user->can('viewAny', Arrest::class) && ArrestLinks::lga($lga)->exists();
-        $hidden = [...($hasIncidents ? [] : ['incidents']), ...($hasArrests ? [] : ['arrests']), ...($user->can('viewAny', Flashpoint::class) ? [] : ['flashpoints'])];
+        // Wards (reference data; wards.csv is optional), hidden when there are none.
+        $hasWards = Ward::query()->where('lga_id', $lga->id)->exists();
+        $hidden = [...($hasWards ? [] : ['wards']), ...($hasIncidents ? [] : ['incidents']), ...($hasArrests ? [] : ['arrests']), ...($user->can('viewAny', Flashpoint::class) ? [] : ['flashpoints'])];
         $tabs = array_values(array_diff(self::TABS, $hidden));
         $tab = in_array($request->query('tab'), $tabs, true) ? $request->query('tab') : 'overview';
         $lga->loadMissing(['state', 'senatorialDistrict']);
@@ -154,6 +158,16 @@ class LgaController extends Controller
             // The boundary and centroid (Phase 6A); MapView centres on the centroid.
             'overview' => $tab === 'overview' ? ['chief' => $leadership->chief($lga), 'map' => MapView::for($lga)] : null,
             'leadership' => $tab === 'leadership' && $user->can('viewAny', PoliticalOffice::class) ? $leadership->forLga($lga) : null,
+            // The same query as the export (CRUD coverage step).
+            'wards' => $tab === 'wards'
+                ? $wards->query($user, ['lga' => $lga->ulid])->get()->map(fn (Ward $ward) => [
+                    'ulid' => $ward->ulid,
+                    'code' => $ward->code,
+                    'name' => $ward->name,
+                    'is_active' => $ward->is_active,
+                    'communities' => (int) $ward->getAttribute('communities_count'),
+                ])->values()
+                : null,
             'profile' => $tab === 'profile' ? [
                 ...LgaPresenter::profile($profile),
                 'terrainOptions' => LgaPresenter::terrainOptions(),

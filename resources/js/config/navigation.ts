@@ -35,6 +35,7 @@ import {
     UserSearch,
     Combine,
     Users,
+    Waypoints,
 } from 'lucide-react';
 import AnalyticsController from '@/actions/App/Http/Controllers/Analytics/AnalyticsController';
 import ReportController from '@/actions/App/Http/Controllers/Reports/ReportController';
@@ -54,6 +55,7 @@ import AuditLogController from '@/actions/App/Http/Controllers/Audit/AuditLogCon
 import ExportReviewController from '@/actions/App/Http/Controllers/Audit/ExportReviewController';
 import ThemeController from '@/actions/App/Http/Controllers/System/ThemeController';
 import GoLiveController from '@/actions/App/Http/Controllers/System/GoLiveController';
+import HierarchyController from '@/actions/App/Http/Controllers/System/HierarchyController';
 import HelpController from '@/actions/App/Http/Controllers/HelpController';
 import RolloutController from '@/actions/App/Http/Controllers/System/RolloutController';
 import SystemHealthController from '@/actions/App/Http/Controllers/System/SystemHealthController';
@@ -161,6 +163,7 @@ export const NAVIGATION: NavSection[] = [
         items: [
             { title: 'Users', icon: Users, href: UserController.index(), permission: 'users.view' },
             { title: 'Reference data', icon: Library, href: ReferenceDataController.home(), permission: 'reference_data.view' },
+            { title: 'Hierarchy', icon: Waypoints, href: HierarchyController.index(), permission: 'hierarchy.manage' },
             { title: 'Audit log', icon: ScrollText, href: AuditLogController.index(), permission: 'audit.view' },
             { title: 'Exports review', icon: FileSearch, href: ExportReviewController.index(), permission: 'audit.exports' },
             { title: 'Login history', icon: History, href: LoginHistoryController.index(), permission: 'login_history.view' },

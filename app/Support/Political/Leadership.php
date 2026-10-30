@@ -144,7 +144,7 @@ final class Leadership
             if ($holders !== null && $holders->isNotEmpty()) {
                 $groups[] = [
                     'office' => ['value' => $type->value, 'label' => $type->label()],
-                    'holders' => array_values($holders->map(fn (PoliticalOffice $o) => PoliticalPresenter::office($o))->all()),
+                    'holders' => array_values($holders->map(fn (PoliticalOffice $o) => $this->office($o))->all()),
                 ];
             }
         }
@@ -155,7 +155,7 @@ final class Leadership
                 ->orderByDesc('political_offices.ended_on')
                 ->limit(100)
                 ->get()
-                ->map(fn (PoliticalOffice $o) => PoliticalPresenter::office($o))
+                ->map(fn (PoliticalOffice $o) => $this->office($o))
                 ->all()),
         ];
     }
@@ -204,14 +204,14 @@ final class Leadership
             ->get();
 
         $present = fn (PoliticalOfficeType $type) => $offices->filter(fn (PoliticalOffice $o) => $o->office === $type)
-            ->map(fn (PoliticalOffice $o) => PoliticalPresenter::office($o))->values()->all();
+            ->map(fn (PoliticalOffice $o) => $this->office($o))->values()->all();
 
         return [
             'chairman' => $present(PoliticalOfficeType::LgaChairman),
             'viceChairman' => $present(PoliticalOfficeType::LgaViceChairman),
             'councillors' => $offices->filter(fn (PoliticalOffice $o) => $o->office === PoliticalOfficeType::Councillor)
                 ->sortBy(fn (PoliticalOffice $o) => $o->ward?->name)
-                ->map(fn (PoliticalOffice $o) => PoliticalPresenter::office($o))->values()->all(),
+                ->map(fn (PoliticalOffice $o) => $this->office($o))->values()->all(),
             'traditionalRulers' => Community::query()
                 ->where('lga_id', $lga->id)
                 ->whereHas('traditionalRuler')
@@ -278,7 +278,7 @@ final class Leadership
                 'chief' => $this->chief($lga),
                 'chairman' => $chairmen->get($lga->id)?->map(fn (PoliticalOffice $o) => ['ulid' => $o->person?->ulid, 'name' => $o->person?->name])->values()->all() ?? [],
             ])->all(),
-            'currentHolders' => $current->map(fn (PoliticalOffice $o) => PoliticalPresenter::office($o))->values()->all(),
+            'currentHolders' => $current->map(fn (PoliticalOffice $o) => $this->office($o))->values()->all(),
             // Persons holding any leadership role, grouped by role type.
             'prominentByRole' => $this->groupedByRole(
                 PersonRoleType::query()->where('code', '!=', PersonRoleType::PERSON_OF_INTEREST),
@@ -290,7 +290,7 @@ final class Leadership
                 ->orderByDesc('ended_on')
                 ->limit(100)
                 ->get()
-                ->map(fn (PoliticalOffice $o) => PoliticalPresenter::office($o))->values()->all(),
+                ->map(fn (PoliticalOffice $o) => $this->office($o))->values()->all(),
         ];
     }
 
@@ -323,5 +323,22 @@ final class Leadership
         }
 
         return $groups;
+    }
+
+    /**
+     * An office row, with Edit for users who may update it
+     * (PoliticalOfficePolicy::update), so the Leadership tabs can offer it as
+     * the person page does.
+     *
+     * @return array<string, mixed>
+     */
+    private function office(PoliticalOffice $office): array
+    {
+        $user = request()->user();
+
+        return [
+            ...PoliticalPresenter::office($office),
+            'can' => ['update' => $user?->can('update', $office) ?? false, 'delete' => $user?->can('delete', $office) ?? false],
+        ];
     }
 }

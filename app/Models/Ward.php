@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasActiveScope;
+use App\Models\Concerns\HasHierarchyOrigin;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use Database\Factories\WardFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A ward within an LGA. `state_id` is denormalised from the LGA and kept
@@ -22,6 +24,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $code
  * @property string $name
  * @property bool $is_active
+ * @property string $origin "import" or "admin" (HasHierarchyOrigin)
+ * @property int|null $created_by
+ * @property string|null $created_reason
  */
 class Ward extends Model
 {
@@ -30,6 +35,7 @@ class Ward extends Model
     /** @use HasFactory<WardFactory> */
     use HasFactory;
 
+    use HasHierarchyOrigin;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
 
@@ -41,7 +47,11 @@ class Ward extends Model
         'is_active',
     ];
 
+    /** The column default, so new models audit cleanly (HasHierarchyOrigin). */
+    protected $attributes = ['origin' => self::ORIGIN_IMPORT];
+
     protected $hidden = [
+        'created_by',
         'id',
         'lga_id',
         'state_id',
@@ -68,5 +78,15 @@ class Ward extends Model
     public function state(): BelongsTo
     {
         return $this->belongsTo(State::class);
+    }
+
+    /**
+     * Communities in the ward (jurisdiction-scoped).
+     *
+     * @return HasMany<Community, $this>
+     */
+    public function communities(): HasMany
+    {
+        return $this->hasMany(Community::class);
     }
 }

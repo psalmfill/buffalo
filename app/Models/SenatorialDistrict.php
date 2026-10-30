@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasActiveScope;
+use App\Models\Concerns\HasHierarchyOrigin;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use Database\Factories\SenatorialDistrictFactory;
@@ -21,6 +22,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $code
  * @property string $name
  * @property bool $is_active
+ * @property string $origin "import" or "admin" (HasHierarchyOrigin)
+ * @property int|null $created_by
+ * @property string|null $created_reason
  */
 class SenatorialDistrict extends Model
 {
@@ -29,6 +33,7 @@ class SenatorialDistrict extends Model
     /** @use HasFactory<SenatorialDistrictFactory> */
     use HasFactory;
 
+    use HasHierarchyOrigin;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
 
@@ -49,7 +54,11 @@ class SenatorialDistrict extends Model
         'is_active',
     ];
 
+    /** The column default, so new models audit cleanly (HasHierarchyOrigin). */
+    protected $attributes = ['origin' => self::ORIGIN_IMPORT];
+
     protected $hidden = [
+        'created_by',
         'search_name',
         'id',
         'state_id',

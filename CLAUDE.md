@@ -97,7 +97,7 @@ Classification narrows access **within** a user's jurisdiction; it never widens 
 - Vulnerable persons are recorded **only as aggregate counts** per community, never as named individuals.
 - Incident type-specific fields live in a validated JSON `details` column, validated against `incident_types.details_schema`.
 - Geographic points use PostGIS `geography(Point, 4326)`; areas use `geography(Polygon, 4326)` or `MultiPolygon`.
-- **Never invent reference data.** State, LGA, senatorial district and ward names come from CSV files in `database/data/` supplied by the project owner. If a CSV is missing, create the seeder so it reads the CSV and fails with a clear message.
+- **Never invent reference data.** State, LGA, senatorial district and ward names come from CSV files in `database/data/` supplied by the project owner. If a CSV is missing, create the seeder so it reads the CSV and fails with a clear message. Code never invents them; since the CRUD coverage step, super admins and the DG may also create, rename and deactivate districts, LGAs and wards in Administration › Hierarchy (see the decisions log), and the official CSV stays the source of truth.
 - Never write sensitive values (NIN, phone, names of persons of interest) to application logs.
 - Every new use of a reference table is registered with the `ReferenceUsage` registry (Phase 3A) so in-use values are protected.
 - Tunable numbers (thresholds, limits, cadences) live in `config/buffalo.php` with an env override.
@@ -221,6 +221,12 @@ Classification narrows access **within** a user's jurisdiction; it never widens 
   - As built: 25 list exporters (`ListExporterCoverageTest`); `reports.export_data` was removed and folded into `exports.lists`; `exports.sensitive` is SD, DG and DDG only. Media is soft-deletable; infected evidence is force-deleted.
   - Approved licences (dev-only, via `jsdom`): BlueOak-1.0.0, CC0-1.0, MIT-0.
   - Person PDFs carry no photo (deliberate; revisit only if the client asks). Site photos above 6,000 px on a side are refused.
+- **Hierarchy administration (CRUD coverage step):**
+  - Super admins and the DG (`hierarchy.manage`) edit state capitals and create, rename, deactivate and reactivate senatorial districts, LGAs and wards in Administration › Hierarchy, with step-up and a reason every time. Each change is a named audit event (`lga_created`, `ward_deactivated`, `state_capital_changed`, …). Nothing is deleted, and the 37 states are fixed.
+  - **Codes are set on create and never change**, at every level: they are the CSV import's matching key, and LGA codes appear in incident references. Corrections go through the official CSV and a re-import.
+  - The screen applies the import's rules (`HierarchyRules`): unique codes and case-insensitive names, districts within their state, wards within their LGA, and the 109/774 expected-count warning (a warning, never a block). A district or LGA with active children cannot be deactivated, and reactivation needs an active parent.
+  - Screen-created entries carry `origin = admin` with their creator and reason. The import lists those missing from the files and never deactivates them, even with `--deactivate-missing`. An entry that appears in the files becomes `import`. The import still overwrites screen renames and reactivates entries that are in the files.
+  - Wards have a read-only Wards tab on the LGA page (exporter `wards`). The admin list is excluded from list exports, like reference data.
 
 ## 10a. Tooling notes (from Phase 0)
 

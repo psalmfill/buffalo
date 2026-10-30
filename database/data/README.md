@@ -109,6 +109,7 @@ Behaviour:
 - The command checks every rule above in every file before writing anything. It reports all errors together, with file name and line number, and exits non-zero without touching the database.
 - Writes happen in a single database transaction, upserting by code: districts by `district_code`, LGAs by state + `lga_code`, wards by LGA + `ward_code`. Running it again with the same files changes nothing; running it with corrected names updates them. A previously deactivated record that reappears in a file is reactivated.
 - A summary table shows created, updated, unchanged and deactivated counts for each level.
+- Entries created on screen in Administration › Hierarchy and missing from the files are listed separately (with who created them, when and why) and never deactivated, even with `--deactivate-missing`. An entry that appears in the files becomes an imported one. Screen-created entries follow the same code and name rules as the files (`App\Actions\Hierarchy\HierarchyRules`), and their codes never change. See `docs/operations/data-loading.md`.
 
 `php artisan db:seed` (and `make fresh`) runs the import automatically when `lgas.csv` exists.
 

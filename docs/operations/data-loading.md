@@ -46,6 +46,30 @@ production: correct the files instead. It is safe to run again (upsert by
 code); `--deactivate-missing` deactivates places that are no longer in the
 files (they are never deleted).
 
+### Corrections on screen (Administration › Hierarchy)
+
+Super admins and the DG can also edit state capitals and create, rename,
+deactivate and reactivate districts, LGAs and wards in **Administration ›
+Hierarchy**, with step-up and a reason for every change (each is a named audit
+event). The official CSV files remain the source of truth:
+
+- **Codes are set on create and never change**, at every level. Besides
+  incident references, codes are the import's matching key: the import updates
+  entries by code, so editing even an unused code on screen would make the next
+  official import create a duplicate instead of updating the entry. To correct
+  a wrong code, fix it in the CSV and re-import (the old entry is deactivated
+  with `--deactivate-missing`). For an entry created on screen with a wrong code
+  and nothing linked to it, deactivate it and create a corrected one.
+- **Entries created on screen** that are not in the files are listed by every
+  import, with who created them, when and the reason, and are **never
+  deactivated** by the import, even with `--deactivate-missing`. Add them to the
+  official CSV, or deactivate them on screen if they are no longer needed. Once
+  an entry is in the files, it counts as imported.
+- **Renames and deactivations on screen are overwritten by the next import** of
+  files that still carry the old name or the entry: the import sets names from
+  the files and reactivates every entry it contains. Make the same correction in
+  the CSV.
+
 ## 2. Boundaries
 
 A GeoJSON FeatureCollection of LGA boundaries (and, if supplied, state

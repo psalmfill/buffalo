@@ -7,6 +7,8 @@ import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaCon
 import EmptyState from '@/components/empty-state';
 import { FilterBar, useFilters } from '@/components/filter-bar';
 import Heading from '@/components/heading';
+import NewCommunityButton from '@/components/local-government/new-community-button';
+import type { CreateLga } from '@/components/local-government/new-community-button';
 import NativeSelect from '@/components/native-select';
 import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,7 @@ type Props = {
     lgas: NamedRef[];
     types: Option[];
     can: { import: boolean };
+    createLgas: CreateLga[];
 };
 
 /** Cross-LGA community search within the user's jurisdiction. */
@@ -32,6 +35,7 @@ export default function CommunitiesIndex({
     lgas,
     types,
     can,
+    createLgas,
 }: Props) {
     const { values, setValues, apply, reset } = useFilters(
         CommunityController.index().url,
@@ -59,6 +63,7 @@ export default function CommunitiesIndex({
                                 </Link>
                             </Button>
                         )}
+                        <NewCommunityButton lgas={createLgas} />
                     </div>
                 </div>
 

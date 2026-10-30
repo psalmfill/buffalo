@@ -25,6 +25,12 @@ As Director General you see **everything nationally**, up to **secret**.
   denominations, property types. Changes affect every user; values in use can
   only be deactivated. The client's sign-off of the reference data before
   go-live is recorded by the system administrator.
+- **Hierarchy** (Administration → Hierarchy), shared with the system
+  administrator: state capitals, and the senatorial districts, LGAs and wards
+  of every state. Create, rename, deactivate or reactivate them (never delete),
+  with your authenticator code and a reason each time. Codes are set when an
+  entry is created and never change; the official CSV import remains the source
+  of truth.
 - **Audit log** (Administration → Audit log): every change and decision in
   BUFFALO ([What is logged and why](../guides/what-is-logged.md)). You are
   alerted if the audit trail's integrity check ever fails.

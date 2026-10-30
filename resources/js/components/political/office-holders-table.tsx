@@ -1,9 +1,13 @@
 import { Link } from '@inertiajs/react';
 import PersonController from '@/actions/App/Http/Controllers/Persons/PersonController';
+import PoliticalOfficeController from '@/actions/App/Http/Controllers/Political/PoliticalOfficeController';
 import { officePlace, officeTerm } from '@/components/political/office-place';
 import type { PoliticalOffice } from '@/types/political';
 
-/** Office holders with links to their person records. */
+/**
+ * Office holders with links to their person records, and Edit where the
+ * user may update the office (PoliticalOfficePolicy::update).
+ */
 export default function OfficeHoldersTable({
     offices,
     empty = 'None recorded.',
@@ -15,6 +19,8 @@ export default function OfficeHoldersTable({
         return <p className="text-sm text-muted-foreground">{empty}</p>;
     }
 
+    const editable = offices.some((office) => office.can?.update);
+
     return (
         <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
@@ -25,6 +31,11 @@ export default function OfficeHoldersTable({
                         <th className="px-3 py-2 font-medium">Place</th>
                         <th className="px-3 py-2 font-medium">Party</th>
                         <th className="px-3 py-2 font-medium">Term</th>
+                        {editable && (
+                            <th className="px-3 py-2">
+                                <span className="sr-only">Actions</span>
+                            </th>
+                        )}
                     </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -50,6 +61,21 @@ export default function OfficeHoldersTable({
                             <td className="px-3 py-2 whitespace-nowrap">
                                 {officeTerm(office)}
                             </td>
+                            {editable && (
+                                <td className="px-3 py-2 text-right">
+                                    {office.can?.update && (
+                                        <Link
+                                            href={PoliticalOfficeController.edit(
+                                                office.ulid,
+                                            )}
+                                            className="text-sm font-medium hover:underline"
+                                            data-test="edit-office"
+                                        >
+                                            Edit
+                                        </Link>
+                                    )}
+                                </td>
+                            )}
                         </tr>
                     ))}
                 </tbody>

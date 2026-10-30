@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasActiveScope;
+use App\Models\Concerns\HasHierarchyOrigin;
 use App\Models\Concerns\HasUlidRouteKey;
 use App\Models\Concerns\LogsBuffaloActivity;
 use Database\Factories\LgaFactory;
@@ -27,6 +28,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $area_km2
  * @property int|null $population_estimate
  * @property bool $is_active
+ * @property string $origin "import" or "admin" (HasHierarchyOrigin)
+ * @property int|null $created_by
+ * @property string|null $created_reason
  */
 class Lga extends Model
 {
@@ -35,6 +39,7 @@ class Lga extends Model
     /** @use HasFactory<LgaFactory> */
     use HasFactory;
 
+    use HasHierarchyOrigin;
     use HasUlidRouteKey;
     use LogsBuffaloActivity;
 
@@ -49,7 +54,11 @@ class Lga extends Model
         'is_active',
     ];
 
+    /** The column default, so new models audit cleanly (HasHierarchyOrigin). */
+    protected $attributes = ['origin' => self::ORIGIN_IMPORT];
+
     protected $hidden = [
+        'created_by',
         'search_name',
         'id',
         'state_id',

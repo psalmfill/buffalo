@@ -5,6 +5,7 @@ namespace App\Actions\Hierarchy;
 use App\Models\Lga;
 use App\Models\SenatorialDistrict;
 use App\Models\State;
+use App\Models\User;
 use App\Models\Ward;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +19,9 @@ use Illuminate\Support\Facades\DB;
  * - Rows are upserted by code (districts: code; LGAs: state + code; wards:
  *   LGA + code) inside a single transaction, so re-running is idempotent.
  * - Nothing is ever deleted. Records missing from the files are reported and
- *   only deactivated when asked to.
+ *   only deactivated when asked to. Entries created on screen
+ *   (Administration › Hierarchy) are reported separately and never
+ *   deactivated; an entry that appears in the files becomes an imported one.
  * - A dry run computes exactly the same plan without writing.
  *
  * @phpstan-import-type DistrictRow from HierarchyDataset
@@ -94,7 +97,7 @@ final class ImportHierarchy
                 $existing->get($row['code']),
                 SenatorialDistrict::class,
                 ['code' => $row['code']],
-                ['state_id' => $stateIds[$row['state_code']], 'name' => $row['name'], 'is_active' => true],
+                ['state_id' => $stateIds[$row['state_code']], 'name' => $row['name'], 'is_active' => true, 'origin' => SenatorialDistrict::ORIGIN_IMPORT],
                 $write,
             );
 
@@ -141,6 +144,7 @@ final class ImportHierarchy
                     'name' => $row['name'],
                     'headquarters' => $row['headquarters'],
                     'is_active' => true,
+                    'origin' => Lga::ORIGIN_IMPORT,
                 ],
                 $write,
             );
@@ -191,7 +195,7 @@ final class ImportHierarchy
                     $existing->get($key),
                     Ward::class,
                     ['lga_id' => $lgaId, 'code' => $row['code']],
-                    ['state_id' => $stateIds[$row['state_code']], 'name' => $row['name'], 'is_active' => true],
+                    ['state_id' => $stateIds[$row['state_code']], 'name' => $row['name'], 'is_active' => true, 'origin' => Ward::ORIGIN_IMPORT],
                     $write,
                 );
 
@@ -228,12 +232,12 @@ final class ImportHierarchy
                 return ['created', null];
             }
 
-            $created = $class::query()->create($key + $attributes);
+            $created = $class::query()->forceCreate($key + $attributes);
 
             return ['created', (int) $created->getKey()];
         }
 
-        $model->fill($attributes);
+        $model->forceFill($attributes);
 
         if (! $model->isDirty()) {
             return ['unchanged', (int) $model->getKey()];
@@ -259,6 +263,22 @@ final class ImportHierarchy
     {
         foreach ($missing as $model) {
             if (! $model->getAttribute('is_active')) {
+                continue;
+            }
+
+            // Created in Administration › Hierarchy and not (yet) in the
+            // official files: reported for the owner to add to the CSV or
+            // deactivate on screen, never deactivated automatically.
+            if ($model->getAttribute('origin') === 'admin') {
+                $creator = $model->getAttribute('created_by') === null ? null : User::query()->find($model->getAttribute('created_by'));
+                $createdAt = $model->getAttribute('created_at');
+                $report->onScreen[$level][] = [
+                    'entry' => $describe($model),
+                    'created_by' => $creator instanceof User ? $creator->name : null,
+                    'created_at' => $createdAt instanceof \DateTimeInterface ? $createdAt->format('Y-m-d H:i') : null,
+                    'reason' => is_string($model->getAttribute('created_reason')) ? $model->getAttribute('created_reason') : null,
+                ];
+
                 continue;
             }
 

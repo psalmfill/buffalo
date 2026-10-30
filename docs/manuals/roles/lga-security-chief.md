@@ -31,7 +31,8 @@ starts with you. You see and record everything in **your own LGA**, at the
   ([Flashpoints](../guides/flashpoints.md)).
 - **Person of interest reviews** when due.
 - Keep the **LGA profile** and **communities** up to date (States & LGAs
-  → LGAs → your LGA).
+  → LGAs → your LGA, or **New community** on States & LGAs → Communities).
+  The LGA page also lists your LGA's **wards**.
 - Read your **state's profile** for background (States & LGAs → States): its
   overview, profile, senatorial districts and public office holders, with
   your own LGA in the LGAs tab. You cannot edit it, and the state's

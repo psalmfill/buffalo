@@ -68,7 +68,7 @@ function exportList(User $user, string $list, array $filters = [], ReportFormat 
 function exportFilters(string $list, MatrixRecords $set): array
 {
     return match ($list) {
-        'religious_institutions', 'vulnerable_population', 'security_notes', 'political_offices' => ['lga' => $set->get(Lga::class)?->getRouteKey()],
+        'religious_institutions', 'vulnerable_population', 'security_notes', 'political_offices', 'wards' => ['lga' => $set->get(Lga::class)?->getRouteKey()],
         'organization_contacts' => ['site' => $set->get(OrganizationSite::class)?->getRouteKey()],
         'criminal_group_members' => ['group' => $set->get(CriminalGroup::class)?->getRouteKey()],
         default => [],
