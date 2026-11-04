@@ -2,10 +2,18 @@
 
 namespace App\Http\Presenters;
 
+use App\Enums\EyeColour;
+use App\Enums\HairColour;
+use App\Enums\MaritalStatus;
 use App\Enums\PoiStatus;
 use App\Enums\RiskLevel;
+use App\Enums\TribalMarks;
+use App\Models\Person;
 use App\Models\PersonOfInterest;
+use App\Models\Religion;
+use App\Models\State;
 use App\Models\ThreatType;
+use Carbon\CarbonImmutable;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -39,6 +47,74 @@ final class PoiPresenter
     }
 
     /**
+     * The personal details of Phase 11G.4. `sensitive` (religion, political
+     * affiliations) is for the person's page only: PDFs and exports leave it
+     * out (withoutSensitive()).
+     *
+     * @return array<string, mixed>
+     */
+    public static function personalDetails(PersonOfInterest $poi): array
+    {
+        $poi->loadMissing(['originState', 'originLga', 'person']);
+        $religion = $poi->religion === null ? null : Religion::query()->where('code', $poi->religion)->first();
+        $option = fn (?\BackedEnum $value) => $value === null ? null : ['value' => $value->value, 'label' => method_exists($value, 'label') ? $value->label() : (string) $value->value];
+
+        return [
+            'age' => self::age($poi->person),
+            'height_cm' => $poi->height_cm,
+            'height_label' => $poi->height_cm === null ? null : self::heightLabel($poi->height_cm),
+            'marital_status' => $option($poi->marital_status),
+            'origin_state' => $poi->originState === null ? null : ['ulid' => $poi->originState->ulid, 'name' => $poi->originState->name],
+            'origin_lga' => $poi->originLga === null ? null : ['ulid' => $poi->originLga->ulid, 'name' => $poi->originLga->name],
+            'hometown' => $poi->hometown,
+            'hair_colour' => $option($poi->hair_colour),
+            'eye_colour' => $option($poi->eye_colour),
+            'has_tribal_marks' => $option($poi->has_tribal_marks),
+            'tribal_marks_description' => $poi->tribal_marks_description,
+            'sensitive' => [
+                'religion' => $poi->religion === null ? null : ['value' => $poi->religion, 'label' => $religion->name ?? $poi->religion],
+                'political_affiliations' => $poi->political_affiliations,
+            ],
+        ];
+    }
+
+    /**
+     * A detail without the special categories (religion, political
+     * affiliations): for every PDF and export.
+     *
+     * @param  array<string, mixed>  $detail
+     * @return array<string, mixed>
+     */
+    public static function withoutSensitive(array $detail): array
+    {
+        unset($detail['sensitive']);
+
+        return $detail;
+    }
+
+    /** Age from the date of birth, else the approximate age (no column of its own). */
+    public static function age(?Person $person): ?int
+    {
+        if ($person === null) {
+            return null;
+        }
+
+        if (is_string($person->date_of_birth) && $person->date_of_birth !== '') {
+            return (int) CarbonImmutable::parse($person->date_of_birth)->diffInYears(CarbonImmutable::today());
+        }
+
+        return $person->approximate_age;
+    }
+
+    /** "178 cm (5 ft 10 in)". */
+    public static function heightLabel(int $cm): string
+    {
+        $inches = (int) round($cm / 2.54);
+
+        return sprintf('%d cm (%d ft %d in)', $cm, intdiv($inches, 12), $inches % 12);
+    }
+
+    /**
      * Full details (the person page's POI tab): access-logged by the caller.
      *
      * @return array<string, mixed>
@@ -49,7 +125,9 @@ final class PoiPresenter
             ...self::row($poi),
             'offence_codes' => $poi->offence_categories,
             'known_offences' => $poi->known_offences,
+            'criminal_record' => $poi->criminal_record,
             'modus_operandi' => $poi->modus_operandi,
+            ...self::personalDetails($poi),
             'latitude' => $poi->latitude,
             'longitude' => $poi->longitude,
             'last_known_location_description' => $poi->last_known_location_description,
@@ -96,6 +174,15 @@ final class PoiPresenter
             'statuses' => array_map(fn (PoiStatus $s) => ['value' => $s->value, 'label' => $s->label()], PoiStatus::cases()),
             'offenceCategories' => ThreatType::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['code', 'name'])
                 ->map(fn (ThreatType $t) => ['value' => $t->code, 'label' => $t->name])->values()->all(),
+            // Personal details (Phase 11G.4).
+            'maritalStatuses' => MaritalStatus::options(),
+            'hairColours' => HairColour::options(),
+            'eyeColours' => EyeColour::options(),
+            'tribalMarks' => TribalMarks::options(),
+            'religions' => Religion::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['code', 'name'])
+                ->map(fn (Religion $r) => ['value' => $r->code, 'label' => $r->name])->values()->all(),
+            'states' => State::query()->orderBy('name')->get(['ulid', 'name'])
+                ->map(fn (State $st) => ['value' => $st->ulid, 'label' => $st->name])->values()->all(),
         ];
     }
 

@@ -12,11 +12,11 @@ As Deputy Director General you see everything **nationally**, or in the
 ## Your daily routine
 
 1. **Dashboard:** the national or zonal picture by state, escalated incidents,
-   coverage compliance, critical sites.
+   security report compliance, critical sites.
 2. **Escalated incidents** from your states: **Acknowledge** them, and follow
    their investigation ([Reporting and processing an incident](../guides/reporting-incidents.md#escalation-to-national-level)).
 3. **Critical notifications:** critical incidents, immediate threats, critical
-   coverage ratings, overdue verifications in your states.
+   security report ratings, overdue verifications in your states.
 4. **Access oversight:** **Access requests → Oversight** lists requests and
    grants across your states; escalated requests can be decided by you
    ([Persons and cross-state requests](../guides/persons-and-cross-state-requests.md)).

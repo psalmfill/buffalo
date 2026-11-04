@@ -3,6 +3,7 @@
 use App\Models\Lga;
 use App\Models\Person;
 use App\Support\Jurisdiction\JurisdictionContext;
+use App\Support\Persons\PersonPhones;
 use App\Support\Persons\PhoneNumber;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,6 @@ use Spatie\Activitylog\Models\Activity;
 const PLAIN = [
     'date_of_birth' => '1984-03-12',
     'nin' => '12345678901',
-    'phone' => '+2348031234567',
     'address' => '14 Marina Road, Apapa',
 ];
 
@@ -49,13 +49,12 @@ test('blind indexes find exact matches only', function () {
 
     expect(Person::query()->whereBlind('nin', 'nin_bidx', '12345678901')->pluck('id')->all())->toBe([$person->id])
         ->and(Person::query()->whereBlind('nin', 'nin_bidx', '1234567890')->count())->toBe(0)
-        ->and(Person::query()->whereBlind('phone', 'phone_bidx', '+2348031234567')->pluck('id')->all())->toBe([$person->id])
         ->and(Person::query()->whereBlind('date_of_birth', 'dob_bidx', '1984-03-12')->pluck('id')->all())->toBe([$person->id]);
 
     // One row per index and person; the index values are not the plaintext.
     $indexes = DB::table('blind_indexes')->where('indexable_id', $person->id)->pluck('value', 'name')->all();
 
-    expect(array_keys($indexes))->toEqualCanonicalizing(['dob_bidx', 'nin_bidx', 'phone_bidx']);
+    expect(array_keys($indexes))->toEqualCanonicalizing(['dob_bidx', 'nin_bidx']);
 
     foreach ($indexes as $value) {
         expect($value)->not->toContain('12345678901')->not->toContain('8031234567');
@@ -68,7 +67,7 @@ test('phone numbers written differently match', function (string $written) {
     expect($person->fresh()?->phone)->toBe('+2348031234567');
 
     foreach (['08031234567', '+2348031234567', '2348031234567', '+234 803 123 4567', '0803-123-4567'] as $search) {
-        expect(Person::query()->whereBlind('phone', 'phone_bidx', (string) PhoneNumber::normalise($search))->pluck('id')->all())
+        expect(Person::query()->whereIn('persons.id', PersonPhones::personIdsWithNumber((string) PhoneNumber::normalise($search)))->pluck('id')->all())
             ->toBe([$person->id], "{$written} found by {$search}");
     }
 })->with(['08031234567', '+2348031234567', '2348031234567', '+234 (803) 123-4567', '+2340803 123 4567']);
@@ -114,10 +113,10 @@ test('the activity log records which protected fields changed, never their value
     $protected = $entries->where('event', 'protected_fields_changed')->values();
 
     expect($protected)->toHaveCount(3)
-        ->and($protected[0]->properties['fields'])->toBe(['date_of_birth', 'nin', 'phone', 'address'])
-        ->and($protected[0]->description)->toBe('Protected fields recorded: date of birth, NIN, phone number, address')
-        ->and($protected[1]->properties['fields'])->toBe(['nin', 'phone'])
-        ->and($protected[1]->description)->toBe('Protected fields changed: NIN, phone number')
+        ->and($protected[0]->properties['fields'])->toBe(['date_of_birth', 'nin', 'address'])
+        ->and($protected[0]->description)->toBe('Protected fields recorded: date of birth, NIN, address')
+        ->and($protected[1]->properties['fields'])->toBe(['nin'])
+        ->and($protected[1]->description)->toBe('Protected fields changed: NIN')
         ->and($protected[2]->properties['fields'])->toBe(['address']);
 
     // The ordinary update entry has the occupation, and nothing encrypted.

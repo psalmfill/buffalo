@@ -43,7 +43,7 @@ final class CoverageAnalytics implements AnalyticsArea
 
     public function label(): string
     {
-        return 'Coverage';
+        return 'Security reports';
     }
 
     public function allows(User $user): bool
@@ -188,7 +188,7 @@ final class CoverageAnalytics implements AnalyticsArea
             }
         }
 
-        return ChartData::make('ratings', 'Coverage ratings', 'stacked', array_column($periods, 'label'), $series, $columns, $table);
+        return ChartData::make('ratings', 'Security report ratings', 'stacked', array_column($periods, 'label'), $series, $columns, $table);
     }
 
     /**
@@ -281,6 +281,6 @@ final class CoverageAnalytics implements AnalyticsArea
             ['key' => 'vehicles', 'label' => 'Vehicles', 'numeric' => true],
             ['key' => 'deployments', 'label' => 'Deployments', 'numeric' => true],
             ['key' => 'daily_patrols', 'label' => 'Daily or continuous patrols', 'numeric' => true],
-        ], $rows, 'From the deployments in submitted coverage reports.');
+        ], $rows, 'From the deployments in submitted security reports.');
     }
 }

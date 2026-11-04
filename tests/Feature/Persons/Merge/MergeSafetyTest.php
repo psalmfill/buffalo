@@ -150,13 +150,12 @@ test('survivor_prior_values is encrypted, never logged or serialised, left out o
     $a = Person::factory()->in($this->world->lgas['A1a'])->create(['phone' => '08039998888', 'address' => 'Unique Address 77']);
     $b = Person::factory()->in($this->world->lgas['A1a'])->create(['phone' => '08031117777']);
 
-    $merge = MergeFixtures::merge($this->sd, $a, $b, new MergeChoices(fields: ['phone' => 'source']));
+    $merge = MergeFixtures::merge($this->sd, $a, $b, new MergeChoices(fields: ['address' => 'survivor']));
     $raw = (string) DB::table('person_merges')->where('id', $merge->id)->value('survivor_prior_values');
     $values = Crypt::decrypt($raw);
 
     expect($raw)->not->toContain('Unique Address')
         ->and($values['before']['address'])->toBe('Unique Address 77')
-        ->and($values['before']['phone'])->toBe('+2348039998888')
         ->and(array_key_exists('survivor_prior_values', $merge->toArray()))->toBeFalse()
         ->and(Activity::query()->get()->map(fn ($a) => json_encode($a->properties))->filter(fn ($p) => str_contains((string) $p, 'Unique Address') || str_contains((string) $p, 'survivor_prior_values') || str_contains((string) $p, '9998888'))->all())->toBe([])
         ->and(implode("\n", $logged))->not->toContain('Unique Address')

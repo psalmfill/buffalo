@@ -30,7 +30,7 @@ final class MergeManifest
     public const TABLES = [
         'arrest_person_offences', 'arrest_persons',
         'communities', 'criminal_group_members', 'incident_persons', 'media', 'organization_contacts',
-        'person_aliases', 'person_associations', 'person_merge_requests', 'person_roles', 'persons',
+        'person_aliases', 'person_associations', 'person_merge_requests', 'person_phones', 'person_roles', 'persons',
         'persons_of_interest', 'political_offices', 'record_access_grants', 'record_access_requests',
         'religious_institutions',
     ];

@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * One agency's deployment in a coverage report (Phase 4A). Carries its own
+ * One agency's deployment in a security report (Phase 4A). Carries its own
  * state_id/lga_id (copied from the report; access rule 9) and is scoped on
  * them, AND is visible only while its report is (which adds the report's
  * classification).

@@ -4,6 +4,7 @@ namespace App\Support\Persons\Merge;
 
 use App\Enums\DuplicateStrength;
 use App\Models\Person;
+use App\Models\PersonPhone;
 use App\Models\User;
 use App\Support\Search\Trigram;
 use Illuminate\Database\Eloquent\Builder;
@@ -159,7 +160,15 @@ final class PersonDuplicateFinder
             pairs AS (
                 {$blindPairs('nin_bidx', 'nin')}
                 UNION ALL
-                {$blindPairs('phone_bidx', 'phone')}
+                -- Any shared number among each person's numbers (Phase 11G.4).
+                SELECT LEAST(a.id, b.id), GREATEST(a.id, b.id), 'phone'
+                  FROM blind_indexes x
+                  JOIN person_phones px ON px.id = x.indexable_id AND px.deleted_at IS NULL
+                  JOIN scoped a ON a.id = px.person_id
+                  JOIN blind_indexes y ON y.name = x.name AND y.value = x.value AND y.indexable_type = x.indexable_type AND y.indexable_id <> x.indexable_id
+                  JOIN person_phones py ON py.id = y.indexable_id AND py.deleted_at IS NULL
+                  JOIN scoped b ON b.id = py.person_id AND b.state_id = a.state_id
+                 WHERE x.indexable_type = ? AND x.name = 'person_phone_bidx' AND a.id < b.id
                 UNION ALL
                 {$blindPairs('dob_bidx', 'dob')}
                 UNION ALL
@@ -184,8 +193,8 @@ final class PersonDuplicateFinder
             SQL;
 
         // Positional bindings: the scoped query's, the name threshold (prefix
-        // length), then the morph type once per blind index.
-        $bindings = [...$base->getBindings(), $nameThreshold, ...array_fill(0, 3, $type)];
+        // length), then the morph type once per blind index (phones: their own).
+        $bindings = [...$base->getBindings(), $nameThreshold, $type, (new PersonPhone)->getMorphClass(), $type];
 
         $rows = Trigram::withThresholds($nameThreshold, 1.0, function () use ($sql, $bindings): array {
             // Every join here is set-based. Row estimates for the CTEs are

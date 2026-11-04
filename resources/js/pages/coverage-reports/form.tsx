@@ -1,10 +1,16 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
 import PickerController from '@/actions/App/Http/Controllers/Pickers/PickerController';
 import CoverageReportController from '@/actions/App/Http/Controllers/Security/CoverageReportController';
 import RichTextEditor from '@/components/rich-text/rich-text-editor';
+import ReportAttachments from '@/components/security/report-attachments';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import InputError from '@/components/input-error';
 import NativeSelect from '@/components/native-select';
 import EntityPicker from '@/components/pickers/entity-picker';
@@ -18,6 +24,8 @@ import type {
     CoverageOptions,
     CoverageReportDetail,
     Deployment,
+    ReportAttachment,
+    ReportLimits,
     SuggestedPeriod,
 } from '@/types/coverage';
 import type { AgencyOption } from '@/types/formations';
@@ -26,6 +34,8 @@ import type { NamedRef, Option } from '@/types/local-government';
 type Props = {
     report: CoverageReportDetail | null;
     deployments: Deployment[];
+    attachments: ReportAttachment[];
+    limits: ReportLimits;
     lga: NamedRef | null;
     lgas: Option[];
     communities: Option[];
@@ -34,7 +44,7 @@ type Props = {
     lgaState: string | null;
     periods: Record<string, SuggestedPeriod[]>;
     options: CoverageOptions;
-    can: { submit: boolean };
+    can: { submit: boolean; addAttachment: boolean };
 };
 
 type Row = {
@@ -106,13 +116,17 @@ function periodContaining(type: string, day: string): [string, string] | null {
 }
 
 /**
- * Create or edit a coverage report: header, deployments and the narrative.
- * The uncovered communities panel updates as communities are ticked. The
- * LGA and period are chosen once.
+ * Create or edit a security report (Phase 11G): the written report first,
+ * then photos and videos (once the draft is saved), and everything else in
+ * "More details (optional)": title, report date, period, rating, gaps,
+ * recommendations, deployments with the live uncovered-communities panel,
+ * and classification. The LGA is chosen once.
  */
 export default function CoverageReportForm({
     report,
     deployments,
+    attachments,
+    limits,
     lga,
     lgas,
     communities,
@@ -123,12 +137,20 @@ export default function CoverageReportForm({
     can,
 }: Props) {
     const editing = report !== null;
-    const monthly = periods.monthly ?? [];
     const form = useForm({
         lga: lga?.ulid ?? '',
-        period_type: report?.period_type.value ?? 'monthly',
-        period_start: report?.period_start ?? monthly[0]?.start ?? '',
-        period_end: report?.period_end ?? monthly[0]?.end ?? '',
+        title: report?.title ?? '',
+        report_date: report?.report_date ?? iso(new Date()),
+        period_type: report?.period_type.value ?? 'ad_hoc',
+        // Ad hoc without dates: the report date.
+        period_start:
+            report && report.period_type.value !== 'ad_hoc'
+                ? report.period_start
+                : '',
+        period_end:
+            report && report.period_type.value !== 'ad_hoc'
+                ? report.period_end
+                : '',
         overall_rating: report?.overall_rating?.value ?? '',
         summary: report?.summary ?? '',
         gaps_identified: report?.gaps_identified ?? '',
@@ -152,6 +174,13 @@ export default function CoverageReportForm({
         })),
     );
     const [confirmSubmit, setConfirmSubmit] = useState(false);
+    // Opened when a returned or existing report already uses the details.
+    const [detailsOpen, setDetailsOpen] = useState(
+        deployments.length > 0 ||
+            !!report?.overall_rating ||
+            !!report?.gaps_identified ||
+            !!report?.recommendations,
+    );
 
     const covered = useMemo(
         () => new Set(rows.flatMap((row) => row.communities)),
@@ -197,6 +226,10 @@ export default function CoverageReportForm({
         form.transform((data) => {
             const values: Record<string, unknown> = {
                 ...data,
+                title: data.title === '' ? null : data.title,
+                period_start:
+                    data.period_start === '' ? null : data.period_start,
+                period_end: data.period_end === '' ? null : data.period_end,
                 overall_rating:
                     data.overall_rating === '' ? null : data.overall_rating,
                 submit,
@@ -220,9 +253,6 @@ export default function CoverageReportForm({
 
             if (editing) {
                 delete values.lga;
-                delete values.period_type;
-                delete values.period_start;
-                delete values.period_end;
             }
 
             return values;
@@ -253,21 +283,19 @@ export default function CoverageReportForm({
             <Head
                 title={
                     editing
-                        ? `Coverage report: ${report.lga.name}, ${report.period}`
-                        : 'New coverage report'
+                        ? `Security report: ${report.display_title}`
+                        : 'New security report'
                 }
             />
             <form onSubmit={submit} className="space-y-6 p-4">
                 <div className="space-y-1">
                     <h1 className="text-xl font-semibold">
-                        {editing
-                            ? `Coverage report: ${report.lga.name} LGA, ${report.period}`
-                            : 'New coverage report'}
+                        {editing ? report.display_title : 'New security report'}
                     </h1>
                     {editing && (
                         <p className="text-sm text-muted-foreground">
-                            {report.status.label} · {report.period_type.label} ·{' '}
-                            {report.state.name} State
+                            {report.status.label} · {report.lga.name} LGA,{' '}
+                            {report.state.name} State · {report.period}
                         </p>
                     )}
                 </div>
@@ -287,7 +315,7 @@ export default function CoverageReportForm({
                     )}
 
                 {!editing && (
-                    <section className="grid gap-4 rounded-lg border p-4 md:grid-cols-4">
+                    <section className="grid gap-4 rounded-lg border p-4 md:grid-cols-3">
                         <div className="grid gap-2">
                             <Label htmlFor="lga">LGA</Label>
                             <NativeSelect
@@ -304,68 +332,165 @@ export default function CoverageReportForm({
                             </NativeSelect>
                             <InputError message={errors.lga} />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="period_type">Period type</Label>
-                            <NativeSelect
-                                id="period_type"
-                                value={form.data.period_type}
-                                onChange={(e) => {
-                                    const type = e.target.value;
-                                    const first = periods[type]?.[0];
-                                    form.setData((data) => ({
-                                        ...data,
-                                        period_type: type,
-                                        period_start: first?.start ?? '',
-                                        period_end: first?.end ?? '',
-                                    }));
-                                }}
-                            >
-                                {options.periodTypes.map((item) => (
-                                    <option key={item.value} value={item.value}>
-                                        {item.label}
-                                    </option>
-                                ))}
-                            </NativeSelect>
-                        </div>
-                        {form.data.period_type === 'ad_hoc' ? (
-                            <>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="period_start">From</Label>
-                                    <Input
-                                        id="period_start"
-                                        type="date"
-                                        value={form.data.period_start}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'period_start',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError message={errors.period_start} />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="period_end">To</Label>
-                                    <Input
-                                        id="period_end"
-                                        type="date"
-                                        value={form.data.period_end}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'period_end',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError message={errors.period_end} />
-                                </div>
-                            </>
-                        ) : (
+                    </section>
+                )}
+
+                <section className="grid gap-2" data-test="report-text">
+                    <Label htmlFor="summary" className="text-base">
+                        Report
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                        Write the report in full: what happened, the security
+                        situation, agencies on the ground, gaps and needs. This
+                        is the only field needed to submit.
+                    </p>
+                    <RichTextEditor
+                        id="summary"
+                        value={form.data.summary}
+                        onChange={(html) => form.setData('summary', html)}
+                        limit={limits.maxCharacters}
+                        invalid={!!errors.summary}
+                        minHeight="min-h-96"
+                    />
+                    <InputError message={errors.summary} />
+                </section>
+
+                {editing ? (
+                    <ReportAttachments
+                        reportUlid={report.ulid}
+                        reportLevel={report.classification.value}
+                        attachments={attachments}
+                        canUpload={can.addAttachment}
+                        limits={limits}
+                    />
+                ) : (
+                    <p className="rounded-lg border p-4 text-sm text-muted-foreground">
+                        Photos and videos: save the draft first, then attach
+                        them here.
+                    </p>
+                )}
+
+                <Collapsible
+                    open={detailsOpen}
+                    onOpenChange={setDetailsOpen}
+                    className="rounded-lg border"
+                >
+                    <CollapsibleTrigger asChild>
+                        <button
+                            type="button"
+                            className="flex w-full items-center justify-between p-4 text-left text-sm font-semibold"
+                            data-test="more-details"
+                        >
+                            More details (optional)
+                            <ChevronDown
+                                className={`size-4 transition-transform ${detailsOpen ? 'rotate-180' : ''}`}
+                            />
+                        </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-6 border-t p-4">
+                        <section className="grid gap-4 md:grid-cols-4">
                             <div className="grid gap-2 md:col-span-2">
-                                <Label htmlFor="period_day">Period</Label>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {(periods[form.data.period_type] ?? []).map(
-                                        (p) => (
+                                <Label htmlFor="title">Title</Label>
+                                <Input
+                                    id="title"
+                                    maxLength={200}
+                                    value={form.data.title}
+                                    placeholder="Security report — LGA — date"
+                                    onChange={(e) =>
+                                        form.setData('title', e.target.value)
+                                    }
+                                />
+                                <InputError message={errors.title} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="report_date">Report date</Label>
+                                <Input
+                                    id="report_date"
+                                    type="date"
+                                    value={form.data.report_date}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'report_date',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError message={errors.report_date} />
+                            </div>
+                        </section>
+                        <section className="grid gap-4 md:grid-cols-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="period_type">Period type</Label>
+                                <NativeSelect
+                                    id="period_type"
+                                    value={form.data.period_type}
+                                    onChange={(e) => {
+                                        const type = e.target.value;
+                                        const first = periods[type]?.[0];
+                                        form.setData((data) => ({
+                                            ...data,
+                                            period_type: type,
+                                            period_start: first?.start ?? '',
+                                            period_end: first?.end ?? '',
+                                        }));
+                                    }}
+                                >
+                                    {options.periodTypes.map((item) => (
+                                        <option
+                                            key={item.value}
+                                            value={item.value}
+                                        >
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </NativeSelect>
+                            </div>
+                            {form.data.period_type === 'ad_hoc' ? (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="period_start">
+                                            From
+                                        </Label>
+                                        <Input
+                                            id="period_start"
+                                            type="date"
+                                            value={form.data.period_start}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'period_start',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={errors.period_start}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="period_end">To</Label>
+                                        <Input
+                                            id="period_end"
+                                            type="date"
+                                            value={form.data.period_end}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'period_end',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={errors.period_end}
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="grid gap-2 md:col-span-2">
+                                    <Label htmlFor="period_day">Period</Label>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {(
+                                            periods[form.data.period_type] ?? []
+                                        ).map((p) => (
                                             <Button
                                                 key={p.start}
                                                 type="button"
@@ -386,437 +511,485 @@ export default function CoverageReportForm({
                                             >
                                                 {p.label}
                                             </Button>
-                                        ),
-                                    )}
-                                    <Input
-                                        id="period_day"
-                                        type="date"
-                                        aria-label="Any day in another period"
-                                        className="w-auto"
-                                        onChange={(e) =>
-                                            choosePeriodDay(e.target.value)
-                                        }
-                                    />
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {form.data.period_start
-                                        ? `${form.data.period_start} to ${form.data.period_end}`
-                                        : 'Choose a period.'}
-                                </p>
-                                <InputError message={errors.period_start} />
-                            </div>
-                        )}
-                    </section>
-                )}
-
-                <div className="grid gap-6 xl:grid-cols-[3fr_1fr]">
-                    <section className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-sm font-semibold">
-                                Deployments
-                            </h2>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                disabled={communities.length === 0 && !lga}
-                                onClick={() =>
-                                    setRows((current) => [
-                                        ...current,
-                                        emptyRow(),
-                                    ])
-                                }
-                            >
-                                <Plus /> Add deployment
-                            </Button>
-                        </div>
-                        <InputError message={errors.deployments} />
-                        {rows.length === 0 && (
-                            <p className="rounded-lg border p-4 text-sm text-muted-foreground">
-                                No deployments yet. Add one row per agency
-                                deployment in the LGA.
-                            </p>
-                        )}
-                        {rows.map((row, index) => (
-                            <fieldset
-                                key={row.key}
-                                className="space-y-3 rounded-lg border p-4"
-                                aria-label={`Deployment ${index + 1}`}
-                            >
-                                <div className="grid gap-3 md:grid-cols-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor={`agency-${row.key}`}>
-                                            Agency
-                                        </Label>
-                                        <NativeSelect
-                                            id={`agency-${row.key}`}
-                                            value={row.agency}
+                                        ))}
+                                        <Input
+                                            id="period_day"
+                                            type="date"
+                                            aria-label="Any day in another period"
+                                            className="w-auto"
                                             onChange={(e) =>
-                                                updateRow(row.key, {
-                                                    agency: e.target.value,
-                                                    formation: '',
-                                                    formation_label: '',
-                                                    keep_formation: false,
-                                                })
+                                                choosePeriodDay(e.target.value)
                                             }
-                                        >
-                                            <option value="">
-                                                Choose an agency
-                                            </option>
-                                            {agencies.map((a) => (
-                                                <option
-                                                    key={a.value}
-                                                    value={a.value}
-                                                >
-                                                    {a.label}
-                                                </option>
-                                            ))}
-                                        </NativeSelect>
-                                        <InputError
-                                            message={rowError(index, 'agency')}
                                         />
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor={`formation-${row.key}`}>
-                                            Formation (optional)
-                                        </Label>
-                                        {row.keep_formation ? (
-                                            <p className="text-sm text-muted-foreground">
-                                                A formation you cannot view.{' '}
-                                                <button
-                                                    type="button"
-                                                    className="underline"
-                                                    onClick={() =>
+                                    <p className="text-xs text-muted-foreground">
+                                        {form.data.period_start
+                                            ? `${form.data.period_start} to ${form.data.period_end}`
+                                            : 'Choose a period.'}
+                                    </p>
+                                    <InputError message={errors.period_start} />
+                                </div>
+                            )}
+                        </section>
+                        <div className="grid gap-6 xl:grid-cols-[3fr_1fr]">
+                            <section className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-sm font-semibold">
+                                        Deployments
+                                    </h2>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={
+                                            communities.length === 0 && !lga
+                                        }
+                                        onClick={() =>
+                                            setRows((current) => [
+                                                ...current,
+                                                emptyRow(),
+                                            ])
+                                        }
+                                    >
+                                        <Plus /> Add deployment
+                                    </Button>
+                                </div>
+                                <InputError message={errors.deployments} />
+                                {rows.length === 0 && (
+                                    <p className="rounded-lg border p-4 text-sm text-muted-foreground">
+                                        No deployments yet. Add one row per
+                                        agency deployment in the LGA.
+                                    </p>
+                                )}
+                                {rows.map((row, index) => (
+                                    <fieldset
+                                        key={row.key}
+                                        className="space-y-3 rounded-lg border p-4"
+                                        aria-label={`Deployment ${index + 1}`}
+                                    >
+                                        <div className="grid gap-3 md:grid-cols-4">
+                                            <div className="grid gap-2">
+                                                <Label
+                                                    htmlFor={`agency-${row.key}`}
+                                                >
+                                                    Agency
+                                                </Label>
+                                                <NativeSelect
+                                                    id={`agency-${row.key}`}
+                                                    value={row.agency}
+                                                    onChange={(e) =>
                                                         updateRow(row.key, {
+                                                            agency: e.target
+                                                                .value,
+                                                            formation: '',
+                                                            formation_label: '',
                                                             keep_formation: false,
                                                         })
                                                     }
                                                 >
-                                                    Replace
-                                                </button>
-                                            </p>
-                                        ) : (
-                                            <EntityPicker
-                                                id={`formation-${row.key}`}
-                                                endpoint={
-                                                    PickerController.formations()
-                                                        .url
-                                                }
-                                                params={{
-                                                    agency: row.agency,
-                                                    state:
-                                                        lgaState ?? undefined,
-                                                }}
-                                                disabled={row.agency === ''}
-                                                placeholder={
-                                                    row.agency === ''
-                                                        ? 'Choose the agency first'
-                                                        : 'Search formations'
-                                                }
-                                                value={
-                                                    row.formation === ''
-                                                        ? null
-                                                        : {
-                                                              value: row.formation,
-                                                              label: row.formation_label,
-                                                          }
-                                                }
-                                                onChange={(picked) =>
-                                                    updateRow(row.key, {
-                                                        formation:
-                                                            picked?.value ?? '',
-                                                        formation_label:
-                                                            picked?.label ?? '',
-                                                    })
-                                                }
-                                            />
-                                        )}
-                                        <InputError
-                                            message={rowError(
-                                                index,
-                                                'formation',
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="grid gap-2">
-                                            <Label
-                                                htmlFor={`personnel-${row.key}`}
-                                            >
-                                                Personnel
-                                            </Label>
-                                            <Input
-                                                id={`personnel-${row.key}`}
-                                                type="number"
-                                                min={0}
-                                                value={row.personnel_count}
-                                                onChange={(e) =>
-                                                    updateRow(row.key, {
-                                                        personnel_count:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label
-                                                htmlFor={`vehicles-${row.key}`}
-                                            >
-                                                Vehicles
-                                            </Label>
-                                            <Input
-                                                id={`vehicles-${row.key}`}
-                                                type="number"
-                                                min={0}
-                                                value={row.vehicles_count}
-                                                onChange={(e) =>
-                                                    updateRow(row.key, {
-                                                        vehicles_count:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                            />
-                                        </div>
-                                        <InputError
-                                            className="col-span-2"
-                                            message={
-                                                rowError(
-                                                    index,
-                                                    'personnel_count',
-                                                ) ??
-                                                rowError(
-                                                    index,
-                                                    'vehicles_count',
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor={`patrol-${row.key}`}>
-                                            Patrol frequency
-                                        </Label>
-                                        <NativeSelect
-                                            id={`patrol-${row.key}`}
-                                            value={row.patrol_frequency}
-                                            onChange={(e) =>
-                                                updateRow(row.key, {
-                                                    patrol_frequency:
-                                                        e.target.value,
-                                                })
-                                            }
-                                        >
-                                            {options.patrolFrequencies.map(
-                                                (p) => (
-                                                    <option
-                                                        key={p.value}
-                                                        value={p.value}
-                                                    >
-                                                        {p.label}
+                                                    <option value="">
+                                                        Choose an agency
                                                     </option>
-                                                ),
-                                            )}
-                                        </NativeSelect>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <span className="text-sm font-medium">
-                                        Communities covered (
-                                        {row.communities.length})
-                                    </span>
-                                    {communities.length === 0 ? (
-                                        <p className="text-xs text-muted-foreground">
-                                            {lga
-                                                ? 'No communities recorded for this LGA.'
-                                                : 'Choose an LGA first.'}
-                                        </p>
-                                    ) : (
-                                        <div className="grid max-h-40 gap-1 overflow-y-auto rounded border p-2 sm:grid-cols-2 lg:grid-cols-3">
-                                            {communities.map((c) => {
-                                                const id = `c-${row.key}-${c.value}`;
-                                                const checked =
-                                                    row.communities.includes(
-                                                        c.value,
-                                                    );
-
-                                                return (
-                                                    <label
-                                                        key={c.value}
-                                                        htmlFor={id}
-                                                        className="flex items-center gap-2 text-sm"
-                                                    >
-                                                        <Checkbox
-                                                            id={id}
-                                                            checked={checked}
-                                                            onCheckedChange={(
-                                                                value,
-                                                            ) =>
+                                                    {agencies.map((a) => (
+                                                        <option
+                                                            key={a.value}
+                                                            value={a.value}
+                                                        >
+                                                            {a.label}
+                                                        </option>
+                                                    ))}
+                                                </NativeSelect>
+                                                <InputError
+                                                    message={rowError(
+                                                        index,
+                                                        'agency',
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label
+                                                    htmlFor={`formation-${row.key}`}
+                                                >
+                                                    Formation (optional)
+                                                </Label>
+                                                {row.keep_formation ? (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        A formation you cannot
+                                                        view.{' '}
+                                                        <button
+                                                            type="button"
+                                                            className="underline"
+                                                            onClick={() =>
                                                                 updateRow(
                                                                     row.key,
                                                                     {
-                                                                        communities:
-                                                                            value ===
-                                                                            true
-                                                                                ? [
-                                                                                      ...row.communities,
-                                                                                      c.value,
-                                                                                  ]
-                                                                                : row.communities.filter(
-                                                                                      (
-                                                                                          v,
-                                                                                      ) =>
-                                                                                          v !==
-                                                                                          c.value,
-                                                                                  ),
+                                                                        keep_formation: false,
                                                                     },
                                                                 )
                                                             }
-                                                        />
-                                                        {c.label}
-                                                    </label>
-                                                );
-                                            })}
+                                                        >
+                                                            Replace
+                                                        </button>
+                                                    </p>
+                                                ) : (
+                                                    <EntityPicker
+                                                        id={`formation-${row.key}`}
+                                                        endpoint={
+                                                            PickerController.formations()
+                                                                .url
+                                                        }
+                                                        params={{
+                                                            agency: row.agency,
+                                                            state:
+                                                                lgaState ??
+                                                                undefined,
+                                                        }}
+                                                        disabled={
+                                                            row.agency === ''
+                                                        }
+                                                        placeholder={
+                                                            row.agency === ''
+                                                                ? 'Choose the agency first'
+                                                                : 'Search formations'
+                                                        }
+                                                        value={
+                                                            row.formation === ''
+                                                                ? null
+                                                                : {
+                                                                      value: row.formation,
+                                                                      label: row.formation_label,
+                                                                  }
+                                                        }
+                                                        onChange={(picked) =>
+                                                            updateRow(row.key, {
+                                                                formation:
+                                                                    picked?.value ??
+                                                                    '',
+                                                                formation_label:
+                                                                    picked?.label ??
+                                                                    '',
+                                                            })
+                                                        }
+                                                    />
+                                                )}
+                                                <InputError
+                                                    message={rowError(
+                                                        index,
+                                                        'formation',
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="grid gap-2">
+                                                    <Label
+                                                        htmlFor={`personnel-${row.key}`}
+                                                    >
+                                                        Personnel
+                                                    </Label>
+                                                    <Input
+                                                        id={`personnel-${row.key}`}
+                                                        type="number"
+                                                        min={0}
+                                                        value={
+                                                            row.personnel_count
+                                                        }
+                                                        onChange={(e) =>
+                                                            updateRow(row.key, {
+                                                                personnel_count:
+                                                                    e.target
+                                                                        .value,
+                                                            })
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label
+                                                        htmlFor={`vehicles-${row.key}`}
+                                                    >
+                                                        Vehicles
+                                                    </Label>
+                                                    <Input
+                                                        id={`vehicles-${row.key}`}
+                                                        type="number"
+                                                        min={0}
+                                                        value={
+                                                            row.vehicles_count
+                                                        }
+                                                        onChange={(e) =>
+                                                            updateRow(row.key, {
+                                                                vehicles_count:
+                                                                    e.target
+                                                                        .value,
+                                                            })
+                                                        }
+                                                    />
+                                                </div>
+                                                <InputError
+                                                    className="col-span-2"
+                                                    message={
+                                                        rowError(
+                                                            index,
+                                                            'personnel_count',
+                                                        ) ??
+                                                        rowError(
+                                                            index,
+                                                            'vehicles_count',
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label
+                                                    htmlFor={`patrol-${row.key}`}
+                                                >
+                                                    Patrol frequency
+                                                </Label>
+                                                <NativeSelect
+                                                    id={`patrol-${row.key}`}
+                                                    value={row.patrol_frequency}
+                                                    onChange={(e) =>
+                                                        updateRow(row.key, {
+                                                            patrol_frequency:
+                                                                e.target.value,
+                                                        })
+                                                    }
+                                                >
+                                                    {options.patrolFrequencies.map(
+                                                        (p) => (
+                                                            <option
+                                                                key={p.value}
+                                                                value={p.value}
+                                                            >
+                                                                {p.label}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </NativeSelect>
+                                            </div>
                                         </div>
-                                    )}
-                                    <InputError
-                                        message={rowError(index, 'communities')}
-                                    />
-                                </div>
 
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor={`areas-${row.key}`}>
-                                            Areas covered
-                                        </Label>
-                                        <Input
-                                            id={`areas-${row.key}`}
-                                            value={row.areas_covered}
-                                            onChange={(e) =>
-                                                updateRow(row.key, {
-                                                    areas_covered:
-                                                        e.target.value,
-                                                })
+                                        <div className="space-y-2">
+                                            <span className="text-sm font-medium">
+                                                Communities covered (
+                                                {row.communities.length})
+                                            </span>
+                                            {communities.length === 0 ? (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {lga
+                                                        ? 'No communities recorded for this LGA.'
+                                                        : 'Choose an LGA first.'}
+                                                </p>
+                                            ) : (
+                                                <div className="grid max-h-40 gap-1 overflow-y-auto rounded border p-2 sm:grid-cols-2 lg:grid-cols-3">
+                                                    {communities.map((c) => {
+                                                        const id = `c-${row.key}-${c.value}`;
+                                                        const checked =
+                                                            row.communities.includes(
+                                                                c.value,
+                                                            );
+
+                                                        return (
+                                                            <label
+                                                                key={c.value}
+                                                                htmlFor={id}
+                                                                className="flex items-center gap-2 text-sm"
+                                                            >
+                                                                <Checkbox
+                                                                    id={id}
+                                                                    checked={
+                                                                        checked
+                                                                    }
+                                                                    onCheckedChange={(
+                                                                        value,
+                                                                    ) =>
+                                                                        updateRow(
+                                                                            row.key,
+                                                                            {
+                                                                                communities:
+                                                                                    value ===
+                                                                                    true
+                                                                                        ? [
+                                                                                              ...row.communities,
+                                                                                              c.value,
+                                                                                          ]
+                                                                                        : row.communities.filter(
+                                                                                              (
+                                                                                                  v,
+                                                                                              ) =>
+                                                                                                  v !==
+                                                                                                  c.value,
+                                                                                          ),
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                />
+                                                                {c.label}
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                            <InputError
+                                                message={rowError(
+                                                    index,
+                                                    'communities',
+                                                )}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                            <div className="grid gap-2">
+                                                <Label
+                                                    htmlFor={`areas-${row.key}`}
+                                                >
+                                                    Areas covered
+                                                </Label>
+                                                <Input
+                                                    id={`areas-${row.key}`}
+                                                    value={row.areas_covered}
+                                                    onChange={(e) =>
+                                                        updateRow(row.key, {
+                                                            areas_covered:
+                                                                e.target.value,
+                                                        })
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label
+                                                    htmlFor={`remarks-${row.key}`}
+                                                >
+                                                    Remarks
+                                                </Label>
+                                                <Input
+                                                    id={`remarks-${row.key}`}
+                                                    value={row.remarks}
+                                                    onChange={(e) =>
+                                                        updateRow(row.key, {
+                                                            remarks:
+                                                                e.target.value,
+                                                        })
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                setRows((current) =>
+                                                    current.filter(
+                                                        (r) =>
+                                                            r.key !== row.key,
+                                                    ),
+                                                )
                                             }
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor={`remarks-${row.key}`}>
-                                            Remarks
-                                        </Label>
-                                        <Input
-                                            id={`remarks-${row.key}`}
-                                            value={row.remarks}
-                                            onChange={(e) =>
-                                                updateRow(row.key, {
-                                                    remarks: e.target.value,
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() =>
-                                        setRows((current) =>
-                                            current.filter(
-                                                (r) => r.key !== row.key,
-                                            ),
+                                        >
+                                            <Trash2 /> Remove deployment
+                                        </Button>
+                                    </fieldset>
+                                ))}
+                            </section>
+
+                            <aside
+                                className="h-fit space-y-2 rounded-lg border p-4 xl:sticky xl:top-4"
+                                aria-live="polite"
+                                data-test="uncovered-panel"
+                            >
+                                <h2 className="text-sm font-semibold">
+                                    Uncovered communities: {uncovered.length} of{' '}
+                                    {communities.length}
+                                </h2>
+                                {communities.length > 0 &&
+                                uncovered.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        Every community is covered by a
+                                        deployment.
+                                    </p>
+                                ) : (
+                                    <ul className="max-h-96 space-y-1 overflow-y-auto text-sm">
+                                        {uncovered.map((c) => (
+                                            <li key={c.value}>{c.label}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </aside>
+                        </div>
+
+                        <section className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="overall_rating">
+                                    Overall rating
+                                </Label>
+                                <NativeSelect
+                                    id="overall_rating"
+                                    value={form.data.overall_rating}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'overall_rating',
+                                            e.target.value,
                                         )
                                     }
                                 >
-                                    <Trash2 /> Remove deployment
-                                </Button>
-                            </fieldset>
-                        ))}
-                    </section>
-
-                    <aside
-                        className="h-fit space-y-2 rounded-lg border p-4 xl:sticky xl:top-4"
-                        aria-live="polite"
-                        data-test="uncovered-panel"
-                    >
-                        <h2 className="text-sm font-semibold">
-                            Uncovered communities: {uncovered.length} of{' '}
-                            {communities.length}
-                        </h2>
-                        {communities.length > 0 && uncovered.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                Every community is covered by a deployment.
-                            </p>
-                        ) : (
-                            <ul className="max-h-96 space-y-1 overflow-y-auto text-sm">
-                                {uncovered.map((c) => (
-                                    <li key={c.value}>{c.label}</li>
-                                ))}
-                            </ul>
-                        )}
-                    </aside>
-                </div>
-
-                <section className="grid gap-4 rounded-lg border p-4 md:grid-cols-2">
-                    <div className="grid gap-2">
-                        <Label htmlFor="overall_rating">Overall rating</Label>
-                        <NativeSelect
-                            id="overall_rating"
-                            value={form.data.overall_rating}
-                            onChange={(e) =>
-                                form.setData('overall_rating', e.target.value)
-                            }
-                        >
-                            <option value="">Not rated yet</option>
-                            {options.ratings.map((r) => (
-                                <option key={r.value} value={r.value}>
-                                    {r.label}
-                                </option>
+                                    <option value="">Not rated yet</option>
+                                    {options.ratings.map((r) => (
+                                        <option key={r.value} value={r.value}>
+                                            {r.label}
+                                        </option>
+                                    ))}
+                                </NativeSelect>
+                                <InputError message={errors.overall_rating} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="classification">
+                                    Classification
+                                </Label>
+                                <NativeSelect
+                                    id="classification"
+                                    value={form.data.classification}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'classification',
+                                            e.target
+                                                .value as ClassificationLevel,
+                                        )
+                                    }
+                                >
+                                    {options.classifications.map((c) => (
+                                        <option key={c.value} value={c.value}>
+                                            {c.label}
+                                        </option>
+                                    ))}
+                                </NativeSelect>
+                                <InputError message={errors.classification} />
+                            </div>
+                            {(
+                                [
+                                    ['gaps_identified', 'Gaps identified'],
+                                    ['recommendations', 'Recommendations'],
+                                ] as const
+                            ).map(([field, label]) => (
+                                <div
+                                    key={field}
+                                    className="grid gap-2 md:col-span-2"
+                                >
+                                    <Label htmlFor={field}>{label}</Label>
+                                    <RichTextEditor
+                                        id={field}
+                                        value={form.data[field]}
+                                        onChange={(html) =>
+                                            form.setData(field, html)
+                                        }
+                                        limit={20000}
+                                        invalid={!!errors[field]}
+                                    />
+                                    <InputError message={errors[field]} />
+                                </div>
                             ))}
-                        </NativeSelect>
-                        <InputError message={errors.overall_rating} />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="classification">Classification</Label>
-                        <NativeSelect
-                            id="classification"
-                            value={form.data.classification}
-                            onChange={(e) =>
-                                form.setData(
-                                    'classification',
-                                    e.target.value as ClassificationLevel,
-                                )
-                            }
-                        >
-                            {options.classifications.map((c) => (
-                                <option key={c.value} value={c.value}>
-                                    {c.label}
-                                </option>
-                            ))}
-                        </NativeSelect>
-                        <InputError message={errors.classification} />
-                    </div>
-                    {(
-                        [
-                            ['summary', 'Summary'],
-                            [
-                                'gaps_identified',
-                                'Gaps identified (required unless coverage is adequate)',
-                            ],
-                            ['recommendations', 'Recommendations'],
-                        ] as const
-                    ).map(([field, label]) => (
-                        <div key={field} className="grid gap-2 md:col-span-2">
-                            <Label htmlFor={field}>{label}</Label>
-                            <RichTextEditor
-                                id={field}
-                                value={form.data[field]}
-                                onChange={(html) => form.setData(field, html)}
-                                limit={20000}
-                                invalid={!!errors[field]}
-                            />
-                            <InputError message={errors[field]} />
-                        </div>
-                    ))}
-                </section>
+                        </section>
+                    </CollapsibleContent>
+                </Collapsible>
 
                 <div className="flex flex-wrap items-center gap-2">
                     <Button
@@ -877,6 +1050,6 @@ export default function CoverageReportForm({
 
 CoverageReportForm.layout = {
     breadcrumbs: [
-        { title: 'Coverage reports', href: CoverageReportController.index() },
+        { title: 'Security reports', href: CoverageReportController.index() },
     ],
 };

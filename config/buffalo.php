@@ -66,6 +66,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Security reports (Phase 11G; "coverage reports" in code)
+    |--------------------------------------------------------------------------
+    | The written report's plain-text limit (characters), and how many photos
+    | and videos one report may carry. File size limits are the evidence
+    | limits (images 25 MB, videos 100 MB).
+    */
+    'security_reports' => [
+        'max_characters' => (int) env('BUFFALO_SECURITY_REPORT_MAX_CHARACTERS', 50000),
+        'max_attachments' => (int) env('BUFFALO_SECURITY_REPORT_MAX_ATTACHMENTS', 30),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Incident workflow (Phase 5C)
     |--------------------------------------------------------------------------
     | Minutes after submission within which an incident should be verified,

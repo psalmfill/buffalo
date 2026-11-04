@@ -18,6 +18,7 @@ use App\Support\Audit\AuditLog;
 use App\Support\Classification\ClassificationGate;
 use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Notifications\NotifyRole;
+use App\Support\Persons\PersonPhones;
 use App\Support\Persons\PersonSearch;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
@@ -147,8 +148,9 @@ final class PersonMatchService
                     $q->orWhereBlind('nin', 'nin_bidx', $criteria->nin);
                 }
 
+                // Any of a person's numbers (Phase 11G.4).
                 if ($criteria->phone !== null) {
-                    $q->orWhereBlind('phone', 'phone_bidx', $criteria->phone);
+                    $q->orWhereIn('persons.id', PersonPhones::personIdsWithNumber($criteria->phone));
                 }
             })->pluck('id');
 

@@ -5,6 +5,7 @@ namespace App\Actions\Evidence;
 use App\Enums\EvidenceScanStatus;
 use App\Enums\EvidenceType;
 use App\Enums\UploadKind;
+use App\Models\CoverageReportAttachment;
 use App\Models\Incident;
 use App\Models\IncidentEvidence;
 use App\Models\User;
@@ -18,7 +19,8 @@ use Spatie\MediaLibrary\Conversions\FileManipulator;
 
 /**
  * Scans a quarantined evidence file (Phase 8B.4): large uploads, and uploads
- * accepted while the scanner was unavailable.
+ * accepted while the scanner was unavailable. Security report attachments
+ * (Phase 11G) go through the same scan.
  *
  * - Clean: the item leaves quarantine; EXIF is read now (never from an
  *   unscanned file) and image previews are generated.
@@ -38,7 +40,7 @@ final class ScanQuarantinedEvidence
         private readonly FileManipulator $conversions,
     ) {}
 
-    public function __invoke(IncidentEvidence $evidence, User $uploader): ?EvidenceScanStatus
+    public function __invoke(IncidentEvidence|CoverageReportAttachment $evidence, User $uploader): ?EvidenceScanStatus
     {
         if ($evidence->scan_status !== EvidenceScanStatus::Quarantined) {
             return $evidence->scan_status;
@@ -64,14 +66,14 @@ final class ScanQuarantinedEvidence
             // would leave the infected file on the evidence disk.
             $media->forceDelete();
             $evidence->forceFill(['scan_status' => EvidenceScanStatus::Infected, 'scanned_at' => now()])->saveQuietly();
-            $this->guard->report(UploadKind::Evidence, $evidence->ulid, (string) $result->signature, $uploader, $evidence);
+            $this->guard->report($evidence instanceof IncidentEvidence ? UploadKind::Evidence : UploadKind::ReportAttachment, $evidence->ulid, (string) $result->signature, $uploader, $evidence);
 
             return EvidenceScanStatus::Infected;
         }
 
         $values = ['scan_status' => EvidenceScanStatus::Clean, 'scanned_at' => now()];
 
-        if ($evidence->evidence_type === EvidenceType::Image && $evidence->exif_summary === null) {
+        if (self::type($evidence) === EvidenceType::Image && $evidence->exif_summary === null) {
             $exif = $this->exif->read($path);
             $values += [
                 'exif_summary' => $exif['summary'],
@@ -81,19 +83,26 @@ final class ScanQuarantinedEvidence
         }
 
         $evidence->forceFill($values)->saveQuietly();
-        $media->forgetCustomProperty(IncidentEvidence::AWAITING_SCAN);
+        $media->forgetCustomProperty($evidence::AWAITING_SCAN);
         $media->save();
         $this->conversions->createDerivedFiles($media);
 
         return EvidenceScanStatus::Clean;
     }
 
-    public static function quarantinePath(IncidentEvidence $evidence): string
+    public static function quarantinePath(IncidentEvidence|CoverageReportAttachment $evidence): string
     {
-        return "evidence/{$evidence->ulid}/original.quarantined";
+        $folder = $evidence instanceof IncidentEvidence ? 'evidence' : 'report-attachments';
+
+        return "{$folder}/{$evidence->ulid}/original.quarantined";
     }
 
-    private function quarantine(IncidentEvidence $evidence, string $path): void
+    public static function type(IncidentEvidence|CoverageReportAttachment $evidence): EvidenceType
+    {
+        return $evidence instanceof IncidentEvidence ? $evidence->evidence_type : $evidence->media_type;
+    }
+
+    private function quarantine(IncidentEvidence|CoverageReportAttachment $evidence, string $path): void
     {
         $stream = fopen($path, 'rb');
 

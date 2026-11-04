@@ -5,6 +5,7 @@ namespace Tests\Support\Security;
 use App\Actions\Evidence\StoreEvidence;
 use App\Actions\Organizations\SitePhotos\AddSitePhoto;
 use App\Actions\Persons\AddPersonPhoto;
+use App\Actions\Security\Attachments\StoreReportAttachment;
 use App\Enums\Classification;
 use App\Enums\PoliticalOfficeType;
 use App\Models\AgencyFormation;
@@ -86,7 +87,15 @@ final class MatrixRecords
         $add((new CriminalGroupArea)->forceFill(['criminal_group_id' => $group->id, 'lga_id' => $lga->id, 'state_id' => $lga->state_id]))->save();
 
         $formation = $add(AgencyFormation::factory()->in($lga)->create($restricted));
-        $add(CoverageReport::factory()->in($lga)->create());
+        /** @var CoverageReport $report */
+        $report = $add(CoverageReport::factory()->in($lga)->create());
+        // A photo on the security report (Phase 11G).
+        $photo = EvidenceFixtures::photo();
+        $photoType = app(EvidenceFileInspector::class)->inspect((string) $photo->getRealPath(), $photo->getClientOriginalName());
+        $add(app(JurisdictionContext::class)->actingAs($author, fn () => app(StoreReportAttachment::class)(
+            $report, $photo, (array) $photoType, 'Matrix photo', Classification::Restricted, $author,
+        )));
+        CrossFixtures::system();
 
         $site = $add(OrganizationSite::factory()->in($lga)->of(Organization::factory()->create())->create($restricted));
         $add((new OrganizationContact)->forceFill(['organization_site_id' => $site->id, 'state_id' => $lga->state_id, 'lga_id' => $lga->id, 'name' => 'Matrix contact', 'position' => 'Manager']))->save();

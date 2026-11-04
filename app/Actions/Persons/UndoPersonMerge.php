@@ -273,7 +273,9 @@ final class UndoPersonMerge
             'date_of_birth' => $target['date_of_birth'],
             'approximate_age' => $target['approximate_age'],
             'nin' => $target['nin'],
-            'phone' => $target['phone'],
+            // Phone numbers are rows of their own, moved back through the
+            // manifest (Phase 11G.4); a snapshot from before keeps a `phone`
+            // key, which is ignored.
             'address' => $target['address'],
             'occupation' => $target['occupation'],
             'nationality' => $target['nationality'],

@@ -2,16 +2,42 @@
 @php($at = fn ($iso) => \App\Services\Reports\Builders\IncidentReportBuilder::at($iso))
 
 @section('content')
-    <p>{{ $report['period_type']['label'] }} · {{ $report['status']['label'] }} · Overall rating: {{ $report['overall_rating']['label'] ?? 'Not rated' }}</p>
+    <p>{{ $report['lga']['name'] }} LGA, {{ $report['state']['name'] }} State · Report date {{ \Carbon\CarbonImmutable::parse($report['report_date'])->format('j M Y') }} · {{ $report['period'] }} · {{ $report['status']['label'] }} · Overall rating: {{ $report['overall_rating']['label'] ?? 'Not rated' }}</p>
 
-    @foreach (['summary' => 'Summary', 'gaps_identified' => 'Gaps identified', 'recommendations' => 'Recommendations'] as $key => $label)
+    <h2>Report</h2>
+    @if ($report['summary'])
+        <div class="rich">{!! \App\Support\RichText\RichText::display($report['summary']) !!}</div>
+    @else
+        <p class="empty">No report text yet.</p>
+    @endif
+
+    @if (count($photos) > 0)
+        <h2>Photos</h2>
+        <div class="photos">
+            @foreach ($photos as $photo)
+                <figure>
+                    <img src="{{ $photo['file'] }}" alt="">
+                    <figcaption>{{ $photo['caption'] ?? 'No caption' }}@if ($photo['captured']) · {{ $photo['captured'] }}@endif</figcaption>
+                </figure>
+            @endforeach
+        </div>
+    @endif
+
+    @if (count($videos) > 0)
+        <h2>Videos</h2>
+        <ul>
+            @foreach ($videos as $video)
+                <li>{{ $video['caption'] ?? 'No caption' }}@if ($video['captured']) · captured {{ $video['captured'] }}@endif</li>
+            @endforeach
+        </ul>
+    @endif
+
+    @foreach (['gaps_identified' => 'Gaps identified', 'recommendations' => 'Recommendations'] as $key => $label)
         @if ($report[$key])<h2>{{ $label }}</h2><div class="rich">{!! \App\Support\RichText\RichText::display($report[$key]) !!}</div>@endif
     @endforeach
 
+    @if (count($deployments) > 0)
     <h2>Deployments</h2>
-    @if (count($deployments) === 0)
-        <p class="empty">No deployments recorded.</p>
-    @else
         <table>
             <thead><tr><th>Agency</th><th>Formation</th><th class="num">Personnel</th><th class="num">Vehicles</th><th>Patrols</th><th>Communities</th></tr></thead>
             <tbody>
@@ -37,13 +63,13 @@
             <tr><th>Total</th><th></th><th class="num">{{ $totals['personnel'] }}</th><th class="num">{{ $totals['vehicles'] }}</th></tr>
             </tbody>
         </table>
-    @endif
 
     <h2>Uncovered communities</h2>
     @if (count($uncovered) === 0)
         <p class="empty">Every community is covered.</p>
     @else
         <p>{{ count($uncovered) }}: {{ implode(', ', $uncovered) }}</p>
+    @endif
     @endif
 
     <h2>Workflow history</h2>

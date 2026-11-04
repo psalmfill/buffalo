@@ -38,6 +38,9 @@ final class PersonReferenceRegistry
     /** Repointed; on the same arrest, offences joined on the survivor's row and the source's row dropped (Phase 11C). */
     public const ARREST_PERSONS = 'arrest_persons';
 
+    /** Moved to the survivor; a number the survivor already has stays with the source; never a second primary (Phase 11G.4). */
+    public const PHONES = 'phones';
+
     /** All photos moved to the survivor; the executor picks the current one. */
     public const PHOTOS = 'photos';
 
@@ -80,6 +83,7 @@ final class PersonReferenceRegistry
         'person_merge_requests.suggested_survivor_id' => self::MERGE_REQUESTS,
         'person_merges.source_person_id' => self::BOOKKEEPING,
         'person_merges.survivor_person_id' => self::BOOKKEEPING,
+        'person_phones.person_id' => self::PHONES,
         'person_roles.person_id' => self::ROLES,
         'persons.merged_into_person_id' => self::BOOKKEEPING,
         'persons_of_interest.person_id' => self::POI,

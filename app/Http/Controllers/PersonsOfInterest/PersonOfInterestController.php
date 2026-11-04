@@ -89,7 +89,7 @@ class PersonOfInterestController extends Controller
         $this->authorize('create', [PersonOfInterest::class, $person]);
         abort_if(PersonOfInterest::query()->where('person_id', $person->id)->exists(), 409, 'Already a person of interest.');
 
-        $designate($person, $request->validated(), (string) $request->validated('comment'), $this->actor($request));
+        $designate($person, $request->values(), (string) $request->validated('comment'), $this->actor($request));
 
         return redirect()->route('persons.show', ['person' => $person, 'tab' => 'poi'])
             ->with('toast', ['type' => 'success', 'message' => 'Designated as a person of interest.']);
@@ -108,7 +108,7 @@ class PersonOfInterestController extends Controller
     {
         $this->authorize('update', $poi);
 
-        $save($poi, $request->validated(), $this->actor($request));
+        $save($poi, $request->values(), $this->actor($request));
 
         return $this->toPoiTab($poi, 'Details saved.');
     }
@@ -165,8 +165,27 @@ class PersonOfInterestController extends Controller
                 'longitude' => $poi->longitude,
                 'last_known_location_description' => $poi->last_known_location_description,
                 'last_sighted_at' => $poi->last_sighted_at?->format('Y-m-d\TH:i'),
+                // Personal details (Phase 11G.4).
+                'criminal_record' => $poi->criminal_record,
+                'height_cm' => $poi->height_cm,
+                'origin_state' => $poi->originState?->ulid,
+                'origin_lga' => $poi->originLga?->ulid,
+                'hometown' => $poi->hometown,
+                'marital_status' => $poi->marital_status?->value,
+                'religion' => $poi->religion,
+                'political_affiliations' => $poi->political_affiliations,
+                'hair_colour' => $poi->hair_colour?->value,
+                'eye_colour' => $poi->eye_colour?->value,
+                'has_tribal_marks' => $poi->has_tribal_marks?->value,
+                'tribal_marks_description' => $poi->tribal_marks_description,
             ],
             'options' => PoiPresenter::options(),
+            // For the LGA of origin, by state (origin never affects jurisdiction).
+            'lgasByState' => Lga::query()->active()->join('states', 'states.id', '=', 'lgas.state_id')->orderBy('lgas.name')
+                ->get(['lgas.ulid', 'lgas.name', 'states.ulid as state_ulid'])
+                ->groupBy('state_ulid')
+                ->map(fn ($rows) => $rows->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => $l->name])->values())
+                ->all(),
             'map' => MapView::for($person->lga),
         ]);
     }

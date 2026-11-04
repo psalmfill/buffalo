@@ -9,6 +9,7 @@ use App\Models\Person;
 use App\Models\PersonRole;
 use App\Models\PersonRoleType;
 use App\Models\User;
+use App\Support\Persons\PersonPhones;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -29,10 +30,11 @@ final class SavePerson
     /**
      * @param  array<string, mixed>  $data  validated person values
      * @param  array<string, string|null>  $roles  role value => notes, for the checked roles
+     * @param  list<array{number: string, label: string, is_primary: bool}>|null  $phones  normalised; null: none given
      */
-    public function create(Lga $lga, ?Community $community, array $data, array $roles, User $actor): Person
+    public function create(Lga $lga, ?Community $community, array $data, array $roles, User $actor, ?array $phones = null): Person
     {
-        return DB::transaction(function () use ($lga, $community, $data, $roles, $actor): Person {
+        return DB::transaction(function () use ($lga, $community, $data, $roles, $actor, $phones): Person {
             $person = new Person;
             $person->fill(self::attributes($data));
             $person->forceFill([
@@ -46,6 +48,10 @@ final class SavePerson
 
             $this->syncRoles($person, $roles, $actor);
 
+            if ($phones !== null && $phones !== []) {
+                PersonPhones::sync($person, $phones, $actor);
+            }
+
             return $person;
         });
     }
@@ -53,14 +59,15 @@ final class SavePerson
     /**
      * @param  array<string, mixed>  $data
      * @param  array<string, string|null>  $roles
+     * @param  list<array{number: string, label: string, is_primary: bool}>|null  $phones  normalised; null: unchanged
      */
-    public function update(Person $person, ?Community $community, array $data, array $roles, User $actor): Person
+    public function update(Person $person, ?Community $community, array $data, array $roles, User $actor, ?array $phones = null): Person
     {
         if ($community !== null && $community->lga_id !== $person->lga_id) {
             throw new InvalidArgumentException('The community must be in the person\'s LGA.');
         }
 
-        return DB::transaction(function () use ($person, $community, $data, $roles, $actor): Person {
+        return DB::transaction(function () use ($person, $community, $data, $roles, $actor, $phones): Person {
             $person->fill(self::attributes($data));
             $person->forceFill([
                 'classification' => $data['classification'] ?? $person->classificationLevel()->value,
@@ -72,6 +79,10 @@ final class SavePerson
             }
 
             $this->syncRoles($person, $roles, $actor);
+
+            if ($phones !== null) {
+                PersonPhones::sync($person, $phones, $actor);
+            }
 
             return $person;
         });
@@ -146,7 +157,6 @@ final class SavePerson
             'date_of_birth' => self::blankToNull($data['date_of_birth'] ?? null),
             'approximate_age' => isset($data['approximate_age']) ? (int) $data['approximate_age'] : null,
             'nin' => self::blankToNull($data['nin'] ?? null),
-            'phone' => self::blankToNull($data['phone'] ?? null),
             'address' => self::blankToNull($data['address'] ?? null),
             'occupation' => self::blankToNull($data['occupation'] ?? null),
             'nationality' => self::blankToNull($data['nationality'] ?? null) ?? 'Nigerian',

@@ -6,6 +6,7 @@ namespace App\Enums;
 enum UploadKind: string
 {
     case Evidence = 'evidence';
+    case ReportAttachment = 'report_attachment';
     case PersonPhoto = 'person_photo';
     case OrganizationLogo = 'organization_logo';
     case SitePhoto = 'site_photo';
@@ -17,6 +18,7 @@ enum UploadKind: string
     {
         return match ($this) {
             self::Evidence => 'Evidence file',
+            self::ReportAttachment => 'Security report attachment',
             self::PersonPhoto => 'Person photo',
             self::OrganizationLogo => 'Organization logo',
             self::SitePhoto => 'Site photo',

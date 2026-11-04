@@ -10,6 +10,7 @@ use App\Models\PersonOfInterest;
 use App\Support\Jurisdiction\JurisdictionContext;
 use App\Support\Persons\Merge\MergeBlocked;
 use App\Support\Persons\Merge\MergeChoices;
+use App\Support\Persons\PersonPhones;
 use App\Support\Persons\PersonSearch;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -176,19 +177,19 @@ test('deceased is kept when either record is deceased, with a confirmation', fun
 test('encrypted fields are re-encrypted and the source\'s NIN and phone find the survivor', function () {
     $a = Person::factory()->in($this->world->lgas['A1a'])->named('Ada', 'Obi')->create();
     $b = Person::factory()->in($this->world->lgas['A1a'])->named('Adaeze', 'Obi')->create(['nin' => '33333333333', 'phone' => '08035550000']);
-    $rawSource = DB::table('persons')->where('id', $b->id)->first(['nin', 'phone']);
+    $rawSource = DB::table('persons')->where('id', $b->id)->first(['nin']);
 
     MergeFixtures::merge($this->sd, $a, $b);
 
-    $raw = DB::table('persons')->where('id', $a->id)->first(['nin', 'phone']);
+    $raw = DB::table('persons')->where('id', $a->id)->first(['nin']);
     $found = app(JurisdictionContext::class)->actingAs($this->sd, fn () => [
         Person::query()->whereBlind('nin', 'nin_bidx', '33333333333')->pluck('id')->all(),
-        Person::query()->whereBlind('phone', 'phone_bidx', '+2348035550000')->pluck('id')->all(),
+        // The source's number moved to the survivor (Phase 11G.4).
+        Person::query()->whereIn('persons.id', PersonPhones::personIdsWithNumber('+2348035550000'))->pluck('id')->all(),
     ]);
 
     expect($raw->nin)->not->toBe($rawSource->nin)
         ->and($raw->nin)->not->toContain('33333333333')
-        ->and($raw->phone)->not->toBe($rawSource->phone)
         ->and($found)->toBe([[$a->id], [$a->id]])
         ->and(MergeFixtures::reload($a)->nin)->toBe('33333333333');
 });

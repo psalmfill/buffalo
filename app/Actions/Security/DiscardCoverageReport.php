@@ -18,11 +18,11 @@ final class DiscardCoverageReport
     public function __invoke(CoverageReport $report, User $actor): void
     {
         if ($report->status !== CoverageReportStatus::Draft) {
-            throw new InvalidArgumentException('Only draft coverage reports can be discarded.');
+            throw new InvalidArgumentException('Only draft security reports can be discarded.');
         }
 
         DB::transaction(function () use ($report, $actor): void {
-            AuditLog::event('coverage_report_discarded', 'Draft coverage report discarded', $report, [], $actor);
+            AuditLog::event('coverage_report_discarded', 'Draft security report discarded', $report, [], $actor);
             $report->forceFill(['updated_by' => $actor->id])->save();
             $report->delete();
         });

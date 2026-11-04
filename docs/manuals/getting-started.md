@@ -88,7 +88,7 @@ Recovery codes are not accepted here.
 The dashboard is your starting point and depends on your role:
 
 - **LGA Security Chief:** your LGA's incidents, threats and flashpoints, your
-  coverage report status, and organization sites.
+  security report status, and organization sites.
 - **State Director and Deputy:** the whole state, LGA by LGA, with items waiting
   for your review.
 - **Director General and Deputies:** the national (or zonal) picture, escalated
@@ -102,7 +102,7 @@ or reports marked invalid, and always cover only what you are allowed to see.
 ## Notifications
 
 The bell in the header shows new notifications: incidents submitted or
-returned, escalations, access requests, threats, coverage reports and more.
+returned, escalations, access requests, threats, security reports and more.
 Critical notifications also appear as a red message on the screen. Click a
 notification to open the record. Notifications contain no sensitive details;
 open the record to see them.

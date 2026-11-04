@@ -24,14 +24,17 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
- * Save a coverage report (Phase 4A), and optionally submit it (`submit`).
- * The LGA and period are chosen once. Deployments are the full list:
- * rows with a `ulid` update existing deployments, rows without one are new,
- * and deployments left out are removed.
+ * Save a security report (Phase 4A as "coverage report"; simplified in
+ * Phase 11G), and optionally submit it (`submit`). The LGA is chosen once.
+ * Deployments are the full list (possibly empty): rows with a `ulid` update
+ * existing deployments, rows without one are new, and deployments left out
+ * are removed.
  *
- * On submit: a rating and a summary are required, the gaps when the rating
- * is not `adequate`, and at least one deployment unless the rating is
- * `critical`. Authorisation is in the controller.
+ * On submit only the written report (`summary`, labelled "Report") is
+ * required: everything else is optional. The period defaults to ad hoc on
+ * the report date; weekly, monthly and quarterly periods keep their
+ * boundaries and one report per LGA and period. Authorisation is in the
+ * controller.
  */
 class CoverageReportRequest extends FormRequest
 {
@@ -79,8 +82,9 @@ class CoverageReportRequest extends FormRequest
     {
         $editing = $this->report() !== null;
         $submitting = $this->submitting();
-        $rating = CoverageRating::tryFrom((string) $this->input('overall_rating'));
-        $gapsRequired = $submitting && $rating !== null && $rating !== CoverageRating::Adequate;
+        $max = (int) config('buffalo.security_reports.max_characters');
+        $type = CoveragePeriodType::tryFrom((string) $this->input('period_type'));
+        $regular = $type !== null && $type !== CoveragePeriodType::AdHoc;
 
         return [
             'submit' => ['sometimes', 'boolean'],
@@ -89,12 +93,14 @@ class CoverageReportRequest extends FormRequest
                     $fail('Choose an LGA within your jurisdiction.');
                 }
             }],
-            'period_type' => $editing ? ['prohibited'] : ['required', Rule::enum(CoveragePeriodType::class)],
-            'period_start' => $editing ? ['prohibited'] : ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
-            'period_end' => $editing ? ['prohibited'] : ['required', 'date_format:Y-m-d', 'after_or_equal:period_start'],
-            'overall_rating' => [$submitting ? 'required' : 'nullable', Rule::enum(CoverageRating::class)],
-            'summary' => [$submitting ? 'required' : 'nullable', new RichTextRule(20000, required: $submitting)],
-            'gaps_identified' => [$gapsRequired ? 'required' : 'nullable', new RichTextRule(20000, required: $gapsRequired)],
+            'title' => ['nullable', 'string', 'max:200'],
+            'report_date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'period_type' => ['nullable', Rule::enum(CoveragePeriodType::class)],
+            'period_start' => [$regular ? 'required' : 'nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'period_end' => [$regular ? 'required' : 'nullable', 'required_with:period_start', 'date_format:Y-m-d', 'after_or_equal:period_start'],
+            'overall_rating' => ['nullable', Rule::enum(CoverageRating::class)],
+            'summary' => [$submitting ? 'required' : 'nullable', new RichTextRule($max, required: $submitting)],
+            'gaps_identified' => ['nullable', new RichTextRule(20000)],
             'recommendations' => ['nullable', new RichTextRule(20000)],
             'classification' => ['required', Rule::enum(Classification::class), function (string $attribute, mixed $value, Closure $fail): void {
                 $level = Classification::tryFrom((string) $value);
@@ -105,7 +111,7 @@ class CoverageReportRequest extends FormRequest
                     $fail('You cannot classify a record above your own clearance.');
                 }
             }],
-            'deployments' => ['present', 'array', 'max:100', ...($submitting && $rating !== CoverageRating::Critical ? ['min:1'] : [])],
+            'deployments' => ['present', 'array', 'max:100'],
             'deployments.*.ulid' => ['nullable', 'string', 'distinct'],
             'deployments.*.agency' => ['required', 'string'],
             'deployments.*.formation' => ['nullable', 'string'],
@@ -128,14 +134,10 @@ class CoverageReportRequest extends FormRequest
     {
         return [
             'lga.prohibited' => 'A report\'s LGA cannot be changed.',
-            'period_type.prohibited' => 'A report\'s period cannot be changed.',
-            'period_start.prohibited' => 'A report\'s period cannot be changed.',
-            'period_end.prohibited' => 'A report\'s period cannot be changed.',
             'period_start.before_or_equal' => 'The period cannot start in the future.',
-            'deployments.min' => 'Add at least one deployment, or rate the coverage as critical.',
-            'gaps_identified.required' => 'Describe the gaps when the coverage is not adequate.',
-            'summary.required' => 'A summary is required to submit the report.',
-            'overall_rating.required' => 'Choose an overall rating to submit the report.',
+            'period_start.required' => 'Choose the period for a weekly, monthly or quarterly report.',
+            'report_date.before_or_equal' => 'The report date cannot be in the future.',
+            'summary.required' => 'Write the report before submitting it.',
         ];
     }
 
@@ -155,9 +157,10 @@ class CoverageReportRequest extends FormRequest
     }
 
     /**
-     * Validated values for SaveCoverageReport.
+     * Validated values for SaveCoverageReport. The period is null when it
+     * is left as it is (an existing report without period fields).
      *
-     * @return array{period_type: CoveragePeriodType|null, period_start: string|null, period_end: string|null, overall_rating: string|null, summary: string|null, gaps_identified: string|null, recommendations: string|null, classification: string, deployments: list<array{id: int|null, security_agency_id: int, agency_formation_id: int|null, personnel_count: int, vehicles_count: int|null, patrol_frequency: string, areas_covered: string|null, remarks: string|null, community_ids: list<int>}>}
+     * @return array{title: string|null, report_date: string, period: array{0: CoveragePeriodType, 1: string, 2: string}|null, overall_rating: string|null, summary: string|null, gaps_identified: string|null, recommendations: string|null, classification: string, deployments: list<array{id: int|null, security_agency_id: int, agency_formation_id: int|null, personnel_count: int, vehicles_count: int|null, patrol_frequency: string, areas_covered: string|null, remarks: string|null, community_ids: list<int>}>}
      */
     public function values(): array
     {
@@ -195,9 +198,9 @@ class CoverageReportRequest extends FormRequest
         }
 
         return [
-            'period_type' => $report === null ? CoveragePeriodType::from((string) $data['period_type']) : null,
-            'period_start' => $report === null ? (string) $data['period_start'] : null,
-            'period_end' => $report === null ? (string) $data['period_end'] : null,
+            'title' => self::text($data['title'] ?? null),
+            'report_date' => $this->reportDate(),
+            'period' => $this->period(),
             'overall_rating' => isset($data['overall_rating']) ? (string) $data['overall_rating'] : null,
             'summary' => self::text($data['summary'] ?? null),
             'gaps_identified' => self::text($data['gaps_identified'] ?? null),
@@ -207,15 +210,52 @@ class CoverageReportRequest extends FormRequest
         ];
     }
 
+    /** The report date: as given, else the report's, else today. */
+    private function reportDate(): string
+    {
+        $given = $this->input('report_date');
+
+        return is_string($given) && $given !== ''
+            ? $given
+            : ($this->report()?->report_date->toDateString() ?? CarbonImmutable::today()->toDateString());
+    }
+
+    /**
+     * The chosen period, or the default (ad hoc on the report date) for a
+     * new report; null keeps an existing report's period.
+     *
+     * @return array{0: CoveragePeriodType, 1: string, 2: string}|null
+     */
+    private function period(): ?array
+    {
+        $type = CoveragePeriodType::tryFrom((string) $this->input('period_type'));
+        $start = $this->input('period_start');
+        $end = $this->input('period_end');
+
+        if ($type === null && ! is_string($start)) {
+            return $this->report() === null ? [CoveragePeriodType::AdHoc, $this->reportDate(), $this->reportDate()] : null;
+        }
+
+        $type ??= CoveragePeriodType::AdHoc;
+
+        if (! is_string($start) || $start === '') {
+            return [$type, $this->reportDate(), $this->reportDate()];
+        }
+
+        return [$type, $start, is_string($end) && $end !== '' ? $end : $start];
+    }
+
     private function checkPeriod(Validator $validator): void
     {
-        if ($this->report() !== null) {
+        $period = $this->period();
+
+        if ($period === null) {
             return;
         }
 
-        $type = CoveragePeriodType::from((string) $this->input('period_type'));
-        $start = CarbonImmutable::parse((string) $this->input('period_start'));
-        $end = CarbonImmutable::parse((string) $this->input('period_end'));
+        [$type, $from, $to] = $period;
+        $start = CarbonImmutable::parse($from);
+        $end = CarbonImmutable::parse($to);
 
         if (! $type->matchesBoundaries($start, $end)) {
             $validator->errors()->add('period_start', match ($type) {
@@ -230,11 +270,14 @@ class CoverageReportRequest extends FormRequest
 
         $lga = $this->lga();
 
-        // One report per LGA and period (all reports, whoever can see them:
-        // ids only).
+        // One weekly, monthly or quarterly report per LGA and period (all
+        // reports, whoever can see them: ids only). Ad hoc reports are
+        // unlimited.
         if ($lga !== null && $type !== CoveragePeriodType::AdHoc && DB::table('coverage_reports')
             ->where('lga_id', $lga->id)->where('period_type', $type->value)
-            ->where('period_start', $start->toDateString())->whereNull('deleted_at')->exists()) {
+            ->where('period_start', $start->toDateString())->whereNull('deleted_at')
+            ->when($this->report(), fn ($q, CoverageReport $report) => $q->where('id', '<>', $report->id))
+            ->exists()) {
             $validator->errors()->add('period_start', "{$lga->name} LGA already has a {$type->label()} report for {$type->describe($start, $end)}.");
         }
     }

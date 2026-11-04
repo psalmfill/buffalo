@@ -28,7 +28,7 @@ final class CoverageReportsExporter extends ListExporter
 
     public function label(): string
     {
-        return 'Coverage reports';
+        return 'Security reports';
     }
 
     public function page(): string
@@ -90,6 +90,8 @@ final class CoverageReportsExporter extends ListExporter
     public function columns(): array
     {
         return [
+            ListColumn::make('title', 'Report', fn (CoverageReport $r) => $r->displayTitle()),
+            ListColumn::make('report_date', 'Report date', fn (CoverageReport $r) => self::date($r->report_date)),
             ListColumn::make('lga', 'LGA', fn (CoverageReport $r) => $r->lga->name),
             ListColumn::make('state', 'State', fn (CoverageReport $r) => $r->state->name),
             ListColumn::make('period_type', 'Period type', fn (CoverageReport $r) => $r->period_type->label()),
@@ -100,7 +102,7 @@ final class CoverageReportsExporter extends ListExporter
             ListColumn::make('rating', 'Overall rating', fn (CoverageReport $r) => $r->overall_rating?->label()),
             ListColumn::make('submitted_at', 'Submitted', fn (CoverageReport $r) => self::at($r->submitted_at)),
             ListColumn::make('reviewed_at', 'Reviewed', fn (CoverageReport $r) => self::at($r->reviewed_at)),
-            ListColumn::make('summary', 'Summary', fn (CoverageReport $r) => self::text($r, 'summary')),
+            ListColumn::make('summary', 'Report text', fn (CoverageReport $r) => self::text($r, 'summary')),
             ListColumn::make('gaps', 'Gaps identified', fn (CoverageReport $r) => self::text($r, 'gaps_identified')),
             ListColumn::make('recommendations', 'Recommendations', fn (CoverageReport $r) => self::text($r, 'recommendations')),
             ListColumn::make('classification', 'Classification', fn (CoverageReport $r) => $r->classificationLevel()->label()),
@@ -109,6 +111,6 @@ final class CoverageReportsExporter extends ListExporter
 
     public function defaultColumns(): array
     {
-        return ['lga', 'state', 'period_type', 'period', 'status', 'rating', 'submitted_at', 'classification'];
+        return ['title', 'report_date', 'lga', 'state', 'period', 'status', 'rating', 'submitted_at', 'classification'];
     }
 }

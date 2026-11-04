@@ -90,7 +90,8 @@ final class PersonReportBuilder implements ReportBuilder
                 ? PoliticalOffice::query()->where('person_id', $person->id)->with(['state', 'senatorialDistrict', 'lga', 'ward'])->orderByDesc('started_on')->get()
                     ->map(fn (PoliticalOffice $o) => [...PoliticalPresenter::office($o, withPerson: false), 'current' => $o->isCurrent()])->all()
                 : null,
-            'poi' => $poi === null ? null : PoiPresenter::detail($poi),
+            // Never religion or political affiliations (Phase 11G.4).
+            'poi' => $poi === null ? null : PoiPresenter::withoutSensitive(PoiPresenter::detail($poi)),
             'memberships' => $memberships?->map(fn (CriminalGroupMember $m) => [
                 'group' => $m->group->name,
                 'role' => $m->role_in_group,

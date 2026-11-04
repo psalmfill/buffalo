@@ -1,4 +1,6 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import PhoneNumbersInput from '@/components/persons/phone-numbers-input';
+import type { PhoneRow } from '@/components/persons/phone-numbers-input';
 import { ShieldAlert } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -100,7 +102,11 @@ export default function PersonForm({
         date_of_birth: person?.date_of_birth ?? '',
         approximate_age: person?.approximate_age?.toString() ?? '',
         nin: person?.nin ?? '',
-        phone: person?.phone ?? '',
+        phones: (person?.phones ?? []).map((p) => ({
+            number: p.number,
+            label: p.label.value,
+            is_primary: p.is_primary,
+        })) as PhoneRow[],
         address: person?.address ?? '',
         occupation: person?.occupation ?? '',
         nationality: person?.nationality ?? 'Nigerian',
@@ -177,7 +183,9 @@ export default function PersonForm({
                     last_name: form.data.last_name,
                     other_names: form.data.other_names || null,
                     nin: form.data.nin || null,
-                    phone: form.data.phone || null,
+                    phone:
+                        form.data.phones.find((p) => p.is_primary)?.number ??
+                        (form.data.phones[0]?.number || null),
                     date_of_birth: form.data.date_of_birth || null,
                 });
 
@@ -214,7 +222,6 @@ export default function PersonForm({
             | 'last_name'
             | 'other_names'
             | 'nin'
-            | 'phone'
             | 'occupation'
             | 'nationality',
         label: string,
@@ -260,8 +267,9 @@ export default function PersonForm({
                 <Alert>
                     <ShieldAlert />
                     <AlertDescription>
-                        NIN, phone number, date of birth and address are
-                        encrypted. Every view of this person is recorded.
+                        NIN, phone numbers, date of birth and residential
+                        address are encrypted. Every view of this person is
+                        recorded.
                     </AlertDescription>
                 </Alert>
 
@@ -369,10 +377,13 @@ export default function PersonForm({
                         inputMode: 'numeric',
                         hint: '11 digits.',
                     })}
-                    {text('phone', 'Phone number', {
-                        inputMode: 'tel',
-                        hint: 'e.g. 0803 123 4567 or +234 803 123 4567.',
-                    })}
+                    <PhoneNumbersInput
+                        value={form.data.phones}
+                        onChange={(rows) => form.setData('phones', rows)}
+                        errors={
+                            form.errors as Record<string, string | undefined>
+                        }
+                    />
                     {text('occupation', 'Occupation')}
                     {text('nationality', 'Nationality')}
                     <div className="flex items-center gap-2 self-center">
@@ -389,7 +400,7 @@ export default function PersonForm({
 
                 <section className="grid gap-4 sm:grid-cols-2">
                     <div className="grid content-start gap-2">
-                        <Label htmlFor="address">Address</Label>
+                        <Label htmlFor="address">Residential address</Label>
                         <Textarea
                             id="address"
                             rows={3}

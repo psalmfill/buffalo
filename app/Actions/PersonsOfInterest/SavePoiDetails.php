@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Edits a POI's details (offences, modus operandi, last known location and
- * sighting). Status and risk change only through ChangePoiStatus. A new
+ * sighting, and the personal details of Phase 11G.4). Status and risk change only through ChangePoiStatus. A new
  * last known location is logged as a named event with coordinates.
  */
 final class SavePoiDetails
@@ -46,7 +46,18 @@ final class SavePoiDetails
     {
         $coordinates = self::coordinates($data);
 
+        // Personal details (Phase 11G.4): set when the form sends them.
+        $details = [];
+
+        foreach (PersonOfInterest::DETAILS as $field) {
+            if (array_key_exists($field, $data)) {
+                $value = $data[$field];
+                $details[$field] = is_string($value) && trim($value) === '' ? null : (is_string($value) ? trim($value) : $value);
+            }
+        }
+
         return [
+            ...$details,
             'offence_categories' => array_values($data['offence_categories'] ?? []),
             'known_offences' => trim((string) $data['known_offences']),
             'modus_operandi' => $data['modus_operandi'] ?? null,

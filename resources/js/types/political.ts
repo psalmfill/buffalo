@@ -1,3 +1,4 @@
+import type { ArrestRow } from '@/types/arrests';
 // Political information, persons of interest and criminal groups
 // (Phase 3B). ULIDs and labels only; numeric ids never reach the browser.
 
@@ -54,7 +55,27 @@ export type PoiRow = {
 export type PoiDetail = PoiRow & {
     offence_codes: string[];
     known_offences: string;
+    /** Past records: arrests, charges, convictions, prison terms (Phase 11G.4). */
+    criminal_record: string | null;
     modus_operandi: string | null;
+    age: number | null;
+    height_cm: number | null;
+    height_label: string | null;
+    marital_status: Option | null;
+    origin_state: NamedRef | null;
+    origin_lga: NamedRef | null;
+    hometown: string | null;
+    hair_colour: Option | null;
+    eye_colour: Option | null;
+    has_tribal_marks: Option | null;
+    tribal_marks_description: string | null;
+    /** Special categories: encrypted, never exported. */
+    sensitive: {
+        religion: Option | null;
+        political_affiliations: string | null;
+    };
+    /** Linked arrests (Phase 11C), when the viewer may see arrests. */
+    arrests?: ArrestRow[] | null;
     latitude: number | null;
     longitude: number | null;
     last_known_location_description: string | null;
@@ -69,6 +90,12 @@ export type PoiOptions = {
     riskLevels: Option[];
     statuses: Option[];
     offenceCategories: Option[];
+    maritalStatuses: Option[];
+    hairColours: Option[];
+    eyeColours: Option[];
+    tribalMarks: Option[];
+    religions: Option[];
+    states: Option[];
 };
 
 export type GroupRow = {

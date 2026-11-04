@@ -66,8 +66,8 @@ export function LgaCoverage({ data }: { data: LgaCoverageData }) {
     };
 
     return (
-        <section className="space-y-3" aria-label="Security coverage">
-            <h2 className="text-sm font-semibold">Security coverage</h2>
+        <section className="space-y-3" aria-label="Security reports">
+            <h2 className="text-sm font-semibold">Security reports</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <StatCard
                     label={`Report for ${data.period}`}
@@ -106,10 +106,10 @@ export function LgaCoverage({ data }: { data: LgaCoverageData }) {
 /** State roles: every LGA's report status for the current period. */
 export function StateCoverage({ data }: { data: StateCoverageData }) {
     return (
-        <section className="space-y-3" aria-label="Security coverage">
+        <section className="space-y-3" aria-label="Security reports">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="text-sm font-semibold">
-                    Coverage reports: {data.period}
+                    Security reports: {data.period}
                 </h2>
                 <span className="text-xs text-muted-foreground">
                     Due {dateLabel(data.due)}
@@ -179,9 +179,9 @@ export function StateCoverage({ data }: { data: StateCoverageData }) {
 /** National: compliance by state, and poorly covered LGAs. */
 export function NationalCoverage({ data }: { data: NationalCoverageData }) {
     return (
-        <section className="space-y-3" aria-label="Security coverage">
+        <section className="space-y-3" aria-label="Security reports">
             <h2 className="text-sm font-semibold">
-                Coverage report compliance: {data.period}
+                Security report compliance: {data.period}
             </h2>
             <div className="grid gap-6 lg:grid-cols-2">
                 <div className="overflow-x-auto rounded-lg border">

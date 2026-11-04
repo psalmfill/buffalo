@@ -116,10 +116,10 @@ class SeedUatCommand extends Command
         $kanoLga = Lga::query()->whereKey($kanoChief->lga_id)->firstOrFail();
         $savePerson->create($kanoLga, null, [
             'first_name' => 'Garba', 'last_name' => 'Testperson', 'gender' => 'male',
-            'date_of_birth' => '1985-04-12', 'nin' => '98765432101', 'phone' => '08030000099',
+            'date_of_birth' => '1985-04-12', 'nin' => '98765432101',
             'occupation' => 'Trader', 'description' => 'Synthetic UAT person (cross-state scenario).',
             'classification' => 'restricted',
-        ], [], $kanoChief);
+        ], [], $kanoChief, [['number' => '+2348030000099', 'label' => 'mobile', 'is_primary' => true]]);
 
         $this->printCredentials(self::issueCredentials($users));
         $this->components->warn('UAT data only. Record the credentials now: they are not shown again (use --reset-credentials for new ones).');

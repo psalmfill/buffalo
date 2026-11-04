@@ -21,7 +21,7 @@ order: 30
 
 ## Regularly
 
-- **Coverage report** for each period: Security → Coverage reports → New report.
+- **Security report** for each period: Security → Security reports → New report.
 - Flashpoint, blackspot and person of interest **reviews** when due.
 - Keep the LGA profile and communities current.
 

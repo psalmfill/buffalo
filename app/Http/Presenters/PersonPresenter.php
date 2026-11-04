@@ -10,6 +10,7 @@ use App\Models\Person;
 use App\Models\PersonAlias;
 use App\Models\PersonRole;
 use App\Models\PersonRoleType;
+use App\Support\Persons\PersonPhones;
 use BackedEnum;
 
 /**
@@ -66,7 +67,7 @@ final class PersonPresenter
             'date_of_birth' => $person->date_of_birth,
             'approximate_age' => $person->approximate_age,
             'nin' => $person->nin,
-            'phone' => $person->phone,
+            'phones' => PersonPhones::forPerson($person),
             'address' => $person->address,
             'occupation' => $person->occupation,
             'nationality' => $person->nationality,

@@ -10,6 +10,7 @@ use App\Enums\MatchContext;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\AccessRequestPresenter;
 use App\Http\Presenters\ActivityPresenter;
+use App\Http\Presenters\ArrestPresenter;
 use App\Http\Presenters\CriminalGroupPresenter;
 use App\Http\Presenters\MergePresenter;
 use App\Http\Presenters\PersonPresenter;
@@ -173,7 +174,7 @@ class PersonController extends Controller
         $photo = $request->file('photo');
 
         $person = DB::transaction(function () use ($save, $addPhoto, $lga, $request, $values, $actor, $photo, $hitCount, $justification): Person {
-            $person = $save->create($lga, $request->community(), $values, $request->roles(), $actor);
+            $person = $save->create($lga, $request->community(), $values, $request->roles(), $actor, $request->phones());
 
             if ($photo instanceof UploadedFile) {
                 $addPhoto($person, $photo, $actor);
@@ -199,7 +200,7 @@ class PersonController extends Controller
         'nationality', 'occupation', 'description', 'roles', 'all_roles', 'classification', 'is_deceased', 'thumbnail',
     ];
 
-    public const GRANT_FULL_EXTRA_FIELDS = ['nin', 'phone', 'address'];
+    public const GRANT_FULL_EXTRA_FIELDS = ['nin', 'phones', 'address'];
 
     /** Tabs a grant shows, per scope. */
     public const GRANT_TABS = [
@@ -364,7 +365,7 @@ class PersonController extends Controller
     {
         $this->authorize('update', $person);
 
-        $save->update($person, $request->community(), $request->values(), $request->roles(), $this->actor($request));
+        $save->update($person, $request->community(), $request->values(), $request->roles(), $this->actor($request), $request->phones());
 
         return redirect()->route('persons.show', $person)
             ->with('toast', ['type' => 'success', 'message' => 'Person saved.']);
@@ -613,6 +614,11 @@ class PersonController extends Controller
 
         return [
             ...PoiPresenter::detail($poi),
+            // Shown beside the criminal record (Phase 11G.4), through their own scopes.
+            'arrests' => $actor->can('viewAny', Arrest::class)
+                ? ArrestLinks::person($person)->with(['agency', 'lga', 'incident', 'persons.offences.offenceType'])->orderByDesc('arrests.arrested_at')->limit(20)->get()
+                    ->map(fn (Arrest $a) => ArrestPresenter::row($a))->values()->all()
+                : null,
             'can' => [
                 'update' => $actor->can('update', $poi),
                 'clear' => $actor->can('clear', $poi),

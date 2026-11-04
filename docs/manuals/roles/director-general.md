@@ -11,7 +11,7 @@ As Director General you see **everything nationally**, up to **secret**.
 ## Your daily routine
 
 1. **Dashboard:** national figures by state and zone, escalated incidents,
-   coverage compliance, critical sites, cross-border activity.
+   security report compliance, critical sites, cross-border activity.
 2. **Escalated incidents:** acknowledge and follow them.
 3. **Critical notifications:** critical incidents, immediate threats, audit or
    integrity alerts, unusual export activity.

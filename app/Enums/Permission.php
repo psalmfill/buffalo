@@ -97,7 +97,7 @@ enum Permission: string
     case AccessRequestsOversee = 'access_requests.oversee';
     case DelegationsManage = 'delegations.manage';
 
-    // Security agencies (Phase 4A): formations and coverage reports.
+    // Security agencies (Phase 4A): formations and security reports.
     case FormationsView = 'formations.view';
     case FormationsManage = 'formations.manage';
     case FormationsDelete = 'formations.delete';

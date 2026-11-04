@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * Submits a draft or returned coverage report for review (Phase 4A). The
+ * Submits a draft or returned security report for review (Phase 4A; only
+ * the written report is required since Phase 11G). The
  * complete version is snapshotted in the activity log. The State Director
  * and Deputy are notified; a `critical` rating also alerts the DG and the
  * DDGs covering the state.
@@ -28,16 +29,14 @@ final class SubmitCoverageReport
     public function __invoke(CoverageReport $report, User $actor): void
     {
         if (! $report->status->isEditable()) {
-            throw new InvalidArgumentException('Only draft or returned coverage reports can be submitted.');
+            throw new InvalidArgumentException('Only draft or returned security reports can be submitted.');
         }
 
         $rating = $report->overall_rating;
-        $deployments = $report->deployments()->count();
 
-        if ($rating === null || $report->summary === null
-            || ($rating !== CoverageRating::Adequate && $report->gaps_identified === null)
-            || ($rating !== CoverageRating::Critical && $deployments === 0)) {
-            throw new InvalidArgumentException('The coverage report is incomplete.');
+        // Only the written report is required (Phase 11G).
+        if ($report->summary === null || trim((string) $report->summary_text) === '') {
+            throw new InvalidArgumentException('The security report has no text.');
         }
 
         $resubmission = $report->status === CoverageReportStatus::Returned;
@@ -52,7 +51,7 @@ final class SubmitCoverageReport
 
             AuditLog::event(
                 'coverage_report_submitted',
-                $resubmission ? 'Coverage report resubmitted' : 'Coverage report submitted',
+                $resubmission ? 'Security report resubmitted' : 'Security report submitted',
                 $report,
                 ['resubmission' => $resubmission, 'version' => CoverageSnapshot::of($report)],
                 $actor,

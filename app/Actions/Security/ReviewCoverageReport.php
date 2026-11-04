@@ -21,14 +21,14 @@ final class ReviewCoverageReport
     public function __invoke(CoverageReport $report, User $actor, ?string $comment): void
     {
         if ($report->status !== CoverageReportStatus::Submitted) {
-            throw new InvalidArgumentException('Only submitted coverage reports can be marked reviewed.');
+            throw new InvalidArgumentException('Only submitted security reports can be marked reviewed.');
         }
 
         $comment = $comment === null || trim($comment) === '' ? null : trim($comment);
 
         DB::transaction(function () use ($report, $actor, $comment): void {
             // Snapshot first: after this update the report is locked.
-            AuditLog::event('coverage_report_reviewed', 'Coverage report marked reviewed', $report, [
+            AuditLog::event('coverage_report_reviewed', 'Security report marked reviewed', $report, [
                 'comment' => $comment,
                 'version' => CoverageSnapshot::of($report),
             ], $actor);

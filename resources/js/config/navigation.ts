@@ -7,7 +7,6 @@ import {
     ClipboardCheck,
     ClipboardList,
     Crosshair,
-    FilePlus2,
     FileSearch,
     FileText,
     Flame,
@@ -45,7 +44,6 @@ import FlashpointController from '@/actions/App/Http/Controllers/Flashpoints/Fla
 import BlackspotSuggestionController from '@/actions/App/Http/Controllers/Map/BlackspotSuggestionController';
 import MapController from '@/actions/App/Http/Controllers/Map/MapController';
 import ArrestController from '@/actions/App/Http/Controllers/Arrests/ArrestController';
-import IncidentController from '@/actions/App/Http/Controllers/Incidents/IncidentController';
 import ThreatReportController from '@/actions/App/Http/Controllers/Threats/ThreatReportController';
 import IncidentListController from '@/actions/App/Http/Controllers/Incidents/IncidentListController';
 import AgencyFormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
@@ -116,7 +114,6 @@ export const NAVIGATION: NavSection[] = [
     {
         title: 'Incidents',
         items: [
-            { title: 'Report incident', icon: FilePlus2, href: IncidentController.create(), permission: 'incidents.create' },
             { title: 'Incidents', icon: ClipboardList, href: IncidentListController.index(), permission: 'incidents.view' },
             { title: 'Incident map', icon: MapPin, href: IncidentListController.map(), permission: 'incidents.view' },
             { title: 'Arrests', icon: Gavel, href: ArrestController.index(), permission: 'arrests.view' },
@@ -154,7 +151,7 @@ export const NAVIGATION: NavSection[] = [
         title: 'Security',
         items: [
             { title: 'Agency formations', icon: Shield, href: AgencyFormationController.index(), permission: 'formations.view' },
-            { title: 'Coverage reports', icon: ClipboardCheck, href: CoverageReportController.index(), permission: 'coverage.view', badge: 'coverageReview' },
+            { title: 'Security reports', icon: ClipboardCheck, href: CoverageReportController.index(), permission: 'coverage.view', badge: 'coverageReview' },
             { title: 'Organizations', icon: Building2, href: OrganizationController.index(), permission: 'organizations.view' },
         ],
     },

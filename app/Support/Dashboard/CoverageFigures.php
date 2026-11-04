@@ -14,9 +14,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
- * Coverage report figures for the dashboards (Phase 4A), always read
+ * Security report figures for the dashboards (Phase 4A), always read
  * through the jurisdiction and classification scopes: a report the viewer
- * cannot see counts as missing for them.
+ * cannot see counts as missing for them. Since Phase 11G a report submitted
+ * during the period counts whatever its period type (CoverageSchedule).
  */
 final class CoverageFigures
 {
@@ -39,8 +40,7 @@ final class CoverageFigures
 
         $type = $this->schedule->periodType();
         [$start, $end] = $this->schedule->currentPeriod();
-        $current = $this->reports()->where('lga_id', $lga->id)->where('period_type', $type->value)
-            ->where('period_start', $start->toDateString())->first();
+        $current = $this->pick($this->schedule->relevantTo($this->reports()->where('lga_id', $lga->id), $start, $end)->get());
         $latest = $this->reports()->where('lga_id', $lga->id)
             ->whereIn('status', [CoverageReportStatus::Submitted->value, CoverageReportStatus::Reviewed->value])
             ->orderByDesc('period_start')->orderByDesc('submitted_at')->first();
@@ -75,8 +75,8 @@ final class CoverageFigures
 
         $type = $this->schedule->periodType();
         [$start, $end] = $this->schedule->currentPeriod();
-        $reports = $this->reports()->where('state_id', $state->id)->where('period_type', $type->value)
-            ->where('period_start', $start->toDateString())->get()->keyBy('lga_id');
+        $reports = $this->schedule->relevantTo($this->reports()->where('state_id', $state->id), $start, $end)->get()
+            ->groupBy('lga_id')->map(fn (Collection $rows) => $this->pick($rows));
         $awaiting = $this->reports()->with('lga')->where('state_id', $state->id)
             ->where('status', CoverageReportStatus::Submitted->value)
             ->orderBy('submitted_at')->get();
@@ -119,10 +119,9 @@ final class CoverageFigures
 
         $type = $this->schedule->periodType();
         [$start, $end] = $this->schedule->lastCompletedPeriod();
-        $reports = $this->reports()->with('lga')->whereIn('state_id', $states->pluck('id')->all())
-            ->where('period_type', $type->value)->where('period_start', $start->toDateString())
-            ->get();
-        $submitted = $reports->filter(fn (CoverageReport $r) => $r->status->countsAsSubmitted());
+        // One report per LGA: the latest that counts for the period.
+        $submitted = $this->schedule->countingFor($this->reports()->with('lga')->whereIn('state_id', $states->pluck('id')->all()), $start, $end)
+            ->get()->groupBy('lga_id')->map(fn (Collection $rows) => $this->pick($rows))->filter()->values();
         $lgaCounts = Lga::query()->active()->whereIn('state_id', $states->pluck('id')->all())
             ->selectRaw('state_id, count(*) AS total')->groupBy('state_id')->toBase()->get()
             ->mapWithKeys(fn (object $row) => [(int) $row->state_id => (int) $row->total]);
@@ -153,6 +152,17 @@ final class CoverageFigures
                     ])->values()->all(),
             ])->filter(fn (array $row) => $row['lgas'] !== [])->values()->all(),
         ];
+    }
+
+    /**
+     * The report to show for an LGA and period: a submitted or reviewed one
+     * first, then the latest.
+     *
+     * @param  Collection<int, CoverageReport>  $reports
+     */
+    private function pick(Collection $reports): ?CoverageReport
+    {
+        return $reports->sortByDesc(fn (CoverageReport $r) => [$r->status->countsAsSubmitted() ? 1 : 0, $r->submitted_at?->getTimestamp() ?? 0, $r->id])->first();
     }
 
     /**

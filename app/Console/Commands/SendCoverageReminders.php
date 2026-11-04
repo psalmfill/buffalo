@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\CoverageReportStatus;
 use App\Enums\Role;
 use App\Models\Lga;
 use App\Models\State;
@@ -19,13 +18,15 @@ use Illuminate\Support\Facades\DB;
  * have passed, tells each LGA's security chief that the LGA's coverage
  * report for that period is missing, and each State Director which LGAs of
  * the state are missing it. Each goes out once per period
- * (coverage_reminders). A report counts once submitted or reviewed.
+ * (coverage_reminders). Any security report submitted during the period
+ * counts, whatever its period type (Phase 11G), as does a report for
+ * exactly that period.
  */
 class SendCoverageReminders extends Command
 {
     protected $signature = 'buffalo:coverage-reminders';
 
-    protected $description = 'Remind LGAs and State Directors of missing coverage reports';
+    protected $description = 'Remind LGAs and State Directors of missing security reports';
 
     public function handle(CoverageSchedule $schedule, NotifyRole $notify): int
     {
@@ -40,11 +41,8 @@ class SendCoverageReminders extends Command
         }
 
         $label = $type->describe($start, $end);
-        $reported = DB::table('coverage_reports')
-            ->where('period_type', $type->value)
-            ->where('period_start', $start->toDateString())
-            ->whereIn('status', [CoverageReportStatus::Submitted->value, CoverageReportStatus::Reviewed->value])
-            ->whereNull('deleted_at')
+        // Any report submitted during the period counts (Phase 11G).
+        $reported = $schedule->countingFor(DB::table('coverage_reports')->whereNull('deleted_at'), $start, $end)
             ->pluck('lga_id');
 
         $missing = Lga::query()->active()->with('state')->whereNotIn('id', $reported)->orderBy('name')->get();

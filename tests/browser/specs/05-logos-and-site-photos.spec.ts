@@ -56,9 +56,14 @@ test('site photos are uploaded, a cover is set and the order changed', async () 
     const photos = page.locator('[data-test="site-photos"] > li');
     // Reruns: delete earlier test photos (with a reason) to stay well under the 30-photo limit.
     for (let count = await photos.count(); count > 6; count--) {
-        await photos.last().getByRole('button', { name: 'Delete photo' }).click();
+        await photos
+            .last()
+            .getByRole('button', { name: 'Delete photo' })
+            .click();
         const dialog = page.getByRole('dialog');
-        await dialog.getByRole('textbox').fill('Browser check rerun: removing an earlier test photo.');
+        await dialog
+            .getByRole('textbox')
+            .fill('Browser check rerun: removing an earlier test photo.');
         await dialog.getByRole('button', { name: 'Delete' }).click();
         await expect(photos).toHaveCount(count - 1);
     }

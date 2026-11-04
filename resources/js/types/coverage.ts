@@ -1,4 +1,5 @@
-// Security coverage reports (Phase 4A). Identified by ULID only.
+// Security reports (coverage reports in code; Phase 4A, renamed in 11G).
+// Identified by ULID only.
 
 import type { ClassificationLevel } from '@/types/auth';
 import type { AgencyRef } from '@/types/formations';
@@ -9,6 +10,10 @@ export type CoverageRating = 'adequate' | 'partial' | 'inadequate' | 'critical';
 
 export type CoverageReportRow = {
     ulid: string;
+    title: string | null;
+    /** The title, or "Security report — [LGA] — [date]". */
+    display_title: string;
+    report_date: string;
     lga: NamedRef;
     state: NamedRef;
     period_type: Option;
@@ -96,3 +101,34 @@ export type TimelineEntry = {
 };
 
 export type SuggestedPeriod = { start: string; end: string; label: string };
+
+/** A photo or video on a security report (Phase 11G). */
+export type ReportAttachment = {
+    ulid: string;
+    caption: string | null;
+    type: Option;
+    mime_type: string;
+    original_filename: string;
+    size_bytes: number;
+    sha256: string;
+    captured_at: string | null;
+    captured_at_local: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    classification: { value: ClassificationLevel; label: string };
+    processing: boolean;
+    scan: Option;
+    has_thumb: boolean;
+    has_preview: boolean;
+    playable: boolean;
+    uploaded_by: string | null;
+    uploaded_at: string | null;
+    can: { update: boolean; download: boolean; delete: boolean };
+};
+
+export type ReportLimits = {
+    maxCharacters: number;
+    maxAttachments: number;
+    imageMb: number;
+    videoMb: number;
+};

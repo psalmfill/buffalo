@@ -38,7 +38,7 @@ final class SimilarPersons
                 }
 
                 if ($phone !== null) {
-                    $query->orWhereBlind('phone', 'phone_bidx', $phone);
+                    $query->orWhereIn('persons.id', PersonPhones::personIdsWithNumber($phone));
                 }
 
                 if ($dob !== null) {
@@ -58,7 +58,7 @@ final class SimilarPersons
                 $reasons[] = 'Same NIN';
             }
 
-            if ($phone !== null && $person->phone === $phone) {
+            if ($phone !== null && PersonPhones::has($person, $phone)) {
                 $reasons[] = 'Same phone number';
             }
 

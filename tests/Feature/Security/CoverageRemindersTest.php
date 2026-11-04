@@ -65,5 +65,8 @@ test('the expected period and grace days are configurable', function () {
 
     $this->artisan('buffalo:coverage-reminders')->assertSuccessful();
 
-    Notification::assertSentTo($this->world->users['lga_chief'], CoverageReportMissing::class, fn (CoverageReportMissing $n) => $n->period === 'Week of 28 Sep 2026');
+    Notification::assertSentTo($this->chiefA1b, CoverageReportMissing::class, fn (CoverageReportMissing $n) => $n->period === 'Week of 28 Sep 2026');
+    // A1a's September report was submitted on 2 October, during that week:
+    // any report submitted during the period counts (Phase 11G).
+    Notification::assertNotSentTo($this->world->users['lga_chief'], CoverageReportMissing::class);
 });

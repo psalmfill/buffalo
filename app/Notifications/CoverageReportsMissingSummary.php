@@ -28,17 +28,17 @@ final class CoverageReportsMissingSummary extends BuffaloNotification
 
     public function title(User $notifiable): string
     {
-        return 'Coverage reports overdue';
+        return 'Security reports overdue';
     }
 
     public function body(User $notifiable): string
     {
-        return count($this->lgas)." LGA(s) of {$this->state} State have no coverage report for {$this->period}: ".implode(', ', $this->lgas).'.';
+        return count($this->lgas)." LGA(s) of {$this->state} State have no security report for {$this->period}: ".implode(', ', $this->lgas).'.';
     }
 
     public function url(User $notifiable): string
     {
-        return '/coverage-reports';
+        return '/security-reports';
     }
 
     public function severity(): NotificationSeverity

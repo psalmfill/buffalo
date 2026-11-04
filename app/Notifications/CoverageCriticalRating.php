@@ -27,7 +27,7 @@ final class CoverageCriticalRating extends BuffaloNotification
 
     public function title(User $notifiable): string
     {
-        return 'Critical security coverage reported';
+        return 'Critical security security reported';
     }
 
     public function body(User $notifiable): string
@@ -37,7 +37,7 @@ final class CoverageCriticalRating extends BuffaloNotification
 
     public function url(User $notifiable): string
     {
-        return '/coverage-reports/'.$this->reportUlid;
+        return '/security-reports/'.$this->reportUlid;
     }
 
     public function severity(): NotificationSeverity

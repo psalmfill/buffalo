@@ -1,4 +1,6 @@
 import { Link, useForm } from '@inertiajs/react';
+import type { PersonPhoneNumber } from '@/types/persons';
+import ArrestController from '@/actions/App/Http/Controllers/Arrests/ArrestController';
 import { CalendarCheck, Crosshair, Pencil, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
@@ -194,11 +196,14 @@ function ReviewForm({ poi }: { poi: PoiDetail }) {
  */
 export default function PoiPanel({
     personUlid,
+    identity,
     poi,
     options,
     canDesignate,
 }: {
     personUlid: string;
+    /** The person's residential address and phone numbers (Personal details). */
+    identity?: { address: string | null; phones: PersonPhoneNumber[] };
     poi: PoiDetail | null;
     options: PoiOptions | null;
     canDesignate: boolean;
@@ -318,6 +323,155 @@ export default function PoiPanel({
                                     ? `${date(poi.last_reviewed_at)} by ${poi.last_reviewed_by ?? '—'}`
                                     : null
                             }
+                        />
+                    </dl>
+                </section>
+
+                <section
+                    className="space-y-3 rounded-lg border p-4"
+                    aria-labelledby="poi-personal"
+                    data-test="poi-personal"
+                >
+                    <h3 id="poi-personal" className="text-sm font-semibold">
+                        Personal details
+                    </h3>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <Fact label="Age" value={poi.age?.toString() ?? null} />
+                        <Fact label="Height" value={poi.height_label} />
+                        <Fact
+                            label="Marital status"
+                            value={poi.marital_status?.label ?? null}
+                        />
+                        <Fact
+                            label="Origin"
+                            value={
+                                [
+                                    poi.hometown,
+                                    poi.origin_lga
+                                        ? `${poi.origin_lga.name} LGA`
+                                        : null,
+                                    poi.origin_state
+                                        ? `${poi.origin_state.name} State`
+                                        : null,
+                                ]
+                                    .filter(Boolean)
+                                    .join(', ') || null
+                            }
+                        />
+                        {identity && (
+                            <>
+                                <div className="sm:col-span-2">
+                                    <Fact
+                                        label="Residential address"
+                                        value={identity.address}
+                                    />
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <Fact
+                                        label="Phone numbers"
+                                        value={
+                                            identity.phones
+                                                .map(
+                                                    (p) =>
+                                                        `${p.number} (${p.label.label}${p.is_primary ? ', primary' : ''})`,
+                                                )
+                                                .join('\n') || null
+                                        }
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </dl>
+                </section>
+
+                <section
+                    className="space-y-3 rounded-lg border p-4"
+                    aria-labelledby="poi-physical"
+                    data-test="poi-physical"
+                >
+                    <h3 id="poi-physical" className="text-sm font-semibold">
+                        Physical description
+                    </h3>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <Fact label="Height" value={poi.height_label} />
+                        <Fact
+                            label="Colour of hair"
+                            value={poi.hair_colour?.label ?? null}
+                        />
+                        <Fact
+                            label="Colour of eyes"
+                            value={poi.eye_colour?.label ?? null}
+                        />
+                        <Fact
+                            label="Tribal marks"
+                            value={
+                                [
+                                    poi.has_tribal_marks?.label,
+                                    poi.tribal_marks_description,
+                                ]
+                                    .filter(Boolean)
+                                    .join(': ') || null
+                            }
+                        />
+                    </dl>
+                </section>
+
+                <section
+                    className="space-y-3 rounded-lg border p-4"
+                    aria-labelledby="poi-record"
+                    data-test="poi-criminal-record"
+                >
+                    <h3 id="poi-record" className="text-sm font-semibold">
+                        Criminal record
+                    </h3>
+                    <RichTextView
+                        html={poi.criminal_record}
+                        empty="None recorded."
+                        className="text-sm"
+                    />
+                    {poi.arrests && poi.arrests.length > 0 && (
+                        <div className="space-y-1">
+                            <h4 className="text-xs text-muted-foreground">
+                                Arrests in BUFFALO ({poi.arrests.length})
+                            </h4>
+                            <ul className="space-y-1 text-sm">
+                                {poi.arrests.map((arrest) => (
+                                    <li key={arrest.ulid}>
+                                        <Link
+                                            href={ArrestController.show(
+                                                arrest.ulid,
+                                            )}
+                                            className="hover:underline"
+                                        >
+                                            {arrest.reference_no}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </section>
+
+                <section
+                    className="space-y-3 rounded-lg border border-amber-500/50 p-4"
+                    aria-labelledby="poi-sensitive"
+                    data-test="poi-sensitive"
+                >
+                    <h3 id="poi-sensitive" className="text-sm font-semibold">
+                        Sensitive details
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                        Stored encrypted, never searchable, and never included
+                        in any list, export or printed report.
+                    </p>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <Fact
+                            label="Religion"
+                            value={poi.sensitive.religion?.label ?? null}
+                        />
+                        <Fact
+                            label="Political affiliations"
+                            value={poi.sensitive.political_affiliations}
                         />
                     </dl>
                 </section>

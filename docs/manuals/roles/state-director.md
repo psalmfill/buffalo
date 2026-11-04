@@ -12,7 +12,7 @@ and who outside the state may see it.
 
 ## Your daily routine
 
-1. **Dashboard:** incidents by LGA, items waiting for review, coverage status
+1. **Dashboard:** incidents by LGA, items waiting for review, security report status
    per LGA, sites without government security.
 2. **Incidents:** verify or return submitted incidents within their deadlines;
    escalate to national level when needed; close resolved incidents
@@ -24,7 +24,7 @@ and who outside the state may see it.
    states or LGAs when their area reaches them
    ([Threat reports and dissemination](../guides/threats-and-dissemination.md)).
    Act on BUFFALO's daily "not shared" alerts.
-5. **Coverage reports:** review, return or mark reviewed.
+5. **Security reports:** review, return or mark reviewed.
 6. **Suggested blackspots:** accept or dismiss the night's suggestions.
 7. **State profile:** keep it current (States & LGAs → States opens your
    state): history, economy, terrain, roads, borders (neighbouring states,

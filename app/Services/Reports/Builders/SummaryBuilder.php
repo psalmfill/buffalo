@@ -134,7 +134,7 @@ final class SummaryBuilder implements ReportBuilder
         }
 
         if ($run->report_type === ReportType::Weekly && $user->checkPermissionTo(Permission::CoverageView->value)) {
-            $data['sections'][] = ['title' => 'Coverage', 'charts' => [$this->coverage->compliance($user, $filters), $this->coverage->ratings($user, $filters)]];
+            $data['sections'][] = ['title' => 'Security reports', 'charts' => [$this->coverage->compliance($user, $filters), $this->coverage->ratings($user, $filters)]];
         }
 
         return $this->pdf->render('reports.summary', $data, $title, $run, $user, $levels);

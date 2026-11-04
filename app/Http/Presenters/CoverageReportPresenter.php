@@ -15,7 +15,8 @@ use App\Support\Jurisdiction\OfficerNames;
 use Spatie\Activitylog\Models\Activity;
 
 /**
- * Coverage reports for the browser (Phase 4A): ULIDs and labels, never ids.
+ * Security reports (coverage reports in code) for the browser (Phase 4A,
+ * 11G): ULIDs and labels, never ids.
  */
 final class CoverageReportPresenter
 {
@@ -37,6 +38,9 @@ final class CoverageReportPresenter
     {
         return [
             'ulid' => $report->ulid,
+            'title' => $report->title,
+            'display_title' => $report->displayTitle(),
+            'report_date' => $report->report_date->toDateString(),
             'lga' => ['ulid' => $report->lga->ulid, 'name' => $report->lga->name],
             'state' => ['ulid' => $report->state->ulid, 'name' => $report->state->name],
             'period_type' => self::option($report->period_type),
@@ -111,7 +115,7 @@ final class CoverageReportPresenter
     }
 
     /**
-     * The workflow history (Phase 4A; also the coverage report PDF, 7D).
+     * The workflow history (Phase 4A; also the security report PDF, 7D).
      *
      * @return list<array{event: string, label: string, by: string|null, at: string|null, note: string|null}>
      */

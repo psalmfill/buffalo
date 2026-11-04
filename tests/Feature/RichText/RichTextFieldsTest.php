@@ -161,7 +161,7 @@ function richScenarios(): array
         },
         'coverage report' => function () use ($save, $latest) {
             test()->travelTo(now()->setDate(2026, 10, 10)->setTime(10, 0));
-            $save(test()->chief, 'post', '/coverage-reports', [
+            $save(test()->chief, 'post', '/security-reports', [
                 'lga' => test()->lga->ulid, 'period_type' => 'monthly', 'period_start' => '2026-09-01', 'period_end' => '2026-09-30',
                 'overall_rating' => 'partial', 'summary' => RICH_EVIL, 'gaps_identified' => RICH_EVIL, 'recommendations' => RICH_EVIL, 'classification' => 'restricted',
                 'deployments' => [['agency' => test()->agency->ulid, 'personnel_count' => 40, 'vehicles_count' => 4, 'patrol_frequency' => 'daily', 'communities' => [test()->community->ulid], 'areas_covered' => 'Town centre']],

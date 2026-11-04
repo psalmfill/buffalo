@@ -40,7 +40,7 @@ enum ReportType: string
             self::Incident => 'Incident report',
             self::LgaProfile => 'LGA profile',
             self::StateProfile => 'State profile',
-            self::Coverage => 'Coverage report',
+            self::Coverage => 'Security report',
             self::Analytics => 'Analytics report',
             self::ListExport => 'List export',
             self::Flashpoint => 'Flashpoint',

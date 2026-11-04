@@ -102,6 +102,7 @@ final class RouteInventory
     public const REDIRECTS = [
         'GET persons/search' => 'Redirect to the persons list (a reload after a search POST)',
         'GET|POST|PUT|PATCH|DELETE|OPTIONS settings' => 'Redirect to settings/security',
+        'GET|POST|PUT|PATCH|DELETE|OPTIONS coverage-reports/{path?}' => 'Permanent redirect of old coverage report links to security-reports/ (Phase 11G); the target routes authorise',
     ];
 
     private const AUTH_CALLS = '/\$this->authorize(?:Resource)?\s*\(|\bGate::(?:authorize|allows|denies|check|inspect|any|none)\s*\(|->(?:can|cannot|canAny|checkPermissionTo|hasPermissionTo)\s*\(/';

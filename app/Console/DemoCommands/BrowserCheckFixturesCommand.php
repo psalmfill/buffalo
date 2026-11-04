@@ -17,6 +17,7 @@ use App\Models\Person;
 use App\Models\ThreatType;
 use App\Models\User;
 use App\Support\Jurisdiction\JurisdictionContext;
+use App\Support\Persons\PersonPhones;
 use App\Support\Uat\Uat;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -115,14 +116,20 @@ class BrowserCheckFixturesCommand extends Command
             if (! Person::query()->where('first_name', 'Bisi')->where('last_name', 'Checkperson')->exists()) {
                 $person = app(SavePerson::class)->create($lga, null, [
                     'first_name' => 'Bisi', 'last_name' => 'Checkperson', 'gender' => 'female',
-                    'date_of_birth' => '1991-03-02', 'nin' => '12312312312', 'phone' => '08030000077',
+                    'date_of_birth' => '1991-03-02', 'nin' => '12312312312',
                     'occupation' => 'Driver', 'description' => '<p>Synthetic UAT person (browser check).</p>',
                     'classification' => 'restricted',
-                ], [], $sd);
+                ], [], $sd, [['number' => '+2348030000077', 'label' => 'mobile', 'is_primary' => true]]);
                 app(DesignatePersonOfInterest::class)($person, [
                     'risk_level' => 'medium', 'status' => 'at_large', 'offence_categories' => [],
                     'known_offences' => '<p>Synthetic offences.</p>',
                 ], 'Browser check fixture.', $sd);
+            }
+
+            // A second number (Phase 11G.4): global search finds the person by it.
+            $bisi = Person::query()->where('first_name', 'Bisi')->where('last_name', 'Checkperson')->first();
+            if ($bisi !== null) {
+                PersonPhones::add($bisi, '+2348030000078', $sd);
             }
         });
 

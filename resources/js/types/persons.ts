@@ -36,7 +36,7 @@ export type PersonDetail = PersonRow & {
     date_of_birth: string | null;
     approximate_age: number | null;
     nin: string | null;
-    phone: string | null;
+    phones: PersonPhoneNumber[];
     address: string | null;
     occupation: string | null;
     nationality: string;
@@ -206,4 +206,12 @@ export type MergedRecord = {
     undoDeadline: string | null;
     can: { undo: boolean };
     edits: MergeEdit[];
+};
+
+/** One of a person's phone numbers (Phase 11G.4). */
+export type PersonPhoneNumber = {
+    ulid: string;
+    number: string;
+    label: { value: string; label: string };
+    is_primary: boolean;
 };

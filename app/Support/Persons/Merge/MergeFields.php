@@ -11,7 +11,8 @@ use App\Support\RichText\RichText;
  *
  * A field "has a value" when it is not null/blank (and, for gender, not
  * "unknown"). Where only one record has a value it is kept; where both
- * differ the executor chooses. Encrypted fields are always read and
+ * differ the executor chooses. Phone numbers are not a field: all of
+ * them move to the survivor (Phase 11G.4, MergePersons). Encrypted fields are always read and
  * written through the model (plaintext in memory, re-encrypted on save, so
  * ciphertext and blind indexes are regenerated).
  */
@@ -26,7 +27,6 @@ final class MergeFields
         'date_of_birth' => 'Date of birth',
         'approximate_age' => 'Approximate age',
         'nin' => 'NIN',
-        'phone' => 'Phone number',
         'address' => 'Address',
         'occupation' => 'Occupation',
         'nationality' => 'Nationality',
@@ -35,7 +35,7 @@ final class MergeFields
     ];
 
     /** Encrypted at rest (the review page shows them; undo never lists their values). */
-    public const PROTECTED = ['date_of_birth', 'nin', 'phone', 'address'];
+    public const PROTECTED = ['date_of_birth', 'nin', 'address'];
 
     /**
      * The stored value of a field (community: its id).
@@ -99,7 +99,6 @@ final class MergeFields
             'date_of_birth' => $person->date_of_birth,
             'approximate_age' => $person->approximate_age,
             'nin' => $person->nin,
-            'phone' => $person->phone,
             'address' => $person->address,
             'occupation' => $person->occupation,
             'nationality' => $person->nationality,
@@ -132,6 +131,6 @@ final class MergeFields
         $value = trim((string) preg_replace('/\s+/', ' ', $value));
 
         // Names and free text: case-insensitive; NIN/phone are already normalised.
-        return in_array($field, ['nin', 'phone', 'date_of_birth'], true) ? $value : mb_strtolower($value);
+        return in_array($field, ['nin', 'date_of_birth'], true) ? $value : mb_strtolower($value);
     }
 }

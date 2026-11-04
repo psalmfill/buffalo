@@ -67,7 +67,7 @@ function coveragePayload(array $overrides = []): array
 
 function coverageReport(User $by, array $overrides = []): CoverageReport
 {
-    CrossFixtures::signIn($by)->post('/coverage-reports', coveragePayload($overrides))->assertSessionHasNoErrors();
+    CrossFixtures::signIn($by)->post('/security-reports', coveragePayload($overrides))->assertSessionHasNoErrors();
     CrossFixtures::system();
 
     return CoverageReport::query()->latest('id')->firstOrFail();
@@ -120,7 +120,7 @@ test('classification narrows reports and their deployments', function () {
         ->and($visible('state_director'))->toBe([['confidential', 'restricted', 'secret'], ['confidential', 'restricted', 'secret']])
         ->and($visible('super_admin'))->toBe([[], []]);
 
-    CrossFixtures::signIn($this->chief)->post('/coverage-reports', coveragePayload(['classification' => 'confidential']))
+    CrossFixtures::signIn($this->chief)->post('/security-reports', coveragePayload(['classification' => 'confidential']))
         ->assertSessionHasErrors('classification');
 });
 
@@ -131,7 +131,7 @@ test('classification narrows reports and their deployments', function () {
 */
 
 test('regular periods must match their boundaries', function (string $type, string $start, string $end, bool $valid) {
-    $response = CrossFixtures::signIn($this->chief)->post('/coverage-reports', coveragePayload(['period_type' => $type, 'period_start' => $start, 'period_end' => $end]));
+    $response = CrossFixtures::signIn($this->chief)->post('/security-reports', coveragePayload(['period_type' => $type, 'period_start' => $start, 'period_end' => $end]));
 
     $valid ? $response->assertSessionHasNoErrors() : $response->assertSessionHasErrors('period_start');
 })->with([
@@ -152,17 +152,17 @@ test('the database enforces period boundaries too', function () {
 test('one report per LGA and period; ad hoc reports are not limited', function () {
     coverageReport($this->chief);
 
-    CrossFixtures::signIn($this->chief)->post('/coverage-reports', coveragePayload())
+    CrossFixtures::signIn($this->chief)->post('/security-reports', coveragePayload())
         ->assertSessionHasErrors(['period_start' => "{$this->lga->name} LGA already has a Monthly report for September 2026."]);
 
-    CrossFixtures::signIn($this->chief)->post('/coverage-reports', coveragePayload(['period_type' => 'ad_hoc']))->assertSessionHasNoErrors();
-    CrossFixtures::signIn($this->chief)->post('/coverage-reports', coveragePayload(['period_type' => 'ad_hoc']))->assertSessionHasNoErrors();
+    CrossFixtures::signIn($this->chief)->post('/security-reports', coveragePayload(['period_type' => 'ad_hoc']))->assertSessionHasNoErrors();
+    CrossFixtures::signIn($this->chief)->post('/security-reports', coveragePayload(['period_type' => 'ad_hoc']))->assertSessionHasNoErrors();
 
     // A discarded draft frees the period.
     CrossFixtures::system();
     $first = CoverageReport::query()->where('period_type', 'monthly')->sole();
-    CrossFixtures::signIn($this->chief)->delete("/coverage-reports/{$first->ulid}")->assertRedirect();
-    CrossFixtures::signIn($this->chief)->post('/coverage-reports', coveragePayload())->assertSessionHasNoErrors();
+    CrossFixtures::signIn($this->chief)->delete("/security-reports/{$first->ulid}")->assertRedirect();
+    CrossFixtures::signIn($this->chief)->post('/security-reports', coveragePayload())->assertSessionHasNoErrors();
 });
 
 test('covered communities must be in the LGA; a formation must match the agency and state', function () {
@@ -174,13 +174,13 @@ test('covered communities must be in the LGA; a formation must match the agency 
 
     $row = coveragePayload()['deployments'][0];
 
-    CrossFixtures::signIn($this->sd)->post('/coverage-reports', coveragePayload(['deployments' => [[...$row, 'communities' => [$elsewhere->ulid]]]]))
+    CrossFixtures::signIn($this->sd)->post('/security-reports', coveragePayload(['deployments' => [[...$row, 'communities' => [$elsewhere->ulid]]]]))
         ->assertSessionHasErrors('deployments.0.communities');
-    CrossFixtures::signIn($this->sd)->post('/coverage-reports', coveragePayload(['deployments' => [[...$row, 'formation' => $armyBase->ulid]]]))
+    CrossFixtures::signIn($this->sd)->post('/security-reports', coveragePayload(['deployments' => [[...$row, 'formation' => $armyBase->ulid]]]))
         ->assertSessionHasErrors('deployments.0.formation');
-    CrossFixtures::signIn($this->sd)->post('/coverage-reports', coveragePayload(['deployments' => [[...$row, 'formation' => $otherState->ulid]]]))
+    CrossFixtures::signIn($this->sd)->post('/security-reports', coveragePayload(['deployments' => [[...$row, 'formation' => $otherState->ulid]]]))
         ->assertSessionHasErrors('deployments.0.formation');
-    CrossFixtures::signIn($this->sd)->post('/coverage-reports', coveragePayload(['deployments' => [[...$row, 'formation' => $ok->ulid]]]))
+    CrossFixtures::signIn($this->sd)->post('/security-reports', coveragePayload(['deployments' => [[...$row, 'formation' => $ok->ulid]]]))
         ->assertSessionHasNoErrors();
 
     // The database refuses both too.
@@ -190,23 +190,21 @@ test('covered communities must be in the LGA; a formation must match the agency 
         ->and(fn () => DB::table('coverage_deployment_communities')->insert(['coverage_report_deployment_id' => $deployment->id, 'community_id' => $elsewhere->id, 'lga_id' => $elsewhere->lga_id]))->toThrow(QueryException::class);
 });
 
-test('submitting requires a rating, a summary, gaps unless adequate, and a deployment unless critical', function () {
+test('submitting requires only the report text (Phase 11G)', function () {
     $draft = coverageReport($this->chief, ['overall_rating' => null, 'summary' => null, 'gaps_identified' => null, 'deployments' => []]);
-    $url = "/coverage-reports/{$draft->ulid}";
-    $base = ['classification' => 'restricted', 'recommendations' => null, 'submit' => true];
+    $url = "/security-reports/{$draft->ulid}";
+    $base = ['classification' => 'restricted', 'recommendations' => null, 'submit' => true, 'deployments' => []];
 
-    CrossFixtures::signIn($this->chief)->put($url, [...$base, 'overall_rating' => null, 'summary' => null, 'gaps_identified' => null, 'deployments' => []])
-        ->assertSessionHasErrors(['overall_rating', 'summary', 'deployments']);
-    CrossFixtures::signIn($this->chief)->put($url, [...$base, 'overall_rating' => 'inadequate', 'summary' => 'x', 'gaps_identified' => null, 'deployments' => coveragePayload()['deployments']])
-        ->assertSessionHasErrors('gaps_identified');
-    CrossFixtures::signIn($this->chief)->put($url, [...$base, 'overall_rating' => 'adequate', 'summary' => 'x', 'gaps_identified' => null, 'deployments' => coveragePayload()['deployments']])
+    CrossFixtures::signIn($this->chief)->put($url, [...$base, 'summary' => '<p>   </p>'])
+        ->assertSessionHasErrors('summary');
+    expect($draft->fresh()->status)->toBe(CoverageReportStatus::Draft);
+
+    // No rating, no gaps, no deployments: the text alone is enough.
+    CrossFixtures::signIn($this->chief)->put($url, [...$base, 'overall_rating' => null, 'summary' => '<p>Quiet week; one checkpoint unmanned.</p>', 'gaps_identified' => null])
         ->assertSessionHasNoErrors();
 
-    expect($draft->fresh()->status)->toBe(CoverageReportStatus::Submitted);
-
-    // Critical: no deployments needed.
-    $critical = coverageReport($this->chief, ['period_type' => 'ad_hoc', 'overall_rating' => 'critical', 'deployments' => [], 'submit' => true]);
-    expect($critical->status)->toBe(CoverageReportStatus::Submitted);
+    expect($draft->fresh()->status)->toBe(CoverageReportStatus::Submitted)
+        ->and($draft->fresh()->overall_rating)->toBeNull();
 });
 
 /*
@@ -216,17 +214,17 @@ test('submitting requires a rating, a summary, gaps unless adequate, and a deplo
 */
 
 test('who may create: the LGA chief for their own LGA, a State Director or Deputy for any LGA of the state', function () {
-    CrossFixtures::signIn($this->chief)->post('/coverage-reports', coveragePayload(['lga' => $this->world->lgas['A1b']->ulid]))->assertSessionHasErrors('lga');
+    CrossFixtures::signIn($this->chief)->post('/security-reports', coveragePayload(['lga' => $this->world->lgas['A1b']->ulid]))->assertSessionHasErrors('lga');
 
     // A1b has no chief: the State Director reports for it.
-    CrossFixtures::signIn($this->sd)->post('/coverage-reports', coveragePayload(['lga' => $this->world->lgas['A1b']->ulid, 'deployments' => []]))->assertSessionHasNoErrors();
-    CrossFixtures::signIn($this->dsd)->post('/coverage-reports', coveragePayload(['lga' => $this->world->lgas['A1b']->ulid, 'period_type' => 'ad_hoc', 'deployments' => []]))->assertSessionHasNoErrors();
+    CrossFixtures::signIn($this->sd)->post('/security-reports', coveragePayload(['lga' => $this->world->lgas['A1b']->ulid, 'deployments' => []]))->assertSessionHasNoErrors();
+    CrossFixtures::signIn($this->dsd)->post('/security-reports', coveragePayload(['lga' => $this->world->lgas['A1b']->ulid, 'period_type' => 'ad_hoc', 'deployments' => []]))->assertSessionHasNoErrors();
 
     foreach (['director_general', 'ddg_national', 'super_admin'] as $who) {
-        CrossFixtures::signIn($this->world->users[$who])->get('/coverage-reports/create')->assertForbidden();
+        CrossFixtures::signIn($this->world->users[$who])->get('/security-reports/create')->assertForbidden();
     }
 
-    CrossFixtures::signIn($this->sd)->post('/coverage-reports', coveragePayload(['lga' => $this->world->lgas['B1']->ulid]))->assertSessionHasErrors('lga');
+    CrossFixtures::signIn($this->sd)->post('/security-reports', coveragePayload(['lga' => $this->world->lgas['B1']->ulid]))->assertSessionHasErrors('lga');
 });
 
 test('who may edit: the creator or the State Director or Deputy, while draft or returned', function () {
@@ -239,12 +237,12 @@ test('who may edit: the creator or the State Director or Deputy, while draft or 
         ->and($otherChief->can('update', $report))->toBeFalse()
         ->and($this->world->users['director_general']->can('update', $report))->toBeFalse();
 
-    CrossFixtures::signIn($otherChief)->put("/coverage-reports/{$report->ulid}", ['classification' => 'restricted', 'deployments' => []])->assertForbidden();
+    CrossFixtures::signIn($otherChief)->put("/security-reports/{$report->ulid}", ['classification' => 'restricted', 'deployments' => []])->assertForbidden();
 });
 
 test('the full workflow: submit, return with a reason, resubmit, review; then the report is locked', function () {
     $report = coverageReport($this->chief, ['submit' => true]);
-    $url = "/coverage-reports/{$report->ulid}";
+    $url = "/security-reports/{$report->ulid}";
 
     expect($report->status)->toBe(CoverageReportStatus::Submitted)
         ->and($report->submitted_by)->toBe($this->chief->id);
@@ -307,12 +305,12 @@ test('the full workflow: submit, return with a reason, resubmit, review; then th
 test('only the creator discards, and only drafts', function () {
     $draft = coverageReport($this->chief);
 
-    CrossFixtures::signIn($this->sd)->delete("/coverage-reports/{$draft->ulid}")->assertForbidden();
-    CrossFixtures::signIn($this->chief)->delete("/coverage-reports/{$draft->ulid}")->assertRedirect('/coverage-reports');
+    CrossFixtures::signIn($this->sd)->delete("/security-reports/{$draft->ulid}")->assertForbidden();
+    CrossFixtures::signIn($this->chief)->delete("/security-reports/{$draft->ulid}")->assertRedirect('/security-reports');
     expect($draft->fresh()->trashed())->toBeTrue();
 
     $submitted = coverageReport($this->chief, ['submit' => true]);
-    CrossFixtures::signIn($this->chief)->delete("/coverage-reports/{$submitted->ulid}")->assertForbidden();
+    CrossFixtures::signIn($this->chief)->delete("/security-reports/{$submitted->ulid}")->assertForbidden();
     expect($submitted->fresh()->trashed())->toBeFalse();
 });
 
@@ -321,7 +319,7 @@ test('editing replaces the deployment list: rows kept, added and removed', funct
     CrossFixtures::system();
     $kept = CoverageReportDeployment::query()->sole();
 
-    CrossFixtures::signIn($this->chief)->put("/coverage-reports/{$report->ulid}", [
+    CrossFixtures::signIn($this->chief)->put("/security-reports/{$report->ulid}", [
         'classification' => 'restricted',
         'deployments' => [
             ['ulid' => $kept->ulid, 'agency' => $this->agency->ulid, 'personnel_count' => 55, 'patrol_frequency' => 'continuous', 'communities' => [$this->communities[2]->ulid]],
@@ -334,7 +332,7 @@ test('editing replaces the deployment list: rows kept, added and removed', funct
         ->and($kept->fresh()->personnel_count)->toBe(55)
         ->and($kept->fresh()->communities->pluck('id')->all())->toBe([$this->communities[2]->id]);
 
-    CrossFixtures::signIn($this->chief)->put("/coverage-reports/{$report->ulid}", ['classification' => 'restricted', 'deployments' => []])->assertSessionHasNoErrors();
+    CrossFixtures::signIn($this->chief)->put("/security-reports/{$report->ulid}", ['classification' => 'restricted', 'deployments' => []])->assertSessionHasNoErrors();
     CrossFixtures::system();
     expect(CoverageReportDeployment::query()->where('coverage_report_id', $report->id)->count())->toBe(0)
         ->and(CoverageReportDeployment::withTrashed()->where('coverage_report_id', $report->id)->count())->toBe(2);
@@ -377,7 +375,7 @@ test('totals, uncovered communities and comparison with the previous report', fu
         ->and($comparison['rating'])->toBe(['previous' => 'Adequate', 'current' => 'Inadequate', 'change' => 'worsened'])
         ->and(array_column($comparison['newly_uncovered'], 'name'))->toBe(['Bariga']);
 
-    CrossFixtures::signIn($this->chief)->get("/coverage-reports/{$september->ulid}")
+    CrossFixtures::signIn($this->chief)->get("/security-reports/{$september->ulid}")
         ->assertInertia(fn (Assert $page) => $page->where('totals.personnel', 42)->has('uncovered', 2)->where('comparison.personnel_change', -18)->where('communityCount', 3));
 });
 
@@ -415,9 +413,9 @@ test('submission notifies exactly the state leads; a critical rating also alerts
 test('the sidebar badge counts reports awaiting the reviewer', function () {
     coverageReport($this->chief, ['submit' => true]);
 
-    CrossFixtures::signIn($this->sd)->get('/coverage-reports')->assertInertia(fn (Assert $page) => $page->where('badges.coverageReview', 1)->where('reports.data.0.can_review', true));
-    CrossFixtures::signIn($this->chief)->get('/coverage-reports')->assertInertia(fn (Assert $page) => $page->where('badges.coverageReview', 0));
-    CrossFixtures::signIn(User::factory()->stateDirector($this->world->states['B1'])->create())->get('/coverage-reports')->assertInertia(fn (Assert $page) => $page->where('badges.coverageReview', 0));
+    CrossFixtures::signIn($this->sd)->get('/security-reports')->assertInertia(fn (Assert $page) => $page->where('badges.coverageReview', 1)->where('reports.data.0.can_review', true));
+    CrossFixtures::signIn($this->chief)->get('/security-reports')->assertInertia(fn (Assert $page) => $page->where('badges.coverageReview', 0));
+    CrossFixtures::signIn(User::factory()->stateDirector($this->world->states['B1'])->create())->get('/security-reports')->assertInertia(fn (Assert $page) => $page->where('badges.coverageReview', 0));
 });
 
 test('dashboards show coverage figures within jurisdiction and classification', function () {
@@ -433,7 +431,9 @@ test('dashboards show coverage figures within jurisdiction and classification', 
     CrossFixtures::signIn($this->chief)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
         ->where('coverage.period', 'October 2026')
         ->where('coverage.due', '2026-11-05')
-        ->where('coverage.current.status.value', 'draft')
+        // The September report was submitted in October: any report
+        // submitted during the period counts for it (Phase 11G).
+        ->where('coverage.current.status.value', 'submitted')
         ->where('coverage.lastRating.value', 'critical')
         ->where('coverage.uncovered.count', 2));
 
@@ -441,7 +441,7 @@ test('dashboards show coverage figures within jurisdiction and classification', 
     $row = fn (array $lgas, string $key) => collect($lgas)->firstWhere('lga.ulid', $this->world->lgas[$key]->ulid);
     CrossFixtures::signIn($this->sd)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
         ->has('coverage.lgas', 2)
-        ->where('coverage.lgas', fn ($lgas) => $row($lgas->all(), 'A1a')['status']['value'] === 'draft'
+        ->where('coverage.lgas', fn ($lgas) => $row($lgas->all(), 'A1a')['status']['value'] === 'submitted'
             && $row($lgas->all(), 'A1b')['status']['value'] === 'draft'
             && $row($lgas->all(), 'A1b')['report'] === $secret->ulid));
     // The Deputy cannot see the secret report: it counts as missing.
@@ -464,9 +464,9 @@ test('dashboards show coverage figures within jurisdiction and classification', 
 
 test('an LGA chief sees who at state level returned their report', function () {
     $report = coverageReport($this->chief, ['submit' => true]);
-    CrossFixtures::signIn($this->sd)->post("/coverage-reports/{$report->ulid}/return", ['reason' => 'Add the vehicles.'])->assertRedirect();
+    CrossFixtures::signIn($this->sd)->post("/security-reports/{$report->ulid}/return", ['reason' => 'Add the vehicles.'])->assertRedirect();
 
-    CrossFixtures::signIn($this->chief)->get("/coverage-reports/{$report->ulid}")->assertInertia(fn (Assert $page) => $page
+    CrossFixtures::signIn($this->chief)->get("/security-reports/{$report->ulid}")->assertInertia(fn (Assert $page) => $page
         ->where('report.returned_by.name', $this->sd->name)
         ->where('timeline.2.label', 'Returned for changes')
         ->where('timeline.2.by', $this->sd->name));

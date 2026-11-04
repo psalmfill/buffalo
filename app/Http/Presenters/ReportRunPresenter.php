@@ -92,7 +92,7 @@ final class ReportRunPresenter
             ReportType::Incident => Incident::query()->where('ulid', (string) ($p['incident'] ?? ''))->value('reference_no') ?? 'An incident',
             ReportType::LgaProfile => (Lga::query()->where('ulid', (string) ($p['lga'] ?? ''))->value('name') ?? 'An').' LGA',
             ReportType::StateProfile => (State::query()->where('ulid', (string) ($p['state'] ?? ''))->value('name') ?? 'A').' State',
-            ReportType::Coverage => ($r = CoverageReport::query()->with('lga')->where('ulid', (string) ($p['report'] ?? ''))->first()) === null ? 'A coverage report' : $r->lga->name.' LGA · '.$r->periodLabel(),
+            ReportType::Coverage => ($r = CoverageReport::query()->with('lga')->where('ulid', (string) ($p['report'] ?? ''))->first()) === null ? 'A security report' : $r->displayTitle(),
             ReportType::Analytics => (app(Analytics::class)->area($user, (string) ($p['tab'] ?? ''))?->label() ?? 'Analytics'),
             ReportType::ListExport => (ListExporters::find((string) ($p['list'] ?? ''))?->label() ?? 'A list')
                 .(count((array) ($p['filters'] ?? [])) === 0 ? ' · no filters' : ' · '.count((array) $p['filters']).' filter(s) applied'),

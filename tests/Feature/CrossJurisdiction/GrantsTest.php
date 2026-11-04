@@ -68,7 +68,7 @@ test('a profile grant shows the profile only; no NIN, phone, address, place or l
     $person = $response->inertiaProps('person');
 
     expect($response->inertiaProps('tabs'))->toBe(['profile'])
-        ->and($person)->not->toHaveKeys(['nin', 'phone', 'address'])
+        ->and($person)->not->toHaveKeys(['nin', 'phone', 'phones', 'address'])
         ->and($person['state'])->toBeNull()
         ->and($person['lga'])->toBeNull()
         ->and($response->inertiaProps('grant.scope.value'))->toBe('profile')

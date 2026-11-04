@@ -11,9 +11,11 @@ use App\Enums\CoveragePeriodType;
 use App\Http\Controllers\Controller;
 use App\Http\Presenters\AgencyFormationPresenter;
 use App\Http\Presenters\CoverageReportPresenter;
+use App\Http\Presenters\ReportAttachmentPresenter;
 use App\Http\Requests\Security\CoverageReportRequest;
 use App\Models\Community;
 use App\Models\CoverageReport;
+use App\Models\CoverageReportAttachment;
 use App\Models\CoverageReportDeployment;
 use App\Models\Lga;
 use App\Models\State;
@@ -31,10 +33,11 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Security coverage reports (Phase 4A). {report} is bound through the
- * jurisdiction and classification scopes. Saving and submitting share one
- * form (`submit`); return, review and discard are separate actions. Every
- * view is access-logged.
+ * Security reports (Phase 4A as "security reports"; renamed and simplified
+ * in Phase 11G). {report} is bound through the jurisdiction and
+ * classification scopes. Saving and submitting share one form (`submit`);
+ * return, review and discard are separate actions. Every view is
+ * access-logged, and so is every attachment listed on the page.
  */
 class CoverageReportController extends Controller
 {
@@ -102,7 +105,7 @@ class CoverageReportController extends Controller
         }
 
         return redirect()->route('coverage-reports.show', $report)
-            ->with('toast', ['type' => 'success', 'message' => $request->submitting() ? 'Coverage report submitted.' : 'Draft saved.']);
+            ->with('toast', ['type' => 'success', 'message' => $request->submitting() ? 'Security report submitted.' : 'Draft saved.']);
     }
 
     public function show(Request $request, CoverageReport $report, CoverageAnalysis $analysis): Response
@@ -119,12 +122,19 @@ class CoverageReportController extends Controller
             ->where('coverage_report_id', $report->id)
             ->orderBy('id')
             ->get();
-        $uncovered = $analysis->uncovered($report);
+        // Computed figures only when deployments were entered (Phase 11G).
+        $hasDeployments = $deployments->isNotEmpty();
+        $uncovered = $hasDeployments ? $analysis->uncovered($report) : collect();
+        $attachments = ReportAttachmentPresenter::forReport($report, $user);
+        CoverageReportAttachment::query()->whereIn('ulid', array_column($attachments, 'ulid'))->get()
+            ->each(fn (CoverageReportAttachment $a) => $a->recordAccess(context: 'report_page'));
 
         return Inertia::render('coverage-reports/show', [
             'report' => CoverageReportPresenter::detail($report),
             'deployments' => $deployments->map(fn (CoverageReportDeployment $d) => CoverageReportPresenter::deployment($d))->values(),
-            'totals' => $analysis->totals($report),
+            'attachments' => $attachments,
+            'limits' => self::limits(),
+            'totals' => $hasDeployments ? $analysis->totals($report) : null,
             'uncovered' => $uncovered->map(fn (Community $c) => [
                 'ulid' => $c->ulid,
                 'name' => $c->name,
@@ -132,7 +142,7 @@ class CoverageReportController extends Controller
                 'longitude' => $c->getAttribute('longitude') === null ? null : (float) $c->getAttribute('longitude'),
             ])->values(),
             'communityCount' => Community::query()->where('lga_id', $report->lga_id)->count(),
-            'comparison' => $analysis->comparison($report),
+            'comparison' => $hasDeployments ? $analysis->comparison($report) : null,
             'timeline' => CoverageReportPresenter::timeline($report),
             'map' => MapView::for($report->lga),
             'can' => [
@@ -140,6 +150,7 @@ class CoverageReportController extends Controller
                 'submit' => $user->can('submit', $report),
                 'review' => $user->can('review', $report),
                 'delete' => $user->can('delete', $report),
+                'addAttachment' => $user->can('upload', [CoverageReportAttachment::class, $report]),
             ],
         ]);
     }
@@ -165,7 +176,7 @@ class CoverageReportController extends Controller
         }
 
         return redirect()->route('coverage-reports.show', $report)
-            ->with('toast', ['type' => 'success', 'message' => $request->submitting() ? 'Coverage report submitted.' : 'Changes saved.']);
+            ->with('toast', ['type' => 'success', 'message' => $request->submitting() ? 'Security report submitted.' : 'Changes saved.']);
     }
 
     public function returnReport(Request $request, CoverageReport $report, ReturnCoverageReport $return): RedirectResponse
@@ -212,6 +223,8 @@ class CoverageReportController extends Controller
 
         return Inertia::render('coverage-reports/form', [
             'report' => $report === null ? null : CoverageReportPresenter::detail($report),
+            'attachments' => $report === null ? [] : ReportAttachmentPresenter::forReport($report, $user),
+            'limits' => self::limits(),
             'deployments' => $deployments->map(fn (CoverageReportDeployment $d) => CoverageReportPresenter::deployment($d))->values(),
             'lga' => $lga === null ? null : ['ulid' => $lga->ulid, 'name' => $lga->name],
             'lgas' => $lgas->map(fn (Lga $l) => ['value' => $l->ulid, 'label' => "{$l->name} ({$l->state->name})"])->values(),
@@ -222,7 +235,10 @@ class CoverageReportController extends Controller
             // Suggested periods: the current and last completed of each type.
             'periods' => $this->suggestedPeriods(CarbonImmutable::today()),
             'options' => CoverageReportPresenter::options(),
-            'can' => ['submit' => $report === null ? true : $user->can('submit', $report)],
+            'can' => [
+                'submit' => $report === null ? true : $user->can('submit', $report),
+                'addAttachment' => $report !== null && $user->can('upload', [CoverageReportAttachment::class, $report]),
+            ],
         ]);
     }
 
@@ -248,6 +264,22 @@ class CoverageReportController extends Controller
         }
 
         return $periods;
+    }
+
+    /**
+     * The report's text and attachment limits (config buffalo.security_reports
+     * and the evidence size limits).
+     *
+     * @return array{maxCharacters: int, maxAttachments: int, imageMb: int, videoMb: int}
+     */
+    private static function limits(): array
+    {
+        return [
+            'maxCharacters' => (int) config('buffalo.security_reports.max_characters'),
+            'maxAttachments' => (int) config('buffalo.security_reports.max_attachments'),
+            'imageMb' => (int) config('buffalo.evidence.max_mb.image'),
+            'videoMb' => (int) config('buffalo.evidence.max_mb.video'),
+        ];
     }
 
     private function actor(Request $request): User

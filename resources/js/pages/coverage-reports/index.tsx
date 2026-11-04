@@ -28,7 +28,7 @@ type Filters = {
     rating: string;
 };
 
-/** Security coverage reports within the user's jurisdiction. */
+/** Security reports within the user's jurisdiction. */
 export default function CoverageReportsIndex({
     reports,
     filters,
@@ -80,13 +80,13 @@ export default function CoverageReportsIndex({
 
     return (
         <>
-            <Head title="Coverage reports" />
+            <Head title="Security reports" />
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
-                        help={{ topic: 'guides/coverage-reports' }}
-                        title="Coverage reports"
-                        description="Each LGA's statement, per period, of which agencies are deployed where, what they cover and where the gaps are."
+                        help={{ topic: 'guides/security-reports' }}
+                        title="Security reports"
+                        description="Each LGA's written security reports, with photos and videos, and optionally the agencies deployed, what they cover and the gaps."
                     />
                     <div className="flex flex-wrap items-center gap-2">
                         <ExportListButton
@@ -132,9 +132,11 @@ export default function CoverageReportsIndex({
                     <table className="w-full text-sm">
                         <thead className="bg-muted/50 text-left">
                             <tr>
-                                <th className="px-3 py-2 font-medium">LGA</th>
                                 <th className="px-3 py-2 font-medium">
-                                    Period
+                                    Report
+                                </th>
+                                <th className="px-3 py-2 font-medium">
+                                    Date and period
                                 </th>
                                 <th className="px-3 py-2 font-medium">
                                     Status
@@ -155,7 +157,7 @@ export default function CoverageReportsIndex({
                                 <tr>
                                     <td colSpan={6} className="p-0">
                                         <EmptyState
-                                            title="No coverage reports"
+                                            title="No security reports"
                                             description="None match these filters."
                                         />
                                     </td>
@@ -170,16 +172,16 @@ export default function CoverageReportsIndex({
                                             )}
                                             className="font-medium hover:underline"
                                         >
-                                            {r.lga.name}
+                                            {r.display_title}
                                         </Link>
                                         <div className="text-xs text-muted-foreground">
-                                            {r.state.name}
+                                            {r.lga.name} LGA, {r.state.name}
                                         </div>
                                     </td>
                                     <td className="px-3 py-2">
-                                        {r.period}
+                                        {r.report_date}
                                         <div className="text-xs text-muted-foreground">
-                                            {r.period_type.label}
+                                            {r.period}
                                         </div>
                                     </td>
                                     <td className="px-3 py-2">
@@ -222,6 +224,6 @@ export default function CoverageReportsIndex({
 
 CoverageReportsIndex.layout = {
     breadcrumbs: [
-        { title: 'Coverage reports', href: CoverageReportController.index() },
+        { title: 'Security reports', href: CoverageReportController.index() },
     ],
 };

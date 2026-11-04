@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\OrganizationContact;
 use App\Models\Person;
+use App\Models\PersonOfInterest;
+use App\Models\PersonPhone;
 use App\Support\Audit\AuditLog;
 use App\Support\Keys\KeyFingerprints;
 use Illuminate\Console\Command;
@@ -45,8 +47,8 @@ class RotateCipherSweetKey extends Command
 
     protected $description = 'Re-encrypt all encrypted fields and blind indexes under a new CIPHERSWEET_KEY (resumable, in maintenance mode)';
 
-    /** @var list<class-string<Person|OrganizationContact>> */
-    public const MODELS = [Person::class, OrganizationContact::class];
+    /** @var list<class-string<Person|PersonPhone|PersonOfInterest|OrganizationContact>> */
+    public const MODELS = [Person::class, PersonPhone::class, PersonOfInterest::class, OrganizationContact::class];
 
     public function handle(): int
     {
@@ -179,7 +181,7 @@ class RotateCipherSweetKey extends Command
      * Re-encrypts one row and its blind indexes; false when it already uses
      * the new key.
      *
-     * @param  class-string<Person|OrganizationContact>  $class
+     * @param  class-string<Person|PersonPhone|PersonOfInterest|OrganizationContact>  $class
      * @param  array<string, mixed>  $row
      */
     private function rotateRow(string $class, Model $model, string $table, array $row, CipherSweet $old, CipherSweet $new): bool

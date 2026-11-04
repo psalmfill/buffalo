@@ -478,12 +478,7 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: [
-                    'Report incident',
-                    'Incidents',
-                    'Incident map',
-                    'Arrests',
-                ],
+                Incidents: ['Incidents', 'Incident map', 'Arrests'],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -505,7 +500,7 @@ describe('navigation', () => {
                 ],
                 Security: [
                     'Agency formations',
-                    'Coverage reports',
+                    'Security reports',
                     'Organizations',
                 ],
                 Administration: [
@@ -525,12 +520,7 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: [
-                    'Report incident',
-                    'Incidents',
-                    'Incident map',
-                    'Arrests',
-                ],
+                Incidents: ['Incidents', 'Incident map', 'Arrests'],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -552,7 +542,7 @@ describe('navigation', () => {
                 ],
                 Security: [
                     'Agency formations',
-                    'Coverage reports',
+                    'Security reports',
                     'Organizations',
                 ],
                 Administration: ['Users', 'Reference data', 'Exports review'],
@@ -565,12 +555,7 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: [
-                    'Report incident',
-                    'Incidents',
-                    'Incident map',
-                    'Arrests',
-                ],
+                Incidents: ['Incidents', 'Incident map', 'Arrests'],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -592,7 +577,7 @@ describe('navigation', () => {
                 ],
                 Security: [
                     'Agency formations',
-                    'Coverage reports',
+                    'Security reports',
                     'Organizations',
                 ],
                 Administration: ['Users', 'Reference data'],
@@ -605,12 +590,7 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: [
-                    'Report incident',
-                    'Incidents',
-                    'Incident map',
-                    'Arrests',
-                ],
+                Incidents: ['Incidents', 'Incident map', 'Arrests'],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -632,7 +612,7 @@ describe('navigation', () => {
                 ],
                 Security: [
                     'Agency formations',
-                    'Coverage reports',
+                    'Security reports',
                     'Organizations',
                 ],
                 Administration: ['Users', 'Reference data'],
@@ -645,12 +625,7 @@ describe('navigation', () => {
                     'Reports',
                     'Help',
                 ],
-                Incidents: [
-                    'Report incident',
-                    'Incidents',
-                    'Incident map',
-                    'Arrests',
-                ],
+                Incidents: ['Incidents', 'Incident map', 'Arrests'],
                 'Threats & flashpoints': [
                     'Threat reports',
                     'Flashpoints & blackspots',
@@ -671,7 +646,7 @@ describe('navigation', () => {
                 ],
                 Security: [
                     'Agency formations',
-                    'Coverage reports',
+                    'Security reports',
                     'Organizations',
                 ],
                 Administration: ['Reference data'],

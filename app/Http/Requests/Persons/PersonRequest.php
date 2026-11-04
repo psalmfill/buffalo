@@ -8,6 +8,7 @@ use App\Enums\UploadKind;
 use App\Models\Community;
 use App\Models\Lga;
 use App\Models\Person;
+use App\Models\PersonPhone;
 use App\Models\PersonRole;
 use App\Models\PersonRoleType;
 use App\Models\User;
@@ -29,7 +30,8 @@ use Illuminate\Validation\Rule;
  *   fixed afterwards; the community must belong to it.
  * - The classification must be one the user may assign.
  * - Roles are the checked boxes (never person of interest: POI module).
- * - NIN: exactly 11 digits; phone: a Nigerian number, stored normalised.
+ * - NIN: exactly 11 digits; phone numbers (several, Phase 11G.4): Nigerian
+ *   numbers, stored normalised.
  * - A photo may be added on create (content-validated, metadata stripped).
  * - On create, possible duplicates must have been reviewed (confirm_new).
  *
@@ -108,11 +110,21 @@ class PersonRequest extends FormRequest
             'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:1900-01-01'],
             'approximate_age' => ['nullable', 'integer', 'min:0', 'max:130', 'prohibits:date_of_birth'],
             'nin' => ['nullable', 'string', 'regex:/^\d{11}$/'],
-            'phone' => ['nullable', 'string', 'max:30', function (string $attribute, mixed $value, Closure $fail): void {
+            // Quick entry (incident and arrest forms) sends one number.
+            'phone' => ['nullable', 'string', 'max:30', 'prohibits:phones', function (string $attribute, mixed $value, Closure $fail): void {
                 if (is_string($value) && PhoneNumber::normalise($value) === null) {
                     $fail('Enter a Nigerian phone number, e.g. 0803 123 4567 or +234 803 123 4567.');
                 }
             }],
+            // Several numbers (Phase 11G.4), each a Nigerian number stored normalised.
+            'phones' => ['sometimes', 'array', 'max:10'],
+            'phones.*.number' => ['required', 'string', 'max:30', function (string $attribute, mixed $value, Closure $fail): void {
+                if (is_string($value) && PhoneNumber::normalise($value) === null) {
+                    $fail('Enter a Nigerian phone number, e.g. 0803 123 4567 or +234 803 123 4567.');
+                }
+            }],
+            'phones.*.label' => ['required', Rule::in(array_keys(PersonPhone::LABELS))],
+            'phones.*.is_primary' => ['boolean'],
             'address' => ['nullable', 'string', 'max:1000'],
             'occupation' => ['nullable', 'string', 'max:150'],
             'nationality' => ['nullable', 'string', 'max:100'],
@@ -161,19 +173,48 @@ class PersonRequest extends FormRequest
     }
 
     /**
-     * Validated person values for SavePerson (phone normalised).
+     * Validated person values for SavePerson (without the phone numbers).
      *
      * @return array<string, mixed>
      */
     public function values(): array
     {
-        $data = $this->safe()->except(['lga', 'community', 'roles', 'photo', 'confirm_new', 'hit_justification']);
-
-        if (isset($data['phone']) && is_string($data['phone'])) {
-            $data['phone'] = PhoneNumber::normalise($data['phone']);
-        }
+        $data = $this->safe()->except(['lga', 'community', 'roles', 'photo', 'confirm_new', 'hit_justification', 'phones', 'phone']);
+        // For matching only (SimilarPersons, PersonMatchService): the
+        // primary number; SavePerson stores the numbers from phones().
+        $data['phone'] = ($this->phones() ?? [])[0]['number'] ?? null;
 
         return $data;
+    }
+
+    /**
+     * The phone numbers, normalised, or null when the form did not send
+     * them (left unchanged).
+     *
+     * @return list<array{number: string, label: string, is_primary: bool}>|null
+     */
+    public function phones(): ?array
+    {
+        $single = $this->validated('phone');
+
+        if (is_string($single) && trim($single) !== '') {
+            return [['number' => (string) PhoneNumber::normalise($single), 'label' => 'mobile', 'is_primary' => true]];
+        }
+
+        if (! $this->has('phones')) {
+            return null;
+        }
+
+        $rows = array_values(array_map(fn (array $row) => [
+            'number' => (string) PhoneNumber::normalise((string) $row['number']),
+            'label' => (string) $row['label'],
+            'is_primary' => (bool) ($row['is_primary'] ?? false),
+        ], (array) $this->validated('phones', [])));
+
+        // Primary first.
+        usort($rows, fn (array $a, array $b) => (int) $b['is_primary'] <=> (int) $a['is_primary']);
+
+        return $rows;
     }
 
     /**

@@ -12,7 +12,7 @@ order: 15
 
 - **Acknowledge** escalated incidents from your states; follow them.
 - Act on critical notifications: critical incidents, immediate threats,
-  critical coverage, overdue verifications.
+  critical security report ratings, overdue verifications.
 - **Access requests → Oversight:** requests and grants in your states;
   decide escalated requests.
 - **Administration → Exports review:** who exported what, and when.

@@ -14,7 +14,7 @@ order: 25
   critical 1 h · high 6 h · medium 1 day · low 2 days.
 - **Escalate** incidents needing national attention (reason required).
 - Start investigations, resolve (with a summary), amend with a reason.
-- **Coverage reports** waiting for you: Mark reviewed, or Return for changes.
+- **Security reports** waiting for you: Mark reviewed, or Return for changes.
 - Read and **acknowledge** shared threats and flashpoints.
 - **Delegated?** Decide access requests: Access requests → Awaiting my decision.
 

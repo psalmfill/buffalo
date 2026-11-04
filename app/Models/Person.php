@@ -14,6 +14,7 @@ use App\Support\Audit\AuditLog;
 use App\Support\Classification\Contracts\Classified;
 use App\Support\Jurisdiction\Contracts\JurisdictionScoped;
 use App\Support\Jurisdiction\JurisdictionScope;
+use App\Support\Persons\PersonPhones;
 use App\Support\Persons\PhoneNumber;
 use Carbon\CarbonImmutable;
 use Database\Factories\PersonFactory;
@@ -43,10 +44,11 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
  *
  * - Jurisdiction-scoped by the owning state_id/lga_id, and classified: both
  *   scopes apply. Every view is access-logged (LogsReads).
- * - date_of_birth, nin, phone and address are encrypted with CipherSweet
- *   (ciphertext in the database, plaintext in memory once retrieved). DOB,
- *   NIN and phone have blind indexes (dob_bidx, nin_bidx, phone_bidx) for
- *   exact-match search. They are hidden from serialisation and never
+ * - date_of_birth, nin and address are encrypted with CipherSweet
+ *   (ciphertext in the database, plaintext in memory once retrieved). DOB
+ *   and NIN have blind indexes (dob_bidx, nin_bidx) for exact-match search.
+ *   Phone numbers (several since Phase 11G.4) are in person_phones, each
+ *   encrypted with its own blind index (PersonPhone, PersonPhones). They are hidden from serialisation and never
  *   written to the activity log: a named "protected_fields_changed" event
  *   records WHICH of them changed, never their values.
  * - search_name is a generated column (see the migration).
@@ -66,7 +68,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
  * @property string|null $date_of_birth Y-m-d (encrypted at rest)
  * @property int|null $approximate_age
  * @property string|null $nin 11 digits (encrypted at rest)
- * @property string|null $phone +234XXXXXXXXXX (encrypted at rest)
  * @property string|null $address encrypted at rest
  * @property string|null $occupation
  * @property string $nationality
@@ -81,12 +82,14 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media as BaseMedia;
  * @property int|null $merged_into_person_id Phase 10A: set on a merged (soft-deleted) source
  * @property CarbonImmutable|null $merged_at
  * @property int|null $merged_by
+ * @property string|null $phone shorthand for the primary number (not a column; see phone())
  * @property-read string $name
  * @property-read State $state
  * @property-read Lga $lga
  * @property-read Community|null $community
  * @property-read Collection<int, PersonRole> $roles
  * @property-read Collection<int, PersonAlias> $aliases
+ * @property-read Collection<int, PersonPhone> $phones
  */
 class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia, JurisdictionScoped
 {
@@ -107,16 +110,15 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
     }
 
     /** Encrypted columns. */
-    public const ENCRYPTED = ['date_of_birth', 'nin', 'phone', 'address'];
+    public const ENCRYPTED = ['date_of_birth', 'nin', 'address'];
 
     /** Blind index name per encrypted column (exact-match search). */
-    public const BLIND_INDEXES = ['date_of_birth' => 'dob_bidx', 'nin' => 'nin_bidx', 'phone' => 'phone_bidx'];
+    public const BLIND_INDEXES = ['date_of_birth' => 'dob_bidx', 'nin' => 'nin_bidx'];
 
     /** Labels for the audit log and the UI. */
     public const PROTECTED_LABELS = [
         'date_of_birth' => 'date of birth',
         'nin' => 'NIN',
-        'phone' => 'phone number',
         'address' => 'address',
     ];
 
@@ -126,12 +128,12 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
 
     protected $fillable = [
         'first_name', 'last_name', 'other_names', 'gender', 'date_of_birth', 'approximate_age',
-        'nin', 'phone', 'address', 'occupation', 'nationality', 'description', 'is_deceased',
+        'nin', 'address', 'occupation', 'nationality', 'description', 'is_deceased',
     ];
 
     protected $hidden = [
         'id', 'state_id', 'lga_id', 'community_id', 'created_by', 'updated_by', 'search_name',
-        'date_of_birth', 'nin', 'phone', 'address', 'merged_into_person_id', 'merged_by',
+        'date_of_birth', 'nin', 'address', 'merged_into_person_id', 'merged_by',
     ];
 
     protected $attributes = [
@@ -162,10 +164,42 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
         ];
     }
 
+    /** A number given through the `phone` shorthand, added once saved. */
+    private ?string $pendingPhone = null;
+
     protected static function booted(): void
     {
         static::created(fn (Person $person) => $person->logProtectedFieldChanges(created: true));
         static::updated(fn (Person $person) => $person->logProtectedFieldChanges(created: false));
+        static::saved(function (Person $person): void {
+            if ($person->pendingPhone !== null) {
+                $actor = auth()->user();
+                PersonPhones::add($person, $person->pendingPhone, $actor instanceof User ? $actor : null);
+                $person->pendingPhone = null;
+            }
+        });
+    }
+
+    /**
+     * Shorthand for the primary phone number (Phase 11G.4; numbers live in
+     * person_phones). Reading returns the primary number; writing adds the
+     * number once the person is saved (primary when there is none). Not a
+     * column: forms and actions use PersonPhones directly.
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function phone(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => $this->exists ? PersonPhones::primary($this) : $this->pendingPhone,
+            set: function (?string $value): array {
+                $this->pendingPhone = $value === null || trim($value) === ''
+                    ? null
+                    : (PhoneNumber::normalise($value) ?? throw new InvalidArgumentException('Invalid phone number.'));
+
+                return [];
+            },
+        );
     }
 
     public static function configureCipherSweet(EncryptedRow $encryptedRow): void
@@ -230,22 +264,6 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
         $index = static::getCipherSweetEncryptedRow()->getBlindIndex(self::BLIND_INDEXES[$column], [$column => $value]);
 
         return is_string($index) ? $index : (string) $index['value'];
-    }
-
-    /**
-     * Phone numbers are stored (and indexed) only as +234XXXXXXXXXX.
-     *
-     * @return Attribute<string|null, string|null>
-     */
-    protected function phone(): Attribute
-    {
-        return Attribute::make(set: function (?string $value): ?string {
-            if ($value === null || trim($value) === '') {
-                return null;
-            }
-
-            return PhoneNumber::normalise($value) ?? throw new InvalidArgumentException('Invalid phone number.');
-        });
     }
 
     /**
@@ -416,6 +434,16 @@ class Person extends Model implements CipherSweetEncrypted, Classified, HasMedia
     public function aliases(): HasMany
     {
         return $this->hasMany(PersonAlias::class);
+    }
+
+    /**
+     * Phone numbers (Phase 11G.4), primary first.
+     *
+     * @return HasMany<PersonPhone, $this>
+     */
+    public function phones(): HasMany
+    {
+        return $this->hasMany(PersonPhone::class)->orderByDesc('is_primary')->orderBy('id');
     }
 
     /**

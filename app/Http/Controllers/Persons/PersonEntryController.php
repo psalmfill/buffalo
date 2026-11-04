@@ -111,7 +111,7 @@ abstract class PersonEntryController extends Controller
         $lga = $request->lga();
 
         $person = DB::transaction(function () use ($save, $lga, $request, $values, $user, $hitCount, $justification): Person {
-            $person = $save->create($lga, $request->community(), $values, $request->roles(), $user);
+            $person = $save->create($lga, $request->community(), $values, $request->roles(), $user, $request->phones());
 
             if ($hitCount > 0) {
                 AuditLog::event('created_despite_hit', "Created from {$this->createdFrom()} although matching records exist in other jurisdictions", $person, [

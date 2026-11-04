@@ -23,9 +23,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * A security coverage report (Phase 4A): one LGA's statement for a period
- * of which agencies are deployed where, what they cover, and the gaps.
- * Scoped by its own jurisdiction and classified; every view is logged.
+ * A security report (Phase 4A as "coverage report"; renamed in the interface
+ * in Phase 11G): one LGA's written report, with optional photos and videos
+ * and, optionally, which agencies are deployed where, what they cover, and
+ * the gaps. `summary` holds the written report (labelled "Report"). Scoped
+ * by its own jurisdiction and classified; every view is logged.
  *
  * Workflow: draft → submitted → (returned → submitted)* → reviewed. A
  * reviewed report is locked (policies, and database triggers).
@@ -38,7 +40,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property CarbonImmutable $period_start
  * @property CarbonImmutable $period_end
  * @property CoverageRating|null $overall_rating
- * @property string|null $summary
+ * @property string|null $title optional; displayTitle() otherwise
+ * @property CarbonImmutable $report_date
+ * @property string|null $summary the written report ("Report")
+ * @property string|null $summary_text its plain-text copy (Phase 11B)
  * @property string|null $gaps_identified
  * @property string|null $recommendations
  * @property CoverageReportStatus $status
@@ -76,7 +81,7 @@ class CoverageReport extends Model implements Classified, JurisdictionScoped
     use LogsReads;
     use SoftDeletes;
 
-    protected $fillable = ['overall_rating', 'summary', 'gaps_identified', 'recommendations'];
+    protected $fillable = ['title', 'report_date', 'overall_rating', 'summary', 'gaps_identified', 'recommendations'];
 
     protected $hidden = ['id', 'state_id', 'lga_id', 'submitted_by', 'reviewed_by', 'returned_by', 'created_by', 'updated_by'];
 
@@ -98,6 +103,7 @@ class CoverageReport extends Model implements Classified, JurisdictionScoped
     protected function casts(): array
     {
         return [
+            'report_date' => 'immutable_date',
             'period_type' => CoveragePeriodType::class,
             'period_start' => 'immutable_date',
             'period_end' => 'immutable_date',
@@ -108,6 +114,18 @@ class CoverageReport extends Model implements Classified, JurisdictionScoped
             'reviewed_at' => 'immutable_datetime',
             'returned_at' => 'immutable_datetime',
         ];
+    }
+
+    /** The title, or "Security report — [LGA] — [date]" when none was given. */
+    public function displayTitle(): string
+    {
+        if ($this->title !== null && trim($this->title) !== '') {
+            return $this->title;
+        }
+
+        $date = ($this->report_date ?? $this->created_at ?? CarbonImmutable::today())->format('j M Y');
+
+        return 'Security report — '.($this->lga->name ?? 'LGA').' — '.$date;
     }
 
     public function periodLabel(): string
@@ -129,6 +147,14 @@ class CoverageReport extends Model implements Classified, JurisdictionScoped
     public function lga(): BelongsTo
     {
         return $this->belongsTo(Lga::class);
+    }
+
+    /**
+     * @return HasMany<CoverageReportAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(CoverageReportAttachment::class);
     }
 
     /**

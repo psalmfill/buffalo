@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Actions\Evidence\ScanQuarantinedEvidence;
 use App\Actions\Evidence\VerifyEvidenceIntegrity;
 use App\Enums\EvidenceScanStatus;
+use App\Models\CoverageReportAttachment;
 use App\Models\IncidentEvidence;
 use App\Models\User;
 use App\Support\Jurisdiction\JurisdictionContext;
@@ -24,6 +25,8 @@ use Illuminate\Foundation\Queue\Queueable;
  *    is an integrity failure (logged, DG and super admins notified) and the
  *    item stays unprocessed.
  *
+ * Also processes security report attachments (Phase 11G; $model).
+ *
  * Runs as the uploader (CLAUDE.md: a job acting for a user uses that user's
  * context). Unique per item, so retries never pile up.
  */
@@ -35,16 +38,20 @@ final class ProcessEvidenceJob implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 900;
 
+    /**
+     * @param  class-string<IncidentEvidence|CoverageReportAttachment>  $model
+     */
     public function __construct(
         public readonly int $evidenceId,
         public readonly int $userId,
+        public readonly string $model = IncidentEvidence::class,
     ) {
         $this->afterCommit();
     }
 
     public function uniqueId(): string
     {
-        return (string) $this->evidenceId;
+        return ($this->model === IncidentEvidence::class ? '' : 'attachment:').$this->evidenceId;
     }
 
     public function handle(JurisdictionContext $context, ScanQuarantinedEvidence $scan, VerifyEvidenceIntegrity $verify): void
@@ -52,7 +59,9 @@ final class ProcessEvidenceJob implements ShouldBeUnique, ShouldQueue
         $user = User::query()->findOrFail($this->userId);
 
         $context->actingAs($user, function () use ($user, $scan, $verify): void {
-            $evidence = IncidentEvidence::query()->whereKey($this->evidenceId)->first();
+            $evidence = $this->model === CoverageReportAttachment::class
+                ? CoverageReportAttachment::query()->whereKey($this->evidenceId)->first()
+                : IncidentEvidence::query()->whereKey($this->evidenceId)->first();
 
             if ($evidence === null || $scan($evidence, $user) !== EvidenceScanStatus::Clean || $evidence->isProcessed()) {
                 return;

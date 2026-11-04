@@ -120,8 +120,9 @@ final class PersonSearch
                 $q->orWhereBlind('nin', 'nin_bidx', $term->nin);
             }
 
+            // Any of a person's numbers (Phase 11G.4).
             if ($term->phone !== null) {
-                $q->orWhereBlind('phone', 'phone_bidx', $term->phone);
+                $q->orWhereIn('persons.id', PersonPhones::personIdsWithNumber($term->phone));
             }
         })->orderBy('persons.last_name');
     }

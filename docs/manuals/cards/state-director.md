@@ -17,7 +17,7 @@ order: 20
   shorten or narrow, never widen) or Reject with a note.
 - **Threats & flashpoints:** disseminate to neighbours whose area is
   affected; act on "not shared" alerts.
-- **Coverage reports:** Mark reviewed (locks it) or Return for changes.
+- **Security reports:** Mark reviewed (locks it) or Return for changes.
 - **Suggested blackspots:** Accept or Dismiss.
 
 ## Delegation

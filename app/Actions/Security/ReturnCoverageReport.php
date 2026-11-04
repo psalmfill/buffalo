@@ -21,7 +21,7 @@ final class ReturnCoverageReport
         $reason = trim($reason);
 
         if ($report->status !== CoverageReportStatus::Submitted) {
-            throw new InvalidArgumentException('Only submitted coverage reports can be returned.');
+            throw new InvalidArgumentException('Only submitted security reports can be returned.');
         }
 
         if ($reason === '') {
@@ -37,7 +37,7 @@ final class ReturnCoverageReport
                 'updated_by' => $actor->id,
             ])->save();
 
-            AuditLog::event('coverage_report_returned', 'Coverage report returned for changes', $report, ['reason' => $reason], $actor);
+            AuditLog::event('coverage_report_returned', 'Security report returned for changes', $report, ['reason' => $reason], $actor);
         });
 
         $report->loadMissing(['lga', 'submitter']);

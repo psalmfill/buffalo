@@ -6,7 +6,7 @@ use App\Enums\NotificationSeverity;
 use App\Models\User;
 
 /**
- * An LGA's coverage report for the last completed period is missing after
+ * An LGA's security report for the last completed period is missing after
  * the grace days (Phase 4A): to the LGA's security chief, once per period.
  * Payloads carry no report content (BuffaloNotification): only the place,
  * the period and a link, which is access-checked when opened.
@@ -25,17 +25,17 @@ final class CoverageReportMissing extends BuffaloNotification
 
     public function title(User $notifiable): string
     {
-        return 'Coverage report overdue';
+        return 'Security report overdue';
     }
 
     public function body(User $notifiable): string
     {
-        return "No coverage report has been submitted for {$this->lga} LGA for {$this->period}.";
+        return "No security report has been submitted for {$this->lga} LGA for {$this->period}.";
     }
 
     public function url(User $notifiable): string
     {
-        return '/coverage-reports/create';
+        return '/security-reports/create';
     }
 
     public function severity(): NotificationSeverity

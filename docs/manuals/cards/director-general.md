@@ -10,7 +10,7 @@ order: 10
 
 ## Every day
 
-- **Dashboard:** national figures, escalations, coverage compliance,
+- **Dashboard:** national figures, escalations, security report compliance,
   critical sites.
 - **Acknowledge** escalated incidents.
 - Act on critical notifications, including **audit integrity**, **evidence

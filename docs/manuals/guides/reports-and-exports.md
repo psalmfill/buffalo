@@ -15,7 +15,7 @@ Open **Overview → Reports** and choose the report type:
 | Weekly summary | PDF | All intelligence roles |
 | Monthly summary | PDF | DG, DDG, State Director, Deputy |
 | Incident list export | Spreadsheet (XLSX) or CSV | DG, DDG, State Director, Deputy |
-| Incident report, LGA profile, coverage report | PDF | Anyone who can open the record |
+| Incident report, LGA profile, security report | PDF | Anyone who can open the record |
 | Analytics report | PDF | Anyone who can open those analytics |
 
 Choose the period and place, then **Generate**. Reports are built in the
@@ -70,6 +70,6 @@ is recorded.
 ## Analytics
 
 **Overview → Analytics** shows charts for incidents, casualties, response,
-threats and flashpoints, coverage and (nationally) cross-jurisdiction
+threats and flashpoints, security reports and (nationally) cross-jurisdiction
 activity, with filters for period, place and incident type. Chart exports are
 marked and recorded like reports.

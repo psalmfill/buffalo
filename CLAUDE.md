@@ -164,7 +164,7 @@ Classification narrows access **within** a user's jurisdiction; it never widens 
 - First super admin is created with an Artisan command, never seeded with default credentials.
 - States and zones are defined in the Phase 1A prompt; senatorial districts, LGAs and wards come from owner-supplied CSVs.
 - Agency formations (stations, bases, checkpoints) are jurisdiction-scoped and classified (military locations can be sensitive).
-- Coverage reports are per LGA per period, submitted by the LGA and reviewed by the State Director or Deputy; reviewed reports are locked.
+- Coverage reports are per LGA per period, submitted by the LGA and reviewed by the State Director or Deputy; reviewed reports are locked. (Since Phase 11G: called **security reports** in the interface, see below.)
 - Organizations: the organization itself is a national directory entry (name, sector, registration); its sites and contacts are jurisdiction-scoped and classified.
 - Incidents: one primary LGA per incident; reference numbers `BUF/<STATE>/<LGA>/<YEAR>/<6-digit seq>` assigned at submission, sequential per state per year; drafts have none.
 - Incident escalation is a flag (`escalated to national`), independent of status.
@@ -227,6 +227,13 @@ Classification narrows access **within** a user's jurisdiction; it never widens 
   - The screen applies the import's rules (`HierarchyRules`): unique codes and case-insensitive names, districts within their state, wards within their LGA, and the 109/774 expected-count warning (a warning, never a block). A district or LGA with active children cannot be deactivated, and reactivation needs an active parent.
   - Screen-created entries carry `origin = admin` with their creator and reason. The import lists those missing from the files and never deactivates them, even with `--deactivate-missing`. An entry that appears in the files becomes `import`. The import still overwrites screen renames and reactivates entries that are in the files.
   - Wards have a read-only Wards tab on the LGA page (exporter `wards`). The admin list is excluded from list exports, like reference data.
+- **Phase 11G:**
+  - **"Coverage report" in code means "security report" in the interface.** Tables, models, permissions (`coverage.*`) and route names (`coverage-reports.*`) keep the coverage name; URLs are `/security-reports` (old `/coverage-reports` links redirect permanently).
+  - A security report is mainly the written report (the `summary` column, labelled "Report", plain-text limit `buffalo.security_reports.max_characters`, 50,000) with photos and videos. Only the text is needed to submit; the period defaults to ad hoc on the report date; weekly, monthly and quarterly reports stay one per LGA and period. An LGA has reported for a period when any report was submitted during it (or one for exactly that period).
+  - Attachments (`coverage_report_attachments`) reuse the evidence services (scan, integrity, conversions, serving) and the evidence disk; they are never below the report's classification and lock with it. Unlike evidence, they are refused when the scanner is down (only large files are quarantined).
+  - Security reports and attachments are neither grantable nor disseminable.
+  - Person-of-interest details live on `persons_of_interest` (data minimisation). Religion and political affiliations are special categories: encrypted with **no blind index**, shown only on the person's page, never in lists, filters, search, analytics, exports or any PDF. Tribal marks appear on the page and the single-person PDF only.
+  - Phone numbers are rows of `person_phones` (each encrypted with a blind index, one primary); matching, search, duplicates and merges use all of a person's numbers. `persons.phone` no longer exists.
 
 ## 10a. Tooling notes (from Phase 0)
 

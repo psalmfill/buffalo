@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\EvidenceScanStatus;
 use App\Jobs\ProcessEvidenceJob;
+use App\Models\CoverageReportAttachment;
 use App\Models\IncidentEvidence;
 use Illuminate\Console\Command;
 
@@ -33,7 +34,17 @@ class ScanQuarantinedEvidenceCommand extends Command
                 $count++;
             });
 
-        $this->components->info("{$count} quarantined evidence items queued for scanning.");
+        // Security report attachments (Phase 11G).
+        CoverageReportAttachment::query()
+            ->where('scan_status', EvidenceScanStatus::Quarantined->value)
+            ->select(['id', 'uploaded_by'])
+            ->orderBy('id')
+            ->each(function (CoverageReportAttachment $attachment) use (&$count): void {
+                ProcessEvidenceJob::dispatch($attachment->id, $attachment->uploaded_by, CoverageReportAttachment::class);
+                $count++;
+            });
+
+        $this->components->info("{$count} quarantined evidence items and report attachments queued for scanning.");
 
         return self::SUCCESS;
     }

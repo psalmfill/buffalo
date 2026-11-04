@@ -15,6 +15,7 @@ use App\Models\PersonAlias;
 use App\Models\PersonMerge;
 use App\Models\PersonMergeRequest;
 use App\Models\PersonOfInterest;
+use App\Models\PersonPhone;
 use App\Models\RecordAccessGrant;
 use App\Models\RecordAccessRequest;
 use App\Models\User;
@@ -83,6 +84,7 @@ final class MergePersons
 
             $fieldChoices = $this->applyFields($survivor, $source, $choices, $actor);
             $this->mergeAliases($survivor, $source, $names, $actor, $manifest);
+            $this->mergePhones($survivor, $source, $manifest);
             $this->mergeRoles($survivor, $source, $manifest);
             $this->mergeAssociations($survivor, $source, $manifest);
             $poiChoice = $this->mergePoi($survivor, $source, $choices, $manifest, $ulid, $actor);
@@ -226,6 +228,40 @@ final class MergePersons
             $alias->forceFill(['person_id' => $survivor->id, 'created_by' => $actor->id])->save();
             $manifest->created('person_aliases', $alias->id);
             $taken[] = $normalised;
+        }
+    }
+
+    /**
+     * Phone numbers (Phase 11G.4) move to the survivor; a number the
+     * survivor already has stays with the source (compared through the
+     * blind index, never decrypted). Moved numbers are never primary while
+     * the survivor has one. Undone through the manifest.
+     */
+    private function mergePhones(Person $survivor, Person $source, MergeManifest $manifest): void
+    {
+        $index = fn (int $personId) => DB::table('person_phones')
+            ->join('blind_indexes', fn ($join) => $join->on('blind_indexes.indexable_id', '=', 'person_phones.id')
+                ->where('blind_indexes.indexable_type', (new PersonPhone)->getMorphClass())
+                ->where('blind_indexes.name', 'person_phone_bidx'))
+            ->where('person_phones.person_id', $personId)->whereNull('person_phones.deleted_at')
+            ->orderBy('person_phones.id')
+            ->get(['person_phones.id', 'person_phones.is_primary', 'blind_indexes.value']);
+
+        $survivorNumbers = $index($survivor->id);
+        $taken = $survivorNumbers->pluck('value')->all();
+        $hasPrimary = $survivorNumbers->contains(fn (object $row) => (bool) $row->is_primary);
+
+        foreach ($index($source->id) as $phone) {
+            if (in_array($phone->value, $taken, true)) {
+                continue; // the survivor already has it: stays with the source
+            }
+
+            $manifest->update('person_phones', (int) $phone->id, [
+                'person_id' => $survivor->id,
+                'is_primary' => $hasPrimary ? false : (bool) $phone->is_primary,
+            ]);
+            $hasPrimary = $hasPrimary || (bool) $phone->is_primary;
+            $taken[] = $phone->value;
         }
     }
 

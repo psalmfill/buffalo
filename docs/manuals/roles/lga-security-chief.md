@@ -1,6 +1,6 @@
 ---
 title: LGA Security Chief
-summary: Your LGA's incidents, threats, coverage reports, communities and persons.
+summary: Your LGA's incidents, threats, security reports, communities and persons.
 audience: role
 role: lga_security_chief
 order: 30
@@ -24,8 +24,8 @@ starts with you. You see and record everything in **your own LGA**, at the
 
 ## Weekly and periodic work
 
-- **Coverage report** for your LGA for each period: deployments, gaps and the
-  overall rating ([Coverage reports](../guides/coverage-reports.md)). You are
+- **Security report** for your LGA for each period: deployments, gaps and the
+  overall rating ([Security reports](../guides/security-reports.md)). You are
   reminded when one is overdue.
 - **Flashpoint and blackspot reviews** when their review date comes
   ([Flashpoints](../guides/flashpoints.md)).
@@ -48,7 +48,7 @@ starts with you. You see and record everything in **your own LGA**, at the
 | Cross-state records | Request access to a record found in another state |
 | Threat reports | Record and manage your own reports; request dissemination from your State Director |
 | Flashpoints | Record, assess, link incidents and notes |
-| Coverage reports | Write and submit for your LGA |
+| Security reports | Write and submit for your LGA |
 | Communities, institutions, notes | Record and update |
 | Reports | SITREPs, weekly summaries, incident, LGA profile and state profile PDFs |
 

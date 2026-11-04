@@ -4,14 +4,16 @@ namespace App\Actions\Security;
 
 use App\Enums\CoverageReportStatus;
 use App\Models\CoverageReport;
+use App\Models\CoverageReportAttachment;
 use App\Models\CoverageReportDeployment;
 use App\Models\Lga;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
 /**
- * Creates a draft coverage report or saves changes to a draft or returned
+ * Creates a draft security report (a coverage report in code) or saves changes to a draft or returned
  * one (Phase 4A), with its full list of deployments: existing rows are
  * updated, new rows created, and rows left out soft-deleted. Covered
  * communities are replaced per deployment. Each deployment change is in the
@@ -28,9 +30,7 @@ final class SaveCoverageReport
             $report = new CoverageReport;
             $report->forceFill([
                 ...self::header($data),
-                'period_type' => $data['period_type'],
-                'period_start' => $data['period_start'],
-                'period_end' => $data['period_end'],
+                ...self::period($data),
                 'status' => CoverageReportStatus::Draft,
                 'lga_id' => $lga->id,
                 'state_id' => $lga->state_id,
@@ -50,11 +50,16 @@ final class SaveCoverageReport
     public function update(CoverageReport $report, array $data, User $actor): void
     {
         if (! $report->status->isEditable()) {
-            throw new LogicException('Only draft or returned coverage reports can be edited.');
+            throw new LogicException('Only draft or returned security reports can be edited.');
         }
 
         DB::transaction(function () use ($report, $data, $actor): void {
-            $report->forceFill(self::header($data));
+            $report->forceFill([...self::header($data), ...self::period($data)]);
+
+            // Attachments are never below the report (Phase 11G): raised first.
+            if ($report->isDirty('classification')) {
+                $this->raiseAttachments($report, $actor);
+            }
 
             if ($report->isDirty()) {
                 $report->forceFill(['updated_by' => $actor->id])->save();
@@ -71,12 +76,41 @@ final class SaveCoverageReport
     private static function header(array $data): array
     {
         return [
+            'title' => $data['title'] ?? null,
+            'report_date' => $data['report_date'] ?? CarbonImmutable::today()->toDateString(),
             'overall_rating' => $data['overall_rating'],
             'summary' => $data['summary'],
             'gaps_identified' => $data['gaps_identified'],
             'recommendations' => $data['recommendations'],
             'classification' => $data['classification'],
         ];
+    }
+
+    /**
+     * The period, when one was chosen (null keeps an existing report's).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function period(array $data): array
+    {
+        $period = $data['period'] ?? null;
+
+        if (! is_array($period)) {
+            return [];
+        }
+
+        return ['period_type' => $period[0], 'period_start' => $period[1], 'period_end' => $period[2]];
+    }
+
+    /** Raises attachments below the report's new classification (logged on each). */
+    private function raiseAttachments(CoverageReport $report, User $actor): void
+    {
+        $level = $report->classificationLevel();
+
+        CoverageReportAttachment::query()->where('coverage_report_id', $report->id)->get()
+            ->filter(fn (CoverageReportAttachment $a) => $a->classificationLevel()->rank() < $level->rank())
+            ->each(fn (CoverageReportAttachment $a) => $a->forceFill(['classification' => $level, 'updated_by' => $actor->id])->save());
     }
 
     /**

@@ -555,7 +555,7 @@ export default function PersonShow({
     const [deleting, setDeleting] = useState(false);
     const [merging, setMerging] = useState(false);
     const activeRoles = person.all_roles.filter((role) => role.is_active);
-    // A profile-only grant withholds NIN, phone and address: hide them
+    // A profile-only grant withholds NIN, phone numbers and address: hide them
     // rather than show them as not recorded.
     const withheld = grant?.scope.value === 'profile';
     const [grantEnded, setGrantEnded] = useState(false);
@@ -754,8 +754,19 @@ export default function PersonShow({
                             )}
                             {!withheld && (
                                 <Fact
-                                    label="Phone number"
-                                    value={person.phone}
+                                    label={
+                                        (person.phones ?? []).length > 1
+                                            ? 'Phone numbers'
+                                            : 'Phone number'
+                                    }
+                                    value={
+                                        (person.phones ?? [])
+                                            .map(
+                                                (p) =>
+                                                    `${p.number} (${p.label.label}${p.is_primary && (person.phones ?? []).length > 1 ? ', primary' : ''})`,
+                                            )
+                                            .join(' · ') || null
+                                    }
                                     protectedField
                                 />
                             )}
@@ -770,7 +781,7 @@ export default function PersonShow({
                             {!withheld && (
                                 <div className="sm:col-span-2">
                                     <Fact
-                                        label="Address"
+                                        label="Residential address"
                                         value={person.address}
                                         protectedField
                                     />
@@ -874,6 +885,10 @@ export default function PersonShow({
                 {tab === 'poi' && can.viewPoi && (
                     <PoiPanel
                         personUlid={person.ulid}
+                        identity={{
+                            address: person.address ?? null,
+                            phones: person.phones ?? [],
+                        }}
                         poi={poi}
                         options={poiOptions}
                         canDesignate={can.designatePoi}

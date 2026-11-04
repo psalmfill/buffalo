@@ -64,7 +64,7 @@
 @endisset
 
 @isset($coverage)
-    <h2>Coverage reports awaiting review ({{ count($coverage) }})</h2>
+    <h2>Security reports awaiting review ({{ count($coverage) }})</h2>
     @if (count($coverage) === 0)
         <p class="empty">No records in this period.</p>
     @else

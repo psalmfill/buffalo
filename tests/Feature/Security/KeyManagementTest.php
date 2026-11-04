@@ -5,8 +5,11 @@ use App\Models\Organization;
 use App\Models\OrganizationContact;
 use App\Models\OrganizationSite;
 use App\Models\Person;
+use App\Models\PersonOfInterest;
+use App\Models\PersonPhone;
 use App\Models\User;
 use App\Support\Keys\KeyFingerprints;
+use App\Support\Persons\PersonPhones;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\Artisan;
@@ -41,6 +44,8 @@ function useCipherSweetKey(string $key): void
     app()->forgetInstance(CipherSweet::class);
     Person::$cipherSweetEncryptedRow = null;
     OrganizationContact::$cipherSweetEncryptedRow = null;
+    PersonPhone::$cipherSweetEncryptedRow = null;
+    PersonOfInterest::$cipherSweetEncryptedRow = null;
 }
 
 /** @param list<string> $previous */
@@ -207,7 +212,7 @@ test('CIPHERSWEET_KEY rotation re-encrypts every field and blind index, resumabl
         expect([$fresh->nin, $fresh->phone, $fresh->date_of_birth, $fresh->address])
             ->toBe([sprintf('2%010d', $n), sprintf('+234803555%04d', $n), sprintf('1980-01-%02d', $n), "{$n} Marina Road, Lagos"]);
         expect(Person::query()->withoutGlobalScopes()->whereBlind('nin', 'nin_bidx', sprintf('2%010d', $n))->pluck('id')->all())->toBe([$person->id])
-            ->and(Person::query()->withoutGlobalScopes()->whereBlind('phone', 'phone_bidx', sprintf('+234803555%04d', $n))->pluck('id')->all())->toBe([$person->id])
+            ->and(Person::query()->withoutGlobalScopes()->whereIn('persons.id', PersonPhones::personIdsWithNumber(sprintf('+234803555%04d', $n)))->pluck('id')->all())->toBe([$person->id])
             ->and(Person::query()->withoutGlobalScopes()->whereBlind('date_of_birth', 'dob_bidx', sprintf('1980-01-%02d', $n))->pluck('id')->all())->toBe([$person->id]);
     }
     expect(Person::query()->withoutGlobalScopes()->withTrashed()->whereBlind('nin', 'nin_bidx', '29999999999')->pluck('id')->all())->toBe([$deleted->id])

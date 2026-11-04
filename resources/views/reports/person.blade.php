@@ -20,7 +20,7 @@
             <tr><th>Gender</th><td>{{ $v('gender.label') }}</td></tr>
             @if (array_key_exists('date_of_birth', $person))<tr><th>Date of birth</th><td>{{ $v('date_of_birth') ?? '—' }}@if ($v('approximate_age')) (about {{ $v('approximate_age') }})@endif</td></tr>@endif
             @if (array_key_exists('nin', $person))<tr><th>NIN</th><td>{{ $v('nin') ?? '—' }}</td></tr>@endif
-            @if (array_key_exists('phone', $person))<tr><th>Phone</th><td>{{ $v('phone') ?? '—' }}</td></tr>@endif
+            @if (array_key_exists('phones', $person))<tr><th>Phone numbers</th><td>{{ collect($person['phones'])->map(fn ($p) => $p['number'].' ('.$p['label']['label'].($p['is_primary'] ? ', primary' : '').')')->implode('; ') ?: '—' }}</td></tr>@endif
             @if (array_key_exists('address', $person))<tr><th>Address</th><td>{{ $v('address') ?? '—' }}</td></tr>@endif
             <tr><th>Occupation</th><td>{{ $v('occupation') ?? '—' }}</td></tr>
             <tr><th>Nationality</th><td>{{ $v('nationality') ?? '—' }}</td></tr>
@@ -37,7 +37,22 @@
         <h2>Person of interest</h2>
         <p>Risk: <strong>{{ $poi['risk_level']['label'] }}</strong> · {{ $poi['status']['label'] }} · Review due {{ $poi['review_due_at'] }}@if ($poi['last_sighted_at']) · Last sighted {{ $at($poi['last_sighted_at']) }}@endif</p>
         <p>Offence categories: {{ collect($poi['offence_categories'])->pluck('label')->implode(', ') ?: '—' }}</p>
+        @php($row = fn (string $label, $value) => $value === null || $value === '' ? '' : '<tr><th>'.e($label).'</th><td>'.e($value).'</td></tr>')
+        {{-- Personal and physical details (Phase 11G.4). Religion and political affiliations are never printed. --}}
+        <table>
+            {!! $row('Age', $poi['age']) !!}
+            {!! $row('Height', $poi['height_label']) !!}
+            {!! $row('Marital status', $poi['marital_status']['label'] ?? null) !!}
+            {!! $row('State of origin', $poi['origin_state']['name'] ?? null) !!}
+            {!! $row('LGA of origin', $poi['origin_lga']['name'] ?? null) !!}
+            {!! $row('Hometown', $poi['hometown']) !!}
+            {!! $row('Hair colour', $poi['hair_colour']['label'] ?? null) !!}
+            {!! $row('Eye colour', $poi['eye_colour']['label'] ?? null) !!}
+            {!! $row('Tribal marks', $poi['has_tribal_marks']['label'] ?? null) !!}
+            {!! $row('Tribal marks (description)', $poi['tribal_marks_description']) !!}
+        </table>
         <h3>Known offences</h3><div class="rich">{!! $rich($poi['known_offences']) !!}</div>
+        @if ($poi['criminal_record'])<h3>Criminal record</h3><div class="rich">{!! $rich($poi['criminal_record']) !!}</div>@endif
         @if ($poi['modus_operandi'])<h3>Modus operandi</h3><div class="rich">{!! $rich($poi['modus_operandi']) !!}</div>@endif
         @if ($poi['last_known_location_description'])<p>Last known location: {{ $poi['last_known_location_description'] }}</p>@endif
     @endif

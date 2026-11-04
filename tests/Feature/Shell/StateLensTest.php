@@ -176,7 +176,7 @@ test('the lens never changes scopes', function () {
 test('lists, the incident map and analytics open on the lens; URL filters override it', function () {
     $dg = fn () => CrossFixtures::signIn($this->dg)->withSession(lensSession('state', $this->a1->ulid));
 
-    foreach (['/incidents', '/incidents/map', '/threats', '/flashpoints', '/persons', '/persons-of-interest', '/coverage-reports', '/formations', '/organizations', '/analytics'] as $list) {
+    foreach (['/incidents', '/incidents/map', '/threats', '/flashpoints', '/persons', '/persons-of-interest', '/security-reports', '/formations', '/organizations', '/analytics'] as $list) {
         $dg()->get($list)->assertRedirect("{$list}?state={$this->a1->ulid}");
     }
 

@@ -25,17 +25,17 @@ final class CoverageReportReviewed extends BuffaloNotification
 
     public function title(User $notifiable): string
     {
-        return 'Coverage report reviewed';
+        return 'Security report reviewed';
     }
 
     public function body(User $notifiable): string
     {
-        return "The coverage report of {$this->lga} LGA for {$this->period} was reviewed.";
+        return "The security report of {$this->lga} LGA for {$this->period} was reviewed.";
     }
 
     public function url(User $notifiable): string
     {
-        return '/coverage-reports/'.$this->reportUlid;
+        return '/security-reports/'.$this->reportUlid;
     }
 
     public function severity(): NotificationSeverity

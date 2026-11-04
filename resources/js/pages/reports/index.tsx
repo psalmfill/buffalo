@@ -48,7 +48,7 @@ const DESCRIPTIONS: Partial<Record<ReportTypeValue, string>> = {
     state_profile:
         'One state: profile, LGAs, senatorial districts, current public office holders, security presence, flashpoints and recent incidents.',
     coverage:
-        'One coverage report with its deployments, uncovered communities and history.',
+        'One security report with its text, photos, any deployments and its history.',
     analytics: 'An analytics view with its filters, charts and tables.',
 };
 
@@ -320,7 +320,7 @@ export default function ReportsIndex({
                                             Open the{' '}
                                             {type === 'incident'
                                                 ? 'incident'
-                                                : 'coverage report'}{' '}
+                                                : 'security report'}{' '}
                                             and choose <em>Export PDF</em>.
                                         </p>
                                     ))}

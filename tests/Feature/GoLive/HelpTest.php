@@ -42,8 +42,9 @@ test('every manual has valid front matter, and there is one manual and one card 
         ->and(collect($manuals)->where('kind', 'cards')->map(fn (Manual $m) => $m->role)->sort()->values()->all())
         ->toEqual(collect(Role::cases())->sort()->values()->all())
         ->and(collect($manuals)->where('kind', 'guides')->pluck('slug')->sort()->values()->all())->toBe([
-            'coverage-reports', 'evidence', 'flashpoints', 'merging-duplicates', 'persons-and-cross-state-requests',
-            'reporting-incidents', 'reports-and-exports', 'threats-and-dissemination', 'what-is-logged',
+            'evidence', 'flashpoints', 'merging-duplicates', 'persons-and-cross-state-requests',
+            'reporting-incidents', 'reports-and-exports', 'security-reports', 'threats-and-dissemination', 'what-is-logged',
+            'who-can-see-what',
         ]);
 });
 
@@ -54,7 +55,7 @@ test('each intelligence role sees its own manual first, every guide, and never t
     expect($props['roles'][0]['own'])->toBeTrue()
         ->and(collect($props['roles'])->pluck('slug')->all())->not->toContain('super-admin')
         ->and(collect($props['roles']))->toHaveCount(5)
-        ->and(collect($props['guides']))->toHaveCount(9)
+        ->and(collect($props['guides']))->toHaveCount(10)
         ->and(collect($props['start'])->pluck('slug')->all())->toBe(['getting-started'])
         ->and(collect($props['cards'])->pluck('role')->all())->not->toContain('super_admin')
         ->and(collect($props['cards'])->firstWhere('own', true)['role'])->toBe($role->value);
@@ -73,7 +74,7 @@ test('the super admin sees getting started, their own manual and card, and what 
     $props = helpIndex($this, $admin);
 
     expect(collect($props['roles'])->pluck('slug')->all())->toBe(['super-admin'])
-        ->and(collect($props['guides'])->pluck('slug')->all())->toBe(['what-is-logged'])
+        ->and(collect($props['guides'])->pluck('slug')->sort()->values()->all())->toBe(['what-is-logged', 'who-can-see-what'])
         ->and(collect($props['cards'])->pluck('role')->all())->toBe(['super_admin']);
 
     $this->actingAs($admin)->get(route('help.show', ['kind' => 'guides', 'slug' => 'reporting-incidents']))->assertNotFound();

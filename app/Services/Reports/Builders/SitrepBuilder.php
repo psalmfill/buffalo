@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\DB;
  * acknowledgements; new or changed immediate and priority threats
  * (including those disseminated to the viewer); flashpoints assessed as
  * high or severe; disseminations received; overdue verifications (now);
- * coverage reports awaiting review (now). Sections appear only for modules
+ * security reports awaiting review (now). Sections appear only for modules
  * the requester may view. Drafts and invalid reports are never counted.
  */
 final class SitrepBuilder implements ReportBuilder

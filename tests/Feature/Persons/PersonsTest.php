@@ -465,7 +465,7 @@ test('the person page shows protected fields; other pages never carry them', fun
     $this->actingAs($sd)->get("/persons/{$person->ulid}")->assertInertia(fn (Assert $page) => $page
         ->component('persons/show')
         ->where('person.nin', PersonFixtures::SECRETS['nin'])
-        ->where('person.phone', PersonFixtures::SECRETS['phone_normalised'])
+        ->where('person.phones.0.number', PersonFixtures::SECRETS['phone_normalised'])
         ->where('person.address', PersonFixtures::SECRETS['address']));
 
     PersonFixtures::system();

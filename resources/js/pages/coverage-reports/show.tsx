@@ -6,6 +6,7 @@ import CoverageReportController from '@/actions/App/Http/Controllers/Security/Co
 import FormationController from '@/actions/App/Http/Controllers/Security/AgencyFormationController';
 import StateLink from '@/components/local-government/state-link';
 import RichTextView from '@/components/rich-text/rich-text-view';
+import ReportAttachments from '@/components/security/report-attachments';
 import ClassificationBadge from '@/components/community-information/classification-badge';
 import InputError from '@/components/input-error';
 import BuffaloMap from '@/components/map/BuffaloMap';
@@ -23,6 +24,8 @@ import type {
     CoverageReportDetail,
     CoverageTotals,
     Deployment,
+    ReportAttachment,
+    ReportLimits,
     TimelineEntry,
     UncoveredCommunity,
 } from '@/types/coverage';
@@ -32,13 +35,22 @@ import ExportReportButton from '@/components/reports/export-report-button';
 type Props = {
     report: CoverageReportDetail;
     deployments: Deployment[];
-    totals: CoverageTotals;
+    attachments: ReportAttachment[];
+    limits: ReportLimits;
+    /** Computed only when deployments were entered (Phase 11G). */
+    totals: CoverageTotals | null;
     uncovered: UncoveredCommunity[];
     communityCount: number;
     comparison: CoverageComparison | null;
     timeline: TimelineEntry[];
     map: MapView;
-    can: { update: boolean; submit: boolean; review: boolean; delete: boolean };
+    can: {
+        update: boolean;
+        submit: boolean;
+        review: boolean;
+        delete: boolean;
+        addAttachment: boolean;
+    };
 };
 
 const CHANGE_LABELS: Record<CoverageComparison['rating']['change'], string> = {
@@ -48,10 +60,16 @@ const CHANGE_LABELS: Record<CoverageComparison['rating']['change'], string> = {
     unknown: 'not comparable',
 };
 
-/** A coverage report, read-only, with its figures and workflow actions. */
+/**
+ * A security report (Phase 11G): the written report, its photos and videos,
+ * the optional details, deployment figures when deployments were entered,
+ * and the workflow actions.
+ */
 export default function CoverageReportShow({
     report,
     deployments,
+    attachments,
+    limits,
     totals,
     uncovered,
     communityCount,
@@ -93,15 +111,13 @@ export default function CoverageReportShow({
 
     return (
         <>
-            <Head
-                title={`Coverage report: ${report.lga.name}, ${report.period}`}
-            />
+            <Head title={`Security report: ${report.display_title}`} />
             <div className="space-y-6 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                             <h1 className="text-xl font-semibold">
-                                {report.lga.name} LGA · {report.period}
+                                {report.display_title}
                             </h1>
                             <CoverageStatusBadge status={report.status} />
                             <ClassificationBadge
@@ -109,9 +125,9 @@ export default function CoverageReportShow({
                             />
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            {report.period_type.label} coverage report ·{' '}
-                            <StateLink state={report.state} suffix=" State" /> ·{' '}
-                            {report.period_start} to {report.period_end}
+                            {report.lga.name} LGA,{' '}
+                            <StateLink state={report.state} suffix=" State" /> ·
+                            Report date {report.report_date} · {report.period}
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -178,121 +194,161 @@ export default function CoverageReportShow({
                     </p>
                 )}
 
-                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <Stat label="Overall rating">
-                        <RatingBadge rating={report.overall_rating} />
-                    </Stat>
-                    <Stat label="Personnel deployed">
-                        {totals.personnel.toLocaleString('en-NG')}
-                    </Stat>
-                    <Stat label="Vehicles">
-                        {totals.vehicles.toLocaleString('en-NG')}
-                    </Stat>
-                    <Stat label="Uncovered communities">
-                        {uncovered.length} of {communityCount}
-                    </Stat>
+                <section className="space-y-2 rounded-lg border p-4">
+                    <h2 className="text-sm font-semibold">Report</h2>
+                    {report.summary ? (
+                        <RichTextView html={report.summary} />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            No report text yet.
+                        </p>
+                    )}
                 </section>
+
+                <ReportAttachments
+                    reportUlid={report.ulid}
+                    reportLevel={report.classification.value}
+                    attachments={attachments}
+                    canUpload={can.addAttachment}
+                    limits={limits}
+                />
+
+                {totals !== null && (
+                    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <Stat label="Overall rating">
+                            <RatingBadge rating={report.overall_rating} />
+                        </Stat>
+                        <Stat label="Personnel deployed">
+                            {totals.personnel.toLocaleString('en-NG')}
+                        </Stat>
+                        <Stat label="Vehicles">
+                            {totals.vehicles.toLocaleString('en-NG')}
+                        </Stat>
+                        <Stat label="Uncovered communities">
+                            {uncovered.length} of {communityCount}
+                        </Stat>
+                    </section>
+                )}
+                {totals === null && report.overall_rating && (
+                    <p className="text-sm">
+                        Overall rating:{' '}
+                        <RatingBadge rating={report.overall_rating} />
+                    </p>
+                )}
 
                 <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
                     <div className="space-y-6">
-                        <section className="space-y-2">
-                            <h2 className="text-sm font-semibold">
-                                Deployments
-                            </h2>
-                            <div className="overflow-x-auto rounded-lg border">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-muted/50 text-left">
-                                        <tr>
-                                            <th className="px-3 py-2 font-medium">
-                                                Agency / formation
-                                            </th>
-                                            <th className="px-3 py-2 text-right font-medium">
-                                                Personnel
-                                            </th>
-                                            <th className="px-3 py-2 text-right font-medium">
-                                                Vehicles
-                                            </th>
-                                            <th className="px-3 py-2 font-medium">
-                                                Patrols
-                                            </th>
-                                            <th className="px-3 py-2 font-medium">
-                                                Covers
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {deployments.length === 0 && (
+                        {deployments.length > 0 && (
+                            <section className="space-y-2">
+                                <h2 className="text-sm font-semibold">
+                                    Deployments
+                                </h2>
+                                <div className="overflow-x-auto rounded-lg border">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-muted/50 text-left">
                                             <tr>
-                                                <td
-                                                    colSpan={5}
-                                                    className="px-3 py-4 text-muted-foreground"
+                                                <th className="px-3 py-2 font-medium">
+                                                    Agency / formation
+                                                </th>
+                                                <th className="px-3 py-2 text-right font-medium">
+                                                    Personnel
+                                                </th>
+                                                <th className="px-3 py-2 text-right font-medium">
+                                                    Vehicles
+                                                </th>
+                                                <th className="px-3 py-2 font-medium">
+                                                    Patrols
+                                                </th>
+                                                <th className="px-3 py-2 font-medium">
+                                                    Covers
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {deployments.length === 0 && (
+                                                <tr>
+                                                    <td
+                                                        colSpan={5}
+                                                        className="px-3 py-4 text-muted-foreground"
+                                                    >
+                                                        No deployments recorded.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            {deployments.map((d) => (
+                                                <tr
+                                                    key={d.ulid}
+                                                    className="align-top"
                                                 >
-                                                    No deployments recorded.
-                                                </td>
-                                            </tr>
-                                        )}
-                                        {deployments.map((d) => (
-                                            <tr
-                                                key={d.ulid}
-                                                className="align-top"
-                                            >
-                                                <td className="px-3 py-2">
-                                                    <div className="font-medium">
-                                                        {d.agency.name}
-                                                    </div>
-                                                    {d.formation ? (
-                                                        <Link
-                                                            href={FormationController.show(
-                                                                d.formation
-                                                                    .ulid,
-                                                            )}
-                                                            className="text-xs hover:underline"
-                                                        >
-                                                            {d.formation.name}
-                                                        </Link>
-                                                    ) : d.formation_hidden ? (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            A formation you
-                                                            cannot view
-                                                        </span>
-                                                    ) : null}
-                                                    {d.remarks && (
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {d.remarks}
+                                                    <td className="px-3 py-2">
+                                                        <div className="font-medium">
+                                                            {d.agency.name}
                                                         </div>
-                                                    )}
-                                                </td>
-                                                <td className="px-3 py-2 text-right tabular-nums">
-                                                    {d.personnel_count}
-                                                </td>
-                                                <td className="px-3 py-2 text-right tabular-nums">
-                                                    {d.vehicles_count ?? '—'}
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    {d.patrol_frequency.label}
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    {d.communities.length > 0
-                                                        ? d.communities
-                                                              .map(
-                                                                  (c) => c.name,
-                                                              )
-                                                              .join(', ')
-                                                        : '—'}
-                                                    {d.areas_covered && (
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {d.areas_covered}
-                                                        </div>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
+                                                        {d.formation ? (
+                                                            <Link
+                                                                href={FormationController.show(
+                                                                    d.formation
+                                                                        .ulid,
+                                                                )}
+                                                                className="text-xs hover:underline"
+                                                            >
+                                                                {
+                                                                    d.formation
+                                                                        .name
+                                                                }
+                                                            </Link>
+                                                        ) : d.formation_hidden ? (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                A formation you
+                                                                cannot view
+                                                            </span>
+                                                        ) : null}
+                                                        {d.remarks && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {d.remarks}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right tabular-nums">
+                                                        {d.personnel_count}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right tabular-nums">
+                                                        {d.vehicles_count ??
+                                                            '—'}
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        {
+                                                            d.patrol_frequency
+                                                                .label
+                                                        }
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        {d.communities.length >
+                                                        0
+                                                            ? d.communities
+                                                                  .map(
+                                                                      (c) =>
+                                                                          c.name,
+                                                                  )
+                                                                  .join(', ')
+                                                            : '—'}
+                                                        {d.areas_covered && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {
+                                                                    d.areas_covered
+                                                                }
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                        )}
 
-                        {totals.by_agency.length > 0 && (
+                        {totals !== null && totals.by_agency.length > 0 && (
                             <section className="space-y-2">
                                 <h2 className="text-sm font-semibold">
                                     Totals by agency
@@ -324,7 +380,6 @@ export default function CoverageReportShow({
                         )}
 
                         <section className="space-y-3 rounded-lg border p-4">
-                            <Text label="Summary" value={report.summary} />
                             <Text
                                 label="Gaps identified"
                                 value={report.gaps_identified}
@@ -337,84 +392,93 @@ export default function CoverageReportShow({
                     </div>
 
                     <div className="space-y-6">
-                        <section className="space-y-2">
-                            <h2 className="text-sm font-semibold">
-                                Uncovered communities ({uncovered.length})
-                            </h2>
-                            {markers.length > 0 && (
-                                <BuffaloMap
-                                    className="h-64 rounded-lg border"
-                                    markers={markers}
-                                    fitMarkers
-                                    {...(map.center
-                                        ? { center: map.center, zoom: map.zoom }
-                                        : {})}
-                                />
-                            )}
-                            {uncovered.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    Every community is covered.
-                                </p>
-                            ) : (
-                                <ul className="max-h-60 space-y-1 overflow-y-auto text-sm">
-                                    {uncovered.map((c) => (
-                                        <li key={c.ulid}>{c.name}</li>
-                                    ))}
-                                </ul>
-                            )}
-                        </section>
+                        {totals !== null && (
+                            <section className="space-y-2">
+                                <h2 className="text-sm font-semibold">
+                                    Uncovered communities ({uncovered.length})
+                                </h2>
+                                {markers.length > 0 && (
+                                    <BuffaloMap
+                                        className="h-64 rounded-lg border"
+                                        markers={markers}
+                                        fitMarkers
+                                        {...(map.center
+                                            ? {
+                                                  center: map.center,
+                                                  zoom: map.zoom,
+                                              }
+                                            : {})}
+                                    />
+                                )}
+                                {uncovered.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        Every community is covered.
+                                    </p>
+                                ) : (
+                                    <ul className="max-h-60 space-y-1 overflow-y-auto text-sm">
+                                        {uncovered.map((c) => (
+                                            <li key={c.ulid}>{c.name}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
+                        )}
 
-                        <section className="space-y-2 rounded-lg border p-4 text-sm">
-                            <h2 className="font-semibold">
-                                Compared with the previous report
-                            </h2>
-                            {comparison === null ? (
-                                <p className="text-muted-foreground">
-                                    No earlier submitted report of this period
-                                    type.
-                                </p>
-                            ) : (
-                                <ul className="space-y-1">
-                                    <li>
-                                        Previous:{' '}
-                                        <Link
-                                            href={CoverageReportController.show(
-                                                comparison.report.ulid,
-                                            )}
-                                            className="hover:underline"
-                                        >
-                                            {comparison.report.period}
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        Personnel:{' '}
-                                        {comparison.personnel_change > 0
-                                            ? '+'
-                                            : ''}
-                                        {comparison.personnel_change}
-                                    </li>
-                                    <li>
-                                        Rating:{' '}
-                                        {comparison.rating.previous ?? '—'} →{' '}
-                                        {comparison.rating.current ?? '—'} (
-                                        {
-                                            CHANGE_LABELS[
-                                                comparison.rating.change
-                                            ]
-                                        }
-                                        )
-                                    </li>
-                                    <li>
-                                        Newly uncovered:{' '}
-                                        {comparison.newly_uncovered.length === 0
-                                            ? 'none'
-                                            : comparison.newly_uncovered
-                                                  .map((c) => c.name)
-                                                  .join(', ')}
-                                    </li>
-                                </ul>
-                            )}
-                        </section>
+                        {totals !== null && (
+                            <section className="space-y-2 rounded-lg border p-4 text-sm">
+                                <h2 className="font-semibold">
+                                    Compared with the previous report
+                                </h2>
+                                {comparison === null ? (
+                                    <p className="text-muted-foreground">
+                                        No earlier submitted report of this
+                                        period type.
+                                    </p>
+                                ) : (
+                                    <ul className="space-y-1">
+                                        <li>
+                                            Previous:{' '}
+                                            <Link
+                                                href={CoverageReportController.show(
+                                                    comparison.report.ulid,
+                                                )}
+                                                className="hover:underline"
+                                            >
+                                                {comparison.report.period}
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            Personnel:{' '}
+                                            {comparison.personnel_change > 0
+                                                ? '+'
+                                                : ''}
+                                            {comparison.personnel_change}
+                                        </li>
+                                        <li>
+                                            Rating:{' '}
+                                            {comparison.rating.previous ?? '—'}{' '}
+                                            → {comparison.rating.current ?? '—'}{' '}
+                                            (
+                                            {
+                                                CHANGE_LABELS[
+                                                    comparison.rating.change
+                                                ]
+                                            }
+                                            )
+                                        </li>
+                                        <li>
+                                            Newly uncovered:{' '}
+                                            {comparison.newly_uncovered
+                                                .length === 0
+                                                ? 'none'
+                                                : comparison.newly_uncovered
+                                                      .map((c) => c.name)
+                                                      .join(', ')}
+                                        </li>
+                                    </ul>
+                                )}
+                            </section>
+                        )}
 
                         <section className="space-y-2">
                             <h2 className="text-sm font-semibold">Timeline</h2>
@@ -549,6 +613,6 @@ function Text({ label, value }: { label: string; value: string | null }) {
 
 CoverageReportShow.layout = {
     breadcrumbs: [
-        { title: 'Coverage reports', href: CoverageReportController.index() },
+        { title: 'Security reports', href: CoverageReportController.index() },
     ],
 };

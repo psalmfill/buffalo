@@ -4,6 +4,7 @@ namespace App\Actions\Evidence;
 
 use App\Enums\EvidenceScanStatus;
 use App\Enums\Role;
+use App\Models\CoverageReportAttachment;
 use App\Models\IncidentEvidence;
 use App\Models\User;
 use App\Notifications\EvidenceIntegrityFailure;
@@ -18,7 +19,8 @@ use Illuminate\Support\Facades\Storage;
  *
  * A mismatch (or a missing file) is logged as `integrity_failure` and the DG
  * and super admins are notified (critical, evidence ULID only). A requested
- * verification that passes is logged as `integrity_verified`.
+ * verification that passes is logged as `integrity_verified`. Security report
+ * attachments (Phase 11G) are checked the same way.
  */
 final class VerifyEvidenceIntegrity
 {
@@ -27,7 +29,7 @@ final class VerifyEvidenceIntegrity
     /**
      * @param  string  $context  download, verify or upload
      */
-    public function __invoke(IncidentEvidence $evidence, ?User $actor, string $context): bool
+    public function __invoke(IncidentEvidence|CoverageReportAttachment $evidence, ?User $actor, string $context): bool
     {
         $actual = $this->hash($evidence);
 
@@ -59,7 +61,7 @@ final class VerifyEvidenceIntegrity
      * infected original is checked where it now lives, on the quarantine
      * disk (Phase 8B.4).
      */
-    private function hash(IncidentEvidence $evidence): ?string
+    private function hash(IncidentEvidence|CoverageReportAttachment $evidence): ?string
     {
         $path = $evidence->scan_status === EvidenceScanStatus::Infected
             ? Storage::disk('quarantine')->path(ScanQuarantinedEvidence::quarantinePath($evidence))
