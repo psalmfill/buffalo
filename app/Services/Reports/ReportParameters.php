@@ -13,6 +13,7 @@ use App\Models\OrganizationSite;
 use App\Models\Person;
 use App\Models\ReportRun;
 use App\Models\State;
+use App\Models\Tasking;
 use App\Models\ThreatReport;
 use App\Models\User;
 use App\Services\Analytics\Analytics;
@@ -65,7 +66,7 @@ final class ReportParameters
             ReportType::Analytics => $this->analytics($input, $user),
             ReportType::ListExport => $this->listExport($input, $user),
             ReportType::Incident, ReportType::Coverage, ReportType::Flashpoint, ReportType::OrganizationSite, ReportType::Arrest,
-            ReportType::ThreatReport, ReportType::CriminalGroup, ReportType::Person => $this->single($type, $input, $user),
+            ReportType::ThreatReport, ReportType::CriminalGroup, ReportType::Person, ReportType::Tasking => $this->single($type, $input, $user),
         };
     }
 
@@ -81,6 +82,7 @@ final class ReportParameters
             ReportType::ThreatReport => ThreatReport::class,
             ReportType::CriminalGroup => CriminalGroup::class,
             ReportType::Person => Person::class,
+            ReportType::Tasking => Tasking::class,
             default => null,
         };
     }

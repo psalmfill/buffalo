@@ -13,7 +13,9 @@ starts with you. You see and record everything in **your own LGA**, at the
 ## Your daily routine
 
 1. Check the **dashboard** and the notification bell: returned incidents,
-   threats, reminders.
+   threats, reminders, and **Messages from the Director** at the top.
+   Open each new tasking, **Acknowledge** it, and when it is done write your
+   report back and **Mark completed** ([Taskings](../guides/taskings.md)).
 2. **Report incidents** as they happen. For anything critical, use the fast
    critical report and complete it afterwards
    ([Reporting and processing an incident](../guides/reporting-incidents.md#fast-critical-report)).
@@ -49,12 +51,14 @@ starts with you. You see and record everything in **your own LGA**, at the
 | Threat reports | Record and manage your own reports; request dissemination from your State Director |
 | Flashpoints | Record, assess, link incidents and notes |
 | Security reports | Write and submit for your LGA |
+| Taskings | Read your LGA's taskings, acknowledge, complete with a report back, add further responses |
 | Communities, institutions, notes | Record and update |
 | Reports | SITREPs, weekly summaries, incident, LGA profile and state profile PDFs |
 
 ## What you cannot do
 
-- See other LGAs' records (they are "not found" for you).
+- See other LGAs' records (they are "not found" for you), including which
+  other LGAs received a tasking or what they answered.
 - See confidential or secret records created by others.
 - Verify, return, close or invalidate incidents, or delete records: your
   State Director or Deputy does that.

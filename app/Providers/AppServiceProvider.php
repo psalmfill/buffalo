@@ -12,10 +12,12 @@ use App\Enums\Permission;
 use App\Models\RecordDissemination;
 use App\Models\ReportRun;
 use App\Models\ReportSchedule;
+use App\Models\TaskingRecipient;
 use App\Models\User;
 use App\Policies\DisseminationPolicy;
 use App\Policies\ReferenceDataPolicy;
 use App\Policies\ReportPolicy;
+use App\Policies\TaskingPolicy;
 use App\Services\Search\GlobalSearch;
 use App\Services\Search\Providers;
 use App\Support\Arrests\ReferenceUsageChecks as ArrestsReferenceUsageChecks;
@@ -192,6 +194,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('disseminate', [DisseminationPolicy::class, 'disseminate']);
         Gate::define('request', [DisseminationPolicy::class, 'request']);
         Gate::define('decideRequest', [DisseminationPolicy::class, 'decideRequest']);
+
+        // Taskings (Phase 11H): an LGA's recipient row is acted on through
+        // TaskingPolicy::respond (its only ability).
+        Gate::policy(TaskingRecipient::class, TaskingPolicy::class);
 
         // Reports (Phase 7D): runs and schedules, owner only.
         Gate::policy(ReportRun::class, ReportPolicy::class);

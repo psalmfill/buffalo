@@ -27,6 +27,7 @@ use App\Models\OrganizationSite;
 use App\Models\PoliticalOffice;
 use App\Models\ReligiousInstitution;
 use App\Models\SenatorialDistrict;
+use App\Models\Tasking;
 use App\Models\User;
 use App\Models\VulnerablePopulationStat;
 use App\Models\Ward;
@@ -150,6 +151,8 @@ class LgaController extends Controller
                 'viewFormations' => $user->can('viewAny', AgencyFormation::class),
                 'addFormation' => $user->can('create', AgencyFormation::class),
                 'viewOrganizations' => $user->can('viewAny', OrganizationSite::class),
+                // Directors of the LGA's state (Phase 11H).
+                'sendTasking' => $user->can('sendTo', [Tasking::class, $lga]),
                 // For showing row actions; each action is authorised on the record.
                 'deleteReligiousInstitutions' => $user->checkPermissionTo(Permission::ReligiousInstitutionsDelete->value),
                 'deleteVulnerableFigures' => $user->checkPermissionTo(Permission::VulnerableStatsDelete->value),

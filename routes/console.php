@@ -34,6 +34,9 @@ Schedule::command('buffalo:expire-temporary-formations')->dailyAt('00:30');
 // Coverage reports (Phase 4A): overdue reminders, once per period.
 Schedule::command('buffalo:coverage-reminders')->dailyAt('08:00');
 
+// Overdue taskings (Phase 11H): chiefs once at the due time, senders daily.
+Schedule::command('buffalo:taskings:overdue')->everyFiveMinutes()->withoutOverlapping();
+
 // Incidents past their verification deadline (Phase 5C).
 Schedule::command('buffalo:incident-verification-reminders')->everyFiveMinutes()->withoutOverlapping();
 

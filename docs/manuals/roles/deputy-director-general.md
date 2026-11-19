@@ -26,7 +26,8 @@ As Deputy Director General you see everything **nationally**, or in the
 ## What you can do
 
 - Everything the State Director can, across your states, except deciding
-  requests that have not been escalated.
+  requests that have not been escalated and sending taskings.
+- Follow the taskings of your states, read-only (Overview → Taskings).
 - Acknowledge escalations; reopen, close and invalidate incidents.
 - Analytics, including cross-jurisdiction activity.
 

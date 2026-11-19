@@ -16,6 +16,8 @@ order: 25
 - Start investigations, resolve (with a summary), amend with a reason.
 - **Security reports** waiting for you: Mark reviewed, or Return for changes.
 - Read and **acknowledge** shared threats and flashpoints.
+- **Taskings:** dashboard → **New tasking** to your LGA chiefs; follow
+  progress; follow-up note or Recall (reason).
 - **Delegated?** Decide access requests: Access requests → Awaiting my decision.
 
 ## Sharing

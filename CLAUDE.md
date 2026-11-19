@@ -234,6 +234,12 @@ Classification narrows access **within** a user's jurisdiction; it never widens 
   - Security reports and attachments are neither grantable nor disseminable.
   - Person-of-interest details live on `persons_of_interest` (data minimisation). Religion and political affiliations are special categories: encrypted with **no blind index**, shown only on the person's page, never in lists, filters, search, analytics, exports or any PDF. Tribal marks appear on the page and the single-person PDF only.
   - Phone numbers are rows of `person_phones` (each encrypted with a blind index, one primary); matching, search, duplicates and merges use all of a person's numbers. `persons.phone` no longer exists.
+- **Phase 11H (taskings):**
+  - State Directors and Deputies (`taskings.send`) send written taskings to LGA Security Chiefs of **their own state only**, from one form and one picker (one LGA, several, by senatorial district, or Select all). Recipients are **LGAs, not people**: a successor chief sees the LGA's taskings.
+  - `taskings` are state-level records (`LgaVisibilityRule`: an LGA chief sees only sent taskings with a recipient row for their LGA); `tasking_recipients`, `tasking_responses` and response attachments carry their own `state_id`/`lga_id`. A chief never sees other LGAs' rows, responses or the target mode.
+  - Sent taskings are fixed (trigger); corrections are a recall with a reason or an append-only follow-up note. Recipient statuses only move forward; the completion report is fixed.
+  - Sending is refused above the LGA chiefs' clearance (restricted). Taskings are neither grantable nor disseminable; there is no search provider.
+  - Attachments reuse the 11G attachment service (`StoreAttachmentFile`, scan, integrity, serving) on the evidence disk.
 
 ## 10a. Tooling notes (from Phase 0)
 

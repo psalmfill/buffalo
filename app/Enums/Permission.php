@@ -151,6 +151,11 @@ enum Permission: string
     case ArrestsManage = 'arrests.manage';
     case ArrestsDelete = 'arrests.delete';
 
+    // Taskings (Phase 11H): directors instruct LGA chiefs of their state.
+    case TaskingsView = 'taskings.view';
+    case TaskingsSend = 'taskings.send';
+    case TaskingsRespond = 'taskings.respond';
+
     // Operational map and blackspot suggestions (Phase 6C).
     case MapView = 'map.view';
     case BlackspotsSuggestions = 'blackspots.suggestions';

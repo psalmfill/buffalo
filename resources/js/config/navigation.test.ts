@@ -116,6 +116,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'arrests.create',
         'arrests.manage',
         'arrests.delete',
+        'taskings.view',
     ],
     deputy_director_general: [
         'users.view',
@@ -200,6 +201,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'arrests.create',
         'arrests.manage',
         'arrests.delete',
+        'taskings.view',
     ],
     state_director: [
         'users.view',
@@ -288,6 +290,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'arrests.create',
         'arrests.manage',
         'arrests.delete',
+        'taskings.view',
+        'taskings.send',
     ],
     deputy_state_director: [
         'users.view',
@@ -352,6 +356,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'arrests.view',
         'arrests.create',
         'arrests.manage',
+        'taskings.view',
+        'taskings.send',
     ],
     lga_security_chief: [
         'reference_data.view',
@@ -406,6 +412,8 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
         'arrests.view',
         'arrests.create',
         'arrests.manage',
+        'taskings.view',
+        'taskings.respond',
     ],
 };
 
@@ -473,6 +481,7 @@ describe('navigation', () => {
             director_general: {
                 Overview: [
                     'Dashboard',
+                    'Taskings',
                     'Operational map',
                     'Analytics',
                     'Reports',
@@ -515,6 +524,7 @@ describe('navigation', () => {
             deputy_director_general: {
                 Overview: [
                     'Dashboard',
+                    'Taskings',
                     'Operational map',
                     'Analytics',
                     'Reports',
@@ -550,6 +560,7 @@ describe('navigation', () => {
             state_director: {
                 Overview: [
                     'Dashboard',
+                    'Taskings',
                     'Operational map',
                     'Analytics',
                     'Reports',
@@ -585,6 +596,7 @@ describe('navigation', () => {
             deputy_state_director: {
                 Overview: [
                     'Dashboard',
+                    'Taskings',
                     'Operational map',
                     'Analytics',
                     'Reports',
@@ -620,6 +632,7 @@ describe('navigation', () => {
             lga_security_chief: {
                 Overview: [
                     'Dashboard',
+                    'Taskings',
                     'Operational map',
                     'Analytics',
                     'Reports',

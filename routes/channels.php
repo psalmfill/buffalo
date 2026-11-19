@@ -44,3 +44,16 @@ Broadcast::channel('states.{stateUlid}.threats', function (User $user, string $s
 Broadcast::channel('national.threats', fn (User $user): bool => ! $user->isAccessBlocked()
     && $user->jurisdiction_level === JurisdictionLevel::National
     && $user->checkPermissionTo(Permission::ThreatsView->value));
+
+// Tasking events (Phase 11H): the state's directors and national users
+// covering the whole state. LGA chiefs receive tasking events on their own
+// `users.{ulid}` channel only, never another LGA's. ULID and event name only.
+Broadcast::channel('states.{stateUlid}.taskings', function (User $user, string $stateUlid): bool {
+    if ($user->isAccessBlocked() || ! $user->checkPermissionTo(Permission::TaskingsView->value)) {
+        return false;
+    }
+
+    $state = State::query()->where('ulid', $stateUlid)->first();
+
+    return $state !== null && app(JurisdictionOptions::class)->coversWholeState($user, $state);
+});

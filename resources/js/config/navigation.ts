@@ -29,6 +29,7 @@ import {
     ScrollText,
     Share2,
     Shield,
+    Send,
     Sparkles,
     TriangleAlert,
     UserSearch,
@@ -67,6 +68,7 @@ import PersonDuplicateController from '@/actions/App/Http/Controllers/Persons/Pe
 import PersonOfInterestController from '@/actions/App/Http/Controllers/PersonsOfInterest/PersonOfInterestController';
 import SenatorialDistrictController from '@/actions/App/Http/Controllers/Political/SenatorialDistrictController';
 import ReferenceDataController from '@/actions/App/Http/Controllers/ReferenceData/ReferenceDataController';
+import TaskingController from '@/actions/App/Http/Controllers/Taskings/TaskingController';
 import UserController from '@/actions/App/Http/Controllers/Users/UserController';
 import { can } from '@/lib/permissions';
 import { dashboard } from '@/routes';
@@ -90,7 +92,8 @@ export type NavItem = {
     /** Not an Inertia page: opens in a new tab (e.g. Horizon). */
     external?: boolean;
     /** A shared count shown next to the item (`badges` page prop). */
-    badge?: 'coverageReview' | 'immediateThreats' | 'disseminations';
+    badge?:
+        'coverageReview' | 'immediateThreats' | 'disseminations' | 'taskings';
 };
 
 export type NavSection = {
@@ -105,6 +108,7 @@ export const NAVIGATION: NavSection[] = [
         title: 'Overview',
         items: [
             { title: 'Dashboard', icon: LayoutGrid, href: dashboard(), permission: null },
+            { title: 'Taskings', icon: Send, href: TaskingController.index(), permission: 'taskings.view', badge: 'taskings' },
             { title: 'Operational map', icon: Layers, href: MapController.show(), permission: 'map.view' },
             { title: 'Analytics', icon: ChartLine, href: AnalyticsController.index(), permission: 'analytics.view' },
             { title: 'Reports', icon: FileText, href: ReportController.index(), permission: 'reports.generate' },

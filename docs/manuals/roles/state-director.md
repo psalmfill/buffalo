@@ -26,7 +26,12 @@ and who outside the state may see it.
    Act on BUFFALO's daily "not shared" alerts.
 5. **Security reports:** review, return or mark reviewed.
 6. **Suggested blackspots:** accept or dismiss the night's suggestions.
-7. **State profile:** keep it current (States & LGAs → States opens your
+7. **Taskings:** instruct one, several or all of your LGA Security Chiefs
+   with **New tasking** on the dashboard's Tasking card, and follow who has
+   read, acknowledged and completed each one; read their reports back
+   ([Taskings](../guides/taskings.md)). A sent tasking cannot be changed:
+   add a follow-up note, or recall it with a reason.
+8. **State profile:** keep it current (States & LGAs → States opens your
    state): history, economy, terrain, roads, borders (neighbouring states,
    international borders and crossings) and the capital, then **Mark as
    reviewed**. You and your Deputy are reminded weekly when it has not been

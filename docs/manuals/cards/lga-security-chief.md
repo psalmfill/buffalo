@@ -11,7 +11,10 @@ order: 30
 ## Every day
 
 - Check the dashboard and the bell (returned incidents, reminders).
-- **Report incidents:** Incidents → Report incident. Save as draft any time.
+- **Messages from the Director** (top of the dashboard): open each tasking,
+  **Acknowledge**, then report back and **Mark completed** (photos and
+  documents allowed). Overdue ones are flagged.
+- **Report incidents:** Incidents → **Report incident** button. Save as draft any time.
 - **Critical?** Core facts only (type, title, description, severity
   Critical, time, LGA) → **Submit**. Escalated automatically. Complete it
   afterwards.

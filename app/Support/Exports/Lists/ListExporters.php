@@ -19,6 +19,7 @@ final class ListExporters
         E\FlashpointsExporter::class,
         E\BlackspotSuggestionsExporter::class,
         E\CoverageReportsExporter::class,
+        E\TaskingsExporter::class,
         E\FormationsExporter::class,
         E\OrganizationsExporter::class,
         E\OrganizationSitesExporter::class,

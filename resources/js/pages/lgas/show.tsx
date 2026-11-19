@@ -9,12 +9,13 @@ import RichTextEditor from '@/components/rich-text/rich-text-editor';
 import RichTextView from '@/components/rich-text/rich-text-view';
 import IncidentsTab from '@/components/incidents/incidents-tab';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { CheckCircle2, Plus, Upload } from 'lucide-react';
+import { CheckCircle2, Plus, Send, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import CommunityController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityController';
 import CommunityImportController from '@/actions/App/Http/Controllers/LocalGovernment/CommunityImportController';
 import LgaController from '@/actions/App/Http/Controllers/LocalGovernment/LgaController';
+import TaskingController from '@/actions/App/Http/Controllers/Taskings/TaskingController';
 import EmptyState from '@/components/empty-state';
 import { FilterBar, useFilters } from '@/components/filter-bar';
 import InputError from '@/components/input-error';
@@ -95,6 +96,7 @@ type Props = {
         viewFormations: boolean;
         addFormation: boolean;
         viewOrganizations: boolean;
+        sendTasking: boolean;
     };
     options: InformationOptions;
     overview: { chief: NamedRef | null; map: MapView } | null;
@@ -164,6 +166,18 @@ export default function LgaShow(props: Props) {
                             </span>
                             <CompletenessBar percent={completeness.percent} />
                         </div>
+                        {props.can.sendTasking && (
+                            <Button asChild variant="outline" size="sm">
+                                <Link
+                                    href={TaskingController.create({
+                                        query: { lga: lga.ulid },
+                                    })}
+                                    data-test="send-tasking"
+                                >
+                                    <Send /> Send tasking
+                                </Link>
+                            </Button>
+                        )}
                         <ExportReportButton
                             type="lga_profile"
                             parameters={{

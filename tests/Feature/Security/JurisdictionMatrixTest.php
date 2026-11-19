@@ -132,6 +132,12 @@ const ROUTE_PERMISSIONS = [
     'threats.edit' => ['threats.manage'],
     'arrests.show' => ['arrests.view'],
     'arrests.edit' => ['arrests.manage'],
+    'taskings.show' => ['taskings.view'],
+    'taskings.edit' => ['taskings.send'],
+    'tasking-attachments.thumb' => ['taskings.view'],
+    'tasking-attachments.preview' => ['taskings.view'],
+    'tasking-attachments.stream' => ['taskings.view'],
+    'tasking-attachments.download' => ['taskings.view'],
 ];
 
 /**
@@ -143,6 +149,8 @@ const ROUTE_PERMISSIONS = [
 const INSIDE_EXCEPTIONS = [
     'evidence.stream' => [MATRIX_ROLES, 'The matrix item is a photo; streams are for video and audio only'],
     'report-attachments.stream' => [MATRIX_ROLES, 'The matrix attachment is a photo; streams are for videos only'],
+    'tasking-attachments.stream' => [MATRIX_ROLES, 'The matrix attachment is a photo; streams are for videos only'],
+    'taskings.edit' => [['state_director', 'deputy_state_director'], 'The matrix tasking is sent: only drafts are edited (TaskingPolicy::update)'],
     'coverage-reports.edit' => [['lga_chief'], 'Chiefs edit only coverage reports they created (CoverageReportPolicy::update)'],
     'incidents.edit' => [['lga_chief'], 'After submission, edits are amendments and need incidents.amend (IncidentPolicy::update)'],
     'threats.edit' => [['lga_chief'], 'Chiefs edit only threat reports they created (ThreatReportPolicy::update)'],

@@ -43,6 +43,16 @@ intelligence:
 - the names of officers who acted on a record you can see (for example who
   reviewed it), and nothing else about them.
 
+## Taskings
+
+A tasking from your State Director is addressed to LGAs, and each LGA
+Security Chief sees only their own LGA's copy: its instruction, follow-up
+notes and their own report back. A chief never sees which other LGAs received
+it, or their answers. The State Director and Deputy see every LGA's status
+and report back; the DG and DDGs see the taskings within their reach,
+read-only. A tasking belongs to the LGA, so a new chief sees what was sent
+to their predecessor. See **Taskings** for details.
+
 ## Classification: how sensitive a record is
 
 Within your jurisdiction, a classified record is shown only to the ranks
@@ -59,8 +69,8 @@ You cannot give a record a level you could not see yourself.
 
 ## The only two ways a record crosses jurisdictions
 
-Nothing else, including security reports, incidents and evidence, is ever
-shared across jurisdictions.
+Nothing else, including security reports, taskings, incidents and evidence,
+is ever shared across jurisdictions.
 
 1. **Person access grants.** When you search for a person recorded in
    another state, you may see only a short "possible match" notice, with no
@@ -76,6 +86,6 @@ shared across jurisdictions.
 
 ## Everything is recorded
 
-Views of persons, persons of interest, classified records, evidence and
-security report attachments, and every download, export and print, are
-logged with who, when and from where.
+Views of persons, persons of interest, classified records, evidence,
+security report and tasking attachments, and taskings, and every download,
+export and print, are logged with who, when and from where.

@@ -7,6 +7,7 @@ use App\Actions\Evidence\VerifyEvidenceIntegrity;
 use App\Enums\EvidenceScanStatus;
 use App\Models\CoverageReportAttachment;
 use App\Models\IncidentEvidence;
+use App\Models\TaskingAttachment;
 use App\Models\User;
 use App\Support\Jurisdiction\JurisdictionContext;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -25,7 +26,8 @@ use Illuminate\Foundation\Queue\Queueable;
  *    is an integrity failure (logged, DG and super admins notified) and the
  *    item stays unprocessed.
  *
- * Also processes security report attachments (Phase 11G; $model).
+ * Also processes security report attachments (Phase 11G) and tasking
+ * attachments (Phase 11H; $model).
  *
  * Runs as the uploader (CLAUDE.md: a job acting for a user uses that user's
  * context). Unique per item, so retries never pile up.
@@ -39,7 +41,7 @@ final class ProcessEvidenceJob implements ShouldBeUnique, ShouldQueue
     public int $uniqueFor = 900;
 
     /**
-     * @param  class-string<IncidentEvidence|CoverageReportAttachment>  $model
+     * @param  class-string<IncidentEvidence|CoverageReportAttachment|TaskingAttachment>  $model
      */
     public function __construct(
         public readonly int $evidenceId,
@@ -51,7 +53,11 @@ final class ProcessEvidenceJob implements ShouldBeUnique, ShouldQueue
 
     public function uniqueId(): string
     {
-        return ($this->model === IncidentEvidence::class ? '' : 'attachment:').$this->evidenceId;
+        return match ($this->model) {
+            IncidentEvidence::class => '',
+            TaskingAttachment::class => 'tasking-attachment:',
+            default => 'attachment:',
+        }.$this->evidenceId;
     }
 
     public function handle(JurisdictionContext $context, ScanQuarantinedEvidence $scan, VerifyEvidenceIntegrity $verify): void
@@ -59,9 +65,11 @@ final class ProcessEvidenceJob implements ShouldBeUnique, ShouldQueue
         $user = User::query()->findOrFail($this->userId);
 
         $context->actingAs($user, function () use ($user, $scan, $verify): void {
-            $evidence = $this->model === CoverageReportAttachment::class
-                ? CoverageReportAttachment::query()->whereKey($this->evidenceId)->first()
-                : IncidentEvidence::query()->whereKey($this->evidenceId)->first();
+            $evidence = match ($this->model) {
+                CoverageReportAttachment::class => CoverageReportAttachment::query()->whereKey($this->evidenceId)->first(),
+                TaskingAttachment::class => TaskingAttachment::query()->whereKey($this->evidenceId)->first(),
+                default => IncidentEvidence::query()->whereKey($this->evidenceId)->first(),
+            };
 
             if ($evidence === null || $scan($evidence, $user) !== EvidenceScanStatus::Clean || $evidence->isProcessed()) {
                 return;

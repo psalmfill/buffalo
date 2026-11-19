@@ -313,6 +313,21 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
             // ---------------------------------------------------------------
+            // Phase 11H — Taskings (TaskingPolicy adds the "who" rules: own
+            // state only for senders, own LGA only for respondents)
+            // ---------------------------------------------------------------
+            'taskings' => [
+                Permission::TaskingsView->value => self::INTELLIGENCE_ROLES,
+                Permission::TaskingsSend->value => [
+                    Role::StateDirector,
+                    Role::DeputyStateDirector,
+                ],
+                Permission::TaskingsRespond->value => [
+                    Role::LgaSecurityChief,
+                ],
+            ],
+
+            // ---------------------------------------------------------------
             // Phase 6C — Operational map and blackspot suggestions (each map
             // layer also needs its module's view permission)
             // ---------------------------------------------------------------

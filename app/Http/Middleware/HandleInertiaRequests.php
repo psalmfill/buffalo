@@ -11,6 +11,7 @@ use App\Models\State;
 use App\Models\ThreatReport;
 use App\Models\User;
 use App\Support\Dashboard\DisseminationFigures;
+use App\Support\Dashboard\TaskingFigures;
 use App\Support\Geo\BoundaryAttribution;
 use App\Support\Jurisdiction\JurisdictionOptions;
 use App\Support\Lens\StateLens;
@@ -100,6 +101,9 @@ class HandleInertiaRequests extends Middleware
                 'immediateThreats' => fn (): int => $user instanceof User && $user->checkPermissionTo(Permission::ThreatsView->value)
                     ? ThreatReport::query()->active()->where('urgency', ThreatUrgency::Immediate->value)->count()
                     : 0,
+                // Taskings (Phase 11H): an LGA chief's unread taskings; a
+                // director's taskings with an LGA overdue. Through the scopes.
+                'taskings' => fn (): int => $user instanceof User ? app(TaskingFigures::class)->badge($user) : 0,
                 // Records shared with the user and not yet acknowledged (Phase 7A).
                 'disseminations' => fn (): int => $user instanceof User
                     ? (app(DisseminationFigures::class)->unacknowledged($user)['count'] ?? 0)

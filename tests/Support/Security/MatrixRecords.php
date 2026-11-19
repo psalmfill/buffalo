@@ -6,6 +6,8 @@ use App\Actions\Evidence\StoreEvidence;
 use App\Actions\Organizations\SitePhotos\AddSitePhoto;
 use App\Actions\Persons\AddPersonPhoto;
 use App\Actions\Security\Attachments\StoreReportAttachment;
+use App\Actions\Taskings\Attachments\StoreTaskingAttachment;
+use App\Actions\Taskings\SendTasking;
 use App\Enums\Classification;
 use App\Enums\PoliticalOfficeType;
 use App\Models\AgencyFormation;
@@ -32,6 +34,8 @@ use App\Models\PersonAssociation;
 use App\Models\PersonOfInterest;
 use App\Models\PoliticalOffice;
 use App\Models\ReligiousInstitution;
+use App\Models\Tasking;
+use App\Models\TaskingRecipient;
 use App\Models\User;
 use App\Models\VulnerablePopulationStat;
 use App\Support\Evidence\EvidenceFileInspector;
@@ -121,6 +125,19 @@ final class MatrixRecords
 
         $add(ThreatFixtures::threat($lga));
         $add(Arrest::factory()->in($lga)->withPerson(null)->create(['created_by' => $author->id]));
+
+        // A tasking to the LGA, with a photo (Phase 11H).
+        /** @var Tasking $tasking */
+        $tasking = Tasking::factory()->inState($lga->state_id)->create(['created_by' => $author->id]);
+        $taskingPhoto = EvidenceFixtures::photo();
+        $taskingPhotoType = app(EvidenceFileInspector::class)->inspect((string) $taskingPhoto->getRealPath(), $taskingPhoto->getClientOriginalName());
+        $add(app(JurisdictionContext::class)->actingAs($author, fn () => app(StoreTaskingAttachment::class)(
+            $tasking, null, $taskingPhoto, (array) $taskingPhotoType, 'Matrix photo', Classification::Restricted, $author,
+        )));
+        // Sent in the system context: the matrix author is an LGA chief.
+        CrossFixtures::system();
+        $add(app(SendTasking::class)($tasking, [$lga->id], $author));
+        $add(TaskingRecipient::query()->where('tasking_id', $tasking->id)->sole());
 
         $add((new BlackspotSuggestion)->forceFill([
             'state_id' => $lga->state_id, 'lga_id' => $lga->id, 'centroid' => Incident::pointFrom(9.05, 7.49), 'radius_meters' => 500,

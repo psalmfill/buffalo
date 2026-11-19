@@ -7,6 +7,7 @@ use App\Enums\EvidenceType;
 use App\Models\CoverageReportAttachment;
 use App\Models\IncidentEvidence;
 use App\Models\Media;
+use App\Models\TaskingAttachment;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
@@ -27,7 +28,7 @@ trait ServesStoredFiles
         'Content-Security-Policy' => "default-src 'none'; sandbox",
     ];
 
-    private function conversionResponse(IncidentEvidence|CoverageReportAttachment $file, string $name, string $prefix): BinaryFileResponse
+    private function conversionResponse(IncidentEvidence|CoverageReportAttachment|TaskingAttachment $file, string $name, string $prefix): BinaryFileResponse
     {
         abort_unless(ScanQuarantinedEvidence::type($file) === EvidenceType::Image, 404);
         $media = $this->servableMedia($file);
@@ -42,7 +43,7 @@ trait ServesStoredFiles
     }
 
     /** Video and audio inline, with HTTP range support. */
-    private function streamResponse(IncidentEvidence|CoverageReportAttachment $file, string $prefix): BinaryFileResponse
+    private function streamResponse(IncidentEvidence|CoverageReportAttachment|TaskingAttachment $file, string $prefix): BinaryFileResponse
     {
         $media = $this->servableMedia($file);
         abort_unless(is_file($media->getPath()), 404);
@@ -56,7 +57,7 @@ trait ServesStoredFiles
     }
 
     /** The original, unaltered, as an attachment (verify it first). */
-    private function downloadResponse(IncidentEvidence|CoverageReportAttachment $file, Media $media, string $prefix): BinaryFileResponse
+    private function downloadResponse(IncidentEvidence|CoverageReportAttachment|TaskingAttachment $file, Media $media, string $prefix): BinaryFileResponse
     {
         $response = new BinaryFileResponse($media->getPath(), 200, [
             ...$this->securityHeaders,
@@ -66,7 +67,7 @@ trait ServesStoredFiles
         return $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $this->generatedFilename($file, $media, $prefix));
     }
 
-    private function servableMedia(IncidentEvidence|CoverageReportAttachment $file): Media
+    private function servableMedia(IncidentEvidence|CoverageReportAttachment|TaskingAttachment $file): Media
     {
         abort_unless($file->isScannedClean(), 404);
         $media = $file->original();
@@ -76,7 +77,7 @@ trait ServesStoredFiles
     }
 
     /** A generated name: never the uploader's file name. */
-    private function generatedFilename(IncidentEvidence|CoverageReportAttachment $file, Media $media, string $prefix): string
+    private function generatedFilename(IncidentEvidence|CoverageReportAttachment|TaskingAttachment $file, Media $media, string $prefix): string
     {
         $extension = preg_replace('/[^a-z0-9]/', '', strtolower(pathinfo($media->file_name, PATHINFO_EXTENSION)));
 

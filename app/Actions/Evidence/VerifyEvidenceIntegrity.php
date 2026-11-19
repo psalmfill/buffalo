@@ -6,6 +6,7 @@ use App\Enums\EvidenceScanStatus;
 use App\Enums\Role;
 use App\Models\CoverageReportAttachment;
 use App\Models\IncidentEvidence;
+use App\Models\TaskingAttachment;
 use App\Models\User;
 use App\Notifications\EvidenceIntegrityFailure;
 use App\Support\Audit\AuditLog;
@@ -29,7 +30,7 @@ final class VerifyEvidenceIntegrity
     /**
      * @param  string  $context  download, verify or upload
      */
-    public function __invoke(IncidentEvidence|CoverageReportAttachment $evidence, ?User $actor, string $context): bool
+    public function __invoke(IncidentEvidence|CoverageReportAttachment|TaskingAttachment $evidence, ?User $actor, string $context): bool
     {
         $actual = $this->hash($evidence);
 
@@ -61,7 +62,7 @@ final class VerifyEvidenceIntegrity
      * infected original is checked where it now lives, on the quarantine
      * disk (Phase 8B.4).
      */
-    private function hash(IncidentEvidence|CoverageReportAttachment $evidence): ?string
+    private function hash(IncidentEvidence|CoverageReportAttachment|TaskingAttachment $evidence): ?string
     {
         $path = $evidence->scan_status === EvidenceScanStatus::Infected
             ? Storage::disk('quarantine')->path(ScanQuarantinedEvidence::quarantinePath($evidence))

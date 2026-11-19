@@ -26,6 +26,7 @@ declare module '@inertiajs/core' {
                 coverageReview: number;
                 immediateThreats: number;
                 disseminations: number;
+                taskings: number;
             };
             [key: string]: unknown;
         };

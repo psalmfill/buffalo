@@ -17,6 +17,7 @@ use App\Services\Reports\Builders\PersonReportBuilder;
 use App\Services\Reports\Builders\SitrepBuilder;
 use App\Services\Reports\Builders\StateProfileBuilder;
 use App\Services\Reports\Builders\SummaryBuilder;
+use App\Services\Reports\Builders\TaskingReportBuilder;
 use App\Services\Reports\Builders\ThreatReportBuilder;
 
 /** The builder for each report type (Phase 7D; list exports and record PDFs 11E). */
@@ -40,6 +41,7 @@ final class ReportBuilders
             ReportType::ThreatReport => ThreatReportBuilder::class,
             ReportType::CriminalGroup => CriminalGroupReportBuilder::class,
             ReportType::Person => PersonReportBuilder::class,
+            ReportType::Tasking => TaskingReportBuilder::class,
         });
     }
 }

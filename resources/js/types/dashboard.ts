@@ -1,3 +1,4 @@
+import type { DirectorTaskingCard, LgaTaskingInbox } from '@/types/taskings';
 import type {
     LgaArrestFigures,
     StateArrestFigures,
@@ -141,6 +142,8 @@ export type NationalDashboardProps = {
 };
 
 export type StateDashboardProps = {
+    /** Phase 11H: the directors' Tasking card; null for national viewers. */
+    taskings?: DirectorTaskingCard | null;
     /** Phase 11C: null without arrests.view. */
     arrests: StateArrestFigures | null;
     place?: DashboardPlace;
@@ -193,6 +196,8 @@ export type StateDashboardProps = {
 };
 
 export type LgaDashboardProps = {
+    /** Phase 11H: "Messages from the Director". */
+    taskingInbox?: LgaTaskingInbox | null;
     /** Phase 11C: null without arrests.view. */
     arrests: LgaArrestFigures | null;
     period: DashboardPeriod;

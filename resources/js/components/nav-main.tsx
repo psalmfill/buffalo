@@ -16,6 +16,8 @@ const BADGE_LABELS = {
     coverageReview: 'awaiting your review',
     immediateThreats: 'active immediate threats',
     disseminations: 'shared with you, not yet acknowledged',
+    // LGA chiefs: unread; directors: taskings with an LGA overdue (Phase 11H).
+    taskings: 'unread or overdue taskings',
 } as const;
 
 export function NavMain({ sections }: { sections: NavSection[] }) {

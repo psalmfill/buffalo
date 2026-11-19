@@ -42,6 +42,9 @@ final class DatabaseRoles
         'record_access_logs',
         'record_match_events',
         'search_logs',
+        // Phase 11H: follow-up notes and further responses on taskings.
+        'tasking_notes',
+        'tasking_responses',
     ];
 
     /** Append-only except the place columns, which follow their parent. */

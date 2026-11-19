@@ -79,6 +79,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Taskings (Phase 11H)
+    |--------------------------------------------------------------------------
+    | Instructions from a State Director or Deputy to LGA Security Chiefs.
+    | The body, each completion report, further response and follow-up note
+    | are limited by their plain text. Attachments are counted separately on
+    | the tasking and on each LGA's report back. The overdue summary to the
+    | sender goes out at most once a day, from `overdue_summary_hour`.
+    */
+    'taskings' => [
+        'max_characters' => (int) env('BUFFALO_TASKING_MAX_CHARACTERS', 50000),
+        'response_max_characters' => (int) env('BUFFALO_TASKING_RESPONSE_MAX_CHARACTERS', 50000),
+        'note_max_characters' => (int) env('BUFFALO_TASKING_NOTE_MAX_CHARACTERS', 20000),
+        'max_attachments' => (int) env('BUFFALO_TASKING_MAX_ATTACHMENTS', 30),
+        'overdue_summary_hour' => (int) env('BUFFALO_TASKING_OVERDUE_SUMMARY_HOUR', 8),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Incident workflow (Phase 5C)
     |--------------------------------------------------------------------------
     | Minutes after submission within which an incident should be verified,

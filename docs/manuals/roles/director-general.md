@@ -17,6 +17,9 @@ As Director General you see **everything nationally**, up to **secret**.
    integrity alerts, unusual export activity.
 4. **Oversight** of cross-state access (Access requests → Oversight) and of
    exports (Administration → Exports review).
+5. **Taskings:** every tasking State Directors have sent, with each LGA's
+   progress and report back, read-only (Overview → Taskings; the state lens
+   applies). Only State Directors and their Deputies send taskings.
 
 ## Responsibilities only you hold
 

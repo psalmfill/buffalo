@@ -19,6 +19,10 @@ order: 20
   affected; act on "not shared" alerts.
 - **Security reports:** Mark reviewed (locks it) or Return for changes.
 - **Suggested blackspots:** Accept or Dismiss.
+- **Taskings:** dashboard → **New tasking**: tick one LGA, a district or
+  **Select all** → write → Send. Follow "n of N read"; open a row for the
+  LGA's report back. Sent taskings are fixed: **Add follow-up note** or
+  **Recall** (reason).
 
 ## Delegation
 

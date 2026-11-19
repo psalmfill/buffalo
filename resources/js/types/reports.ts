@@ -16,7 +16,8 @@ export type ReportTypeValue =
     | 'arrest'
     | 'threat_report'
     | 'criminal_group'
-    | 'person';
+    | 'person'
+    | 'tasking';
 
 export type ReportFormatValue = 'pdf' | 'xlsx' | 'csv';
 

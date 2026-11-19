@@ -15,7 +15,8 @@ order: 10
 - **Acknowledge** escalated incidents.
 - Act on critical notifications, including **audit integrity**, **evidence
   integrity** and **unusual exports** alerts.
-- **Oversight:** Access requests → Oversight; Administration → Exports review.
+- **Oversight:** Access requests → Oversight; Administration → Exports review;
+  Overview → Taskings (State Directors' instructions to LGAs, read-only).
 
 ## Only you
 

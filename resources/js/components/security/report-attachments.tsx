@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import {
     Download,
+    FileText,
     FileVideo,
     ImageIcon,
     Loader2,
@@ -43,6 +44,35 @@ type Pending = {
 
 const ACCEPT = '.jpg,.jpeg,.png,.webp,.mp4,.m4v,.webm';
 
+/** With documents (tasking attachments, Phase 11H): PDF, Word, Excel, text. */
+export const ACCEPT_WITH_DOCUMENTS = `${ACCEPT},.pdf,.docx,.xlsx,.txt`;
+
+/**
+ * Where an attachment set uploads and serves its files. Security reports
+ * (the default) and taskings (Phase 11H) share this component.
+ */
+export type AttachmentEndpoints = {
+    store: string;
+    thumb: (ulid: string) => string;
+    preview: (ulid: string) => string;
+    stream: (ulid: string) => string;
+    download: (ulid: string) => string;
+    update: (ulid: string) => string;
+    destroy: (ulid: string) => string;
+};
+
+export const reportAttachmentEndpoints = (
+    reportUlid: string,
+): AttachmentEndpoints => ({
+    store: ReportAttachmentController.store(reportUlid).url,
+    thumb: (u) => ReportAttachmentController.thumb(u).url,
+    preview: (u) => ReportAttachmentController.preview(u).url,
+    stream: (u) => ReportAttachmentController.stream(u).url,
+    download: (u) => ReportAttachmentController.download(u).url,
+    update: (u) => ReportAttachmentController.update(u).url,
+    destroy: (u) => ReportAttachmentController.destroy(u).url,
+});
+
 let counter = 0;
 
 /**
@@ -51,20 +81,38 @@ let counter = 0;
  * image gallery opening a larger preview, and an inline player for videos.
  * Files are served only through their own routes, after the malware scan;
  * items above the viewer's clearance are never sent by the server.
+ *
+ * Taskings (Phase 11H) pass their own `endpoints`, accept documents too
+ * (listed with a download link), and reload their own prop.
  */
 export default function ReportAttachments({
-    reportUlid,
+    reportUlid = '',
     reportLevel,
     attachments,
     canUpload,
     limits,
+    endpoints,
+    withDocuments = false,
+    heading,
+    reloadOnly = ['attachments'],
+    testId = 'report-attachments',
+    ownerLabel = 'report',
 }: {
-    reportUlid: string;
+    reportUlid?: string;
     reportLevel: ClassificationLevel;
     attachments: ReportAttachment[];
     canUpload: boolean;
-    limits: Pick<ReportLimits, 'maxAttachments' | 'imageMb' | 'videoMb'>;
+    limits: Pick<ReportLimits, 'maxAttachments' | 'imageMb' | 'videoMb'> & {
+        documentMb?: number;
+    };
+    endpoints?: AttachmentEndpoints;
+    withDocuments?: boolean;
+    heading?: string;
+    reloadOnly?: string[];
+    testId?: string;
+    ownerLabel?: string;
 }) {
+    const urls = endpoints ?? reportAttachmentEndpoints(reportUlid);
     const [pending, setPending] = useState<Pending[]>([]);
     const [dragging, setDragging] = useState(false);
     const [open, setOpen] = useState<ReportAttachment | null>(null);
@@ -74,6 +122,7 @@ export default function ReportAttachments({
 
     const images = attachments.filter((a) => a.type.value === 'image');
     const videos = attachments.filter((a) => a.type.value === 'video');
+    const documents = attachments.filter((a) => a.type.value === 'document');
     const room = limits.maxAttachments - attachments.length - pending.length;
 
     const add = (files: FileList | null) => {
@@ -107,7 +156,7 @@ export default function ReportAttachments({
             data.append('classification', row.classification);
 
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', ReportAttachmentController.store(reportUlid).url);
+            xhr.open('POST', urls.store);
             xhr.setRequestHeader('Accept', 'application/json');
             xhr.setRequestHeader('X-XSRF-TOKEN', xsrfToken());
             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
@@ -160,7 +209,7 @@ export default function ReportAttachments({
                     }
                 } else if (xhr.status === 403 || xhr.status === 404) {
                     errors = {
-                        file: 'You cannot add attachments to this report.',
+                        file: `You cannot add attachments to this ${ownerLabel}.`,
                     };
                 }
 
@@ -189,7 +238,7 @@ export default function ReportAttachments({
         }
 
         if (any) {
-            router.reload({ only: ['attachments'] });
+            router.reload({ only: reloadOnly });
         }
     };
 
@@ -206,10 +255,12 @@ export default function ReportAttachments({
             id="attachments"
             aria-labelledby="attachments-heading"
             className="space-y-4 rounded-lg border p-4"
-            data-test="report-attachments"
+            data-test={testId}
         >
             <h2 id="attachments-heading" className="text-sm font-semibold">
-                Photos and videos ({attachments.length})
+                {heading ??
+                    (withDocuments ? 'Attachments' : 'Photos and videos')}{' '}
+                ({attachments.length})
             </h2>
 
             {canUpload && (
@@ -224,7 +275,11 @@ export default function ReportAttachments({
                         className={`flex flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center text-sm ${dragging ? 'border-primary bg-primary/5' : 'text-muted-foreground'}`}
                     >
                         <Upload className="size-5" />
-                        <p>Drop photos or videos here</p>
+                        <p>
+                            {withDocuments
+                                ? 'Drop photos, videos or documents here'
+                                : 'Drop photos or videos here'}
+                        </p>
                         <Button
                             type="button"
                             variant="outline"
@@ -238,9 +293,15 @@ export default function ReportAttachments({
                             ref={input}
                             type="file"
                             multiple
-                            accept={ACCEPT}
+                            accept={
+                                withDocuments ? ACCEPT_WITH_DOCUMENTS : ACCEPT
+                            }
                             className="sr-only"
-                            aria-label="Photos and videos"
+                            aria-label={
+                                withDocuments
+                                    ? 'Attachments'
+                                    : 'Photos and videos'
+                            }
                             data-test="attachment-input"
                             onChange={(e) => {
                                 add(e.target.files);
@@ -249,9 +310,12 @@ export default function ReportAttachments({
                         />
                         <p className="text-xs">
                             JPEG, PNG or WebP photos up to {limits.imageMb} MB;
-                            MP4 or WebM videos up to {limits.videoMb} MB; at
-                            most {limits.maxAttachments} per report. Files are
-                            checked for malware and stored exactly as uploaded.
+                            MP4 or WebM videos up to {limits.videoMb} MB;
+                            {withDocuments &&
+                                ` PDF, Word, Excel or text documents up to ${limits.documentMb ?? limits.imageMb} MB;`}{' '}
+                            at most {limits.maxAttachments} per {ownerLabel}.
+                            Files are checked for malware and stored exactly as
+                            uploaded.
                         </p>
                     </div>
 
@@ -338,7 +402,7 @@ export default function ReportAttachments({
 
             {attachments.length === 0 && pending.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                    No photos or videos.
+                    {withDocuments ? 'No attachments.' : 'No photos or videos.'}
                 </p>
             )}
 
@@ -358,11 +422,7 @@ export default function ReportAttachments({
                             >
                                 {item.has_thumb ? (
                                     <img
-                                        src={
-                                            ReportAttachmentController.thumb(
-                                                item.ulid,
-                                            ).url
-                                        }
+                                        src={urls.thumb(item.ulid)}
                                         alt={item.caption ?? ''}
                                         className="size-full object-cover"
                                     />
@@ -377,6 +437,7 @@ export default function ReportAttachments({
                             </button>
                             <AttachmentMeta
                                 item={item}
+                                urls={urls}
                                 onEdit={() => setEditing(item)}
                                 onRemove={() => setRemoving(item)}
                             />
@@ -394,11 +455,7 @@ export default function ReportAttachments({
                                     controls
                                     preload="metadata"
                                     className="w-full rounded-md border bg-black"
-                                    src={
-                                        ReportAttachmentController.stream(
-                                            item.ulid,
-                                        ).url
-                                    }
+                                    src={urls.stream(item.ulid)}
                                 />
                             ) : (
                                 <div className="flex aspect-video items-center justify-center gap-2 rounded-md border bg-muted text-sm text-muted-foreground">
@@ -408,9 +465,42 @@ export default function ReportAttachments({
                             )}
                             <AttachmentMeta
                                 item={item}
+                                urls={urls}
                                 onEdit={() => setEditing(item)}
                                 onRemove={() => setRemoving(item)}
                             />
+                        </li>
+                    ))}
+                </ul>
+            )}
+
+            {documents.length > 0 && (
+                <ul
+                    className="grid gap-3 md:grid-cols-2"
+                    aria-label="Documents"
+                >
+                    {documents.map((item) => (
+                        <li
+                            key={item.ulid}
+                            className="flex gap-3 rounded-md border p-3"
+                        >
+                            <FileText className="size-6 shrink-0 text-muted-foreground" />
+                            <div className="min-w-0 space-y-1">
+                                <p className="truncate text-sm">
+                                    {item.original_filename}
+                                </p>
+                                {item.scan.value !== 'clean' && (
+                                    <p className="text-xs text-muted-foreground">
+                                        {item.scan.label}
+                                    </p>
+                                )}
+                                <AttachmentMeta
+                                    item={item}
+                                    urls={urls}
+                                    onEdit={() => setEditing(item)}
+                                    onRemove={() => setRemoving(item)}
+                                />
+                            </div>
                         </li>
                     ))}
                 </ul>
@@ -431,10 +521,7 @@ export default function ReportAttachments({
                     </DialogHeader>
                     {open?.has_preview && (
                         <img
-                            src={
-                                ReportAttachmentController.preview(open.ulid)
-                                    .url
-                            }
+                            src={urls.preview(open.ulid)}
                             alt={open.caption ?? ''}
                             className="max-h-[70vh] w-full object-contain"
                         />
@@ -445,6 +532,7 @@ export default function ReportAttachments({
             {editing && (
                 <EditAttachment
                     item={editing}
+                    urls={urls}
                     reportLevel={reportLevel}
                     onClose={() => setEditing(null)}
                 />
@@ -452,6 +540,8 @@ export default function ReportAttachments({
             {removing && (
                 <RemoveAttachment
                     item={removing}
+                    urls={urls}
+                    ownerLabel={ownerLabel}
                     onClose={() => setRemoving(null)}
                 />
             )}
@@ -461,10 +551,12 @@ export default function ReportAttachments({
 
 function AttachmentMeta({
     item,
+    urls,
     onEdit,
     onRemove,
 }: {
     item: ReportAttachment;
+    urls: AttachmentEndpoints;
     onEdit: () => void;
     onRemove: () => void;
 }) {
@@ -479,9 +571,7 @@ function AttachmentMeta({
             <div className="flex flex-wrap gap-2">
                 {item.can.download && (
                     <a
-                        href={
-                            ReportAttachmentController.download(item.ulid).url
-                        }
+                        href={urls.download(item.ulid)}
                         className="inline-flex items-center gap-1 underline"
                     >
                         <Download className="size-3" /> Original
@@ -512,10 +602,12 @@ function AttachmentMeta({
 
 function EditAttachment({
     item,
+    urls,
     reportLevel,
     onClose,
 }: {
     item: ReportAttachment;
+    urls: AttachmentEndpoints;
     reportLevel: ClassificationLevel;
     onClose: () => void;
 }) {
@@ -528,7 +620,7 @@ function EditAttachment({
 
     const save = () =>
         router.put(
-            ReportAttachmentController.update(item.ulid).url,
+            urls.update(item.ulid),
             {
                 caption,
                 captured_at: capturedAt === '' ? null : capturedAt,
@@ -597,16 +689,20 @@ function EditAttachment({
 
 function RemoveAttachment({
     item,
+    urls,
+    ownerLabel,
     onClose,
 }: {
     item: ReportAttachment;
+    urls: AttachmentEndpoints;
+    ownerLabel: string;
     onClose: () => void;
 }) {
     const [reason, setReason] = useState('');
     const [error, setError] = useState<string | undefined>();
 
     const remove = () =>
-        router.delete(ReportAttachmentController.destroy(item.ulid).url, {
+        router.delete(urls.destroy(item.ulid), {
             data: { reason },
             preserveScroll: true,
             onSuccess: onClose,
@@ -619,8 +715,8 @@ function RemoveAttachment({
                 <DialogHeader>
                     <DialogTitle>Remove this attachment?</DialogTitle>
                     <DialogDescription>
-                        It leaves the report; the stored file is kept and the
-                        removal is recorded with your reason.
+                        It leaves the {ownerLabel}; the stored file is kept and
+                        the removal is recorded with your reason.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-2">

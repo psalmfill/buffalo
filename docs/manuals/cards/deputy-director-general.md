@@ -16,6 +16,8 @@ order: 15
 - **Access requests → Oversight:** requests and grants in your states;
   decide escalated requests.
 - **Administration → Exports review:** who exported what, and when.
+- **Taskings** (Overview): your states' instructions to LGAs and their
+  progress, read-only.
 
 ## You can
 

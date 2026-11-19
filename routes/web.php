@@ -48,6 +48,7 @@ require __DIR__.'/political.php';
 require __DIR__.'/persons-of-interest.php';
 require __DIR__.'/access-requests.php';
 require __DIR__.'/security.php';
+require __DIR__.'/taskings.php';
 require __DIR__.'/organizations.php';
 require __DIR__.'/pickers.php';
 require __DIR__.'/incidents.php';

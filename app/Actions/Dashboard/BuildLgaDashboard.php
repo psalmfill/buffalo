@@ -21,6 +21,7 @@ use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
+use App\Support\Dashboard\TaskingFigures;
 use App\Support\Dashboard\ThreatFigures;
 use App\Support\Dashboard\ThreatReportFigures;
 use App\Support\Jurisdiction\JurisdictionLabel;
@@ -77,6 +78,8 @@ final class BuildLgaDashboard
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forLga($lga) : null,
             // Dissemination (Phase 7A).
             'sharedWithUs' => app(DisseminationFigures::class)->unacknowledged($user),
+            // Taskings (Phase 11H), through their scopes.
+            'taskingInbox' => app(TaskingFigures::class)->forLgaChief($user),
             'placeholders' => PlaceholderCards::for($label, $user),
         ];
     }

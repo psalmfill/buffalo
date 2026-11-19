@@ -11,6 +11,7 @@ import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
 import { LgaIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
+import { TaskingInboxCard } from '@/components/taskings/tasking-cards';
 import StatCard from '@/components/dashboard/stat-card';
 import { PoiRiskCards } from '@/components/dashboard/threat-figures';
 import CompletenessBar from '@/components/local-government/completeness-bar';
@@ -45,12 +46,15 @@ export default function LgaDashboard({
     access,
     coverage,
     organizations,
+    taskingInbox,
 }: LgaDashboardProps) {
     return (
         <>
             <Head title="Dashboard" />
             <div className="flex flex-col gap-6 p-4">
                 <DashboardHeader title={lga.label} subtitle={lga.state} />
+                {/* Taskings from the Director (Phase 11H), at the top. */}
+                {taskingInbox && <TaskingInboxCard inbox={taskingInbox} />}
                 <PeriodSelector period={period} />
                 <KpiTiles tiles={kpis} />
 

@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Report types (Phase 7D, extended in 11E and 11F). PDF reports need
+ * Report types (Phase 7D, extended in 11E, 11F and 11H). PDF reports need
  * reports.generate; list exports (`list`, any registered ListExporter)
  * need exports.lists, or exports.sensitive for the sensitive lists. Each
  * also needs its module's view permission (ReportPolicy).
@@ -29,6 +29,7 @@ enum ReportType: string
     case ThreatReport = 'threat_report';
     case CriminalGroup = 'criminal_group';
     case Person = 'person';
+    case Tasking = 'tasking';
 
     public function label(): string
     {
@@ -49,6 +50,7 @@ enum ReportType: string
             self::ThreatReport => 'Threat report',
             self::CriminalGroup => 'Criminal group',
             self::Person => 'Person record',
+            self::Tasking => 'Tasking',
         };
     }
 
@@ -72,7 +74,7 @@ enum ReportType: string
     /** One record, printed from its page (Phase 7D incident and coverage; 11E the rest). */
     public function isRecord(): bool
     {
-        return in_array($this, [self::Incident, self::Coverage, self::Flashpoint, self::OrganizationSite, self::Arrest, self::ThreatReport, self::CriminalGroup, self::Person], true);
+        return in_array($this, [self::Incident, self::Coverage, self::Flashpoint, self::OrganizationSite, self::Arrest, self::ThreatReport, self::CriminalGroup, self::Person, self::Tasking], true);
     }
 
     /** Requested from the /reports page (record PDFs and list exports come from their pages). */
@@ -95,6 +97,7 @@ enum ReportType: string
             self::ThreatReport => 'threat',
             self::CriminalGroup => 'group',
             self::Person => 'person',
+            self::Tasking => 'tasking',
             default => null,
         };
     }

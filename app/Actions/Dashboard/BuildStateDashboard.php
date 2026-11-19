@@ -28,6 +28,7 @@ use App\Support\Dashboard\IncidentFigures;
 use App\Support\Dashboard\MapView;
 use App\Support\Dashboard\OrganizationFigures;
 use App\Support\Dashboard\PlaceholderCards;
+use App\Support\Dashboard\TaskingFigures;
 use App\Support\Dashboard\ThreatFigures;
 use App\Support\Dashboard\ThreatReportFigures;
 use App\Support\Jurisdiction\JurisdictionLabel;
@@ -114,6 +115,8 @@ final class BuildStateDashboard
             'threatReports' => $user->can('viewAny', ThreatReport::class) ? app(ThreatReportFigures::class)->forState($state) : null,
             // Dissemination (Phase 7A).
             'sharedWithUs' => app(DisseminationFigures::class)->unacknowledged($user),
+            // Taskings (Phase 11H), through their scopes.
+            'taskings' => app(TaskingFigures::class)->forDirector($user),
             // Phase 10A: last night's duplicate candidate count (counts only;
             // State Directors only, as it includes records above a deputy's
             // clearance), and pending merge requests.

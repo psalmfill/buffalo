@@ -6,6 +6,7 @@ use App\Enums\EvidenceScanStatus;
 use App\Jobs\ProcessEvidenceJob;
 use App\Models\CoverageReportAttachment;
 use App\Models\IncidentEvidence;
+use App\Models\TaskingAttachment;
 use Illuminate\Console\Command;
 
 /**
@@ -44,7 +45,17 @@ class ScanQuarantinedEvidenceCommand extends Command
                 $count++;
             });
 
-        $this->components->info("{$count} quarantined evidence items and report attachments queued for scanning.");
+        // Tasking attachments (Phase 11H).
+        TaskingAttachment::query()
+            ->where('scan_status', EvidenceScanStatus::Quarantined->value)
+            ->select(['id', 'uploaded_by'])
+            ->orderBy('id')
+            ->each(function (TaskingAttachment $attachment) use (&$count): void {
+                ProcessEvidenceJob::dispatch($attachment->id, $attachment->uploaded_by, TaskingAttachment::class);
+                $count++;
+            });
+
+        $this->components->info("{$count} quarantined evidence items and attachments queued for scanning.");
 
         return self::SUCCESS;
     }

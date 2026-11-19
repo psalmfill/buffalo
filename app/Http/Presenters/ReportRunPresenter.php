@@ -97,7 +97,7 @@ final class ReportRunPresenter
             ReportType::ListExport => (ListExporters::find((string) ($p['list'] ?? ''))?->label() ?? 'A list')
                 .(count((array) ($p['filters'] ?? [])) === 0 ? ' · no filters' : ' · '.count((array) $p['filters']).' filter(s) applied'),
             ReportType::Flashpoint, ReportType::OrganizationSite, ReportType::Arrest, ReportType::ThreatReport,
-            ReportType::CriminalGroup, ReportType::Person => self::record($type, $p),
+            ReportType::CriminalGroup, ReportType::Person, ReportType::Tasking => self::record($type, $p),
         };
     }
 

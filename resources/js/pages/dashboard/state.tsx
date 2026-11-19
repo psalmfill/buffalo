@@ -19,6 +19,7 @@ import { SharedWithUs } from '@/components/dashboard/dissemination-figures';
 import { StateIncidents } from '@/components/dashboard/incident-figures';
 import DashboardMap from '@/components/dashboard/dashboard-map';
 import { PlaceholderCardGrid } from '@/components/dashboard/placeholder-card';
+import { TaskingCard } from '@/components/taskings/tasking-cards';
 import StatCard from '@/components/dashboard/stat-card';
 import { PoiByPlaceTable } from '@/components/dashboard/threat-figures';
 import EmptyState from '@/components/empty-state';
@@ -48,6 +49,7 @@ export default function StateDashboard({
     coverage,
     organizations,
     duplicates,
+    taskings,
 }: StateDashboardProps) {
     const { can } = useAuth();
     const vacant = lgas.filter((lga) => lga.chief === null).length;
@@ -82,6 +84,8 @@ export default function StateDashboard({
                         )}
                     </div>
                 </DashboardHeader>
+                {/* Taskings to LGA chiefs (Phase 11H), at the top. */}
+                {taskings && <TaskingCard card={taskings} />}
                 <PeriodSelector period={period} analyticsPlace={place} />
                 <KpiTiles tiles={kpis} />
 

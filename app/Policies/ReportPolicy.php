@@ -61,6 +61,7 @@ final class ReportPolicy
             ReportType::ThreatReport => $actor->checkPermissionTo(Permission::ThreatsView->value),
             ReportType::CriminalGroup => $actor->checkPermissionTo(Permission::CriminalGroupsView->value),
             ReportType::Person => $actor->checkPermissionTo(Permission::PersonsView->value),
+            ReportType::Tasking => $actor->checkPermissionTo(Permission::TaskingsView->value),
         };
     }
 

@@ -19,7 +19,10 @@ Director's daily review work.
    Security reports): mark reviewed, or return for changes.
 4. Read new **threat reports** and **shared threats & flashpoints** from
    neighbouring states, and acknowledge them.
-5. If the State Director has **delegated** access decisions to you, decide
+5. **Taskings:** send instructions to the LGA Security Chiefs of your state
+   and follow their progress, exactly as the State Director does
+   ([Taskings](../guides/taskings.md)).
+6. If the State Director has **delegated** access decisions to you, decide
    requests in **Access requests → Awaiting my decision**
    ([Persons and cross-state requests](../guides/persons-and-cross-state-requests.md#deciding-a-request-state-director-delegated-deputy)).
 
@@ -30,6 +33,7 @@ Everything the LGA Security Chief can, for the whole state, plus:
 - verify, return, escalate incidents, start investigations, resolve, and
   amend after verification (with a reason);
 - review and return security reports;
+- send, follow up and recall taskings to your state's LGA chiefs;
 - disseminate threats and flashpoints to neighbouring states and LGAs;
 - export incident lists and generate monthly summaries;
 - decide access requests **while you hold an active delegation**.
